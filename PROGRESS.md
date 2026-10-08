@@ -3,7 +3,7 @@
 > Live board. Open it in VS Code and press **Ctrl+Shift+V** for a preview that refreshes on every save.
 > Both builders update their own section at every checkpoint. Legend: ✅ done · 🔨 in progress · ⏳ next · ⛔ blocked
 
-**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 21:05 IST
+**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 22:10 IST
 
 ## Checkpoints
 
@@ -74,8 +74,12 @@
   degrades to a labelled card instead of a white screen
 - ✅ **Built the API's HTTP layer** (`main.ts`, `app.module.ts`, `src/http/**`): 27 routes, auth
   guard + role rules, DTO mapping over A's services. `nest build` passes and the app boots.
-- 🔨 Swap mock mode for the real API — Postgres, Redis and Mailpit are now up on A's machine and
-  the schema is pushed, so this is unblocked as soon as the seed lands
+- ✅ Contract surface verified: all **59** paths `api/client.ts` calls exist in A's controllers,
+  zero missing (A has 2 spare routes the web app does not call yet)
+- ✅ Repaired the merged tree so both workspaces compile again (see the fix commit)
+- 🔨 Swap mock mode for the real API — path-level integration is done; response shapes are next,
+  and `npm run smoke:api` checks them field by field. Needs Postgres running (not available on
+  B's machine: no Docker), so this runs on A's machine or once infra is shared
 
 **Run the web app on its own, with no backend:**
 ```bash
@@ -112,6 +116,17 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
   did plus the agent, approval, mail-tracker and matching endpoints and are wired to the services
   rather than touching the DB, so the shell was superseded in the merge (recoverable from the old
   remote's history). Infra is up: Postgres :5433, Redis :6379, Mailpit :8025.
+- 22:10 · B · **Repaired the merge; the API now boots with no database.** Neither workspace
+  compiled after A's merge. (1) `.gitignore`'s bare `storage/` rule also matched
+  `apps/api/src/storage/`, so `storage.service.ts` was never committed — it existed only on A's
+  machine, which is why A's build passed and the repo's did not; rule anchored to `/storage/` and
+  the service reconstructed from its four call sites. (2) The merge left 3,330 lines of a second,
+  unreachable frontend in `apps/web/src`, the only thing failing the web typecheck; removed.
+  (3) `LlmService.onModuleInit` exited the whole process at boot when Postgres was unreachable;
+  now best-effort, so the API starts, serves `/api/system/status` and survives DB errors.
+  Verified: `nest build` clean, both `tsc --noEmit` clean, API listening on :3000 with no
+  Postgres and no Redis. Also diffed the contract: **all 59 web paths are served by A's API.**
+  **A's push block is not a disabled repo — B pushed four times; it is a credential problem.**
 - 21:05 · A · ⛔ **Push is blocked.** The repo moved to `github.com/ImpactX26/AlphaY` as asked, but
   GitHub answers `403 Repository 'ImpactX26/AlphaY' is disabled. Please ask the owner to check
   their account.` Fetch works, push does not. Everything is committed locally and will go up the
