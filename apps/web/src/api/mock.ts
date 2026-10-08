@@ -34,7 +34,7 @@ import type {
 import { ApiError } from './errors';
 import { loadSnapshot, saveSnapshot } from './mockStore';
 import { ANANYA_ID, ananyaState } from './fixtures/ananya';
-import { type ApplicantState, DAY, emptyScreen, freshState, guessKind, HOUR, SERVICES } from './fixtures/common';
+import { type ApplicantState, DAY, emptyScreen, freshState, guessKind, HOUR, SERVICES, withSections } from './fixtures/common';
 import { communityPosts, nursingCohort, rentalsFor } from './fixtures/community';
 import { germanyScreen } from './fixtures/germany';
 import { ROHAN_ID, rohanState, RWTH_SHORTLIST } from './fixtures/rohan';
@@ -148,7 +148,9 @@ const status = (applicantId: string, s: 'idle' | 'thinking' | 'working', detail?
 
 function pushScreen(s: ApplicantState, patch: Partial<Screen> = {}): void {
   s.screen = { ...s.screen, ...patch, version: s.screen.version + 1, updatedAt: nowIso() };
-  emit({ type: 'screen', screen: clone(s.screen) });
+  // Sections go out with the socket push too, not just the fetch: the nav reads them, and a live
+  // update that dropped them would make tabs disappear mid-demo.
+  emit({ type: 'screen', screen: withSections(clone(s.screen)) });
   persist();
 }
 
@@ -340,7 +342,7 @@ async function replayIntake(applicantId: string): Promise<void> {
     screen: { ...emptyScreen(applicantId, full.applicant.name), version },
   };
   states.set(applicantId, s);
-  emit({ type: 'screen', screen: clone(s.screen) });
+  emit({ type: 'screen', screen: withSections(clone(s.screen)) });
   refresh(applicantId, ['*']);
   emit({ type: 'pipeline', applicantId, stage: 'new_story', reason: 'Story uploaded.' });
   await wait(700);
@@ -756,7 +758,7 @@ export const mockApi: Api = {
   },
   async screen(id) {
     await latency();
-    const screen = clone(state(id).screen);
+    const screen = withSections(clone(state(id).screen));
     // With the API running the composer rebuilds this block from the thread on every run. The mock
     // does the same here, so a post made in the demo shows up instead of a frozen fixture.
     screen.blocks = screen.blocks.map((b) =>

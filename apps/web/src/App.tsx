@@ -16,6 +16,7 @@ const ShortlistPage = lazy(() => import('./applicant/ShortlistPage'));
 const PlanPage = lazy(() => import('./applicant/PlanPage'));
 const LifePage = lazy(() => import('./applicant/LifePage'));
 const InboxPage = lazy(() => import('./applicant/InboxPage'));
+const SectionPage = lazy(() => import('./applicant/SectionPage'));
 const ApprovalPage = lazy(() => import('./applicant/ApprovalPage'));
 const InterviewPage = lazy(() => import('./applicant/InterviewPage'));
 
@@ -62,6 +63,10 @@ export function App() {
           <Route path="shortlist" element={<ShortlistPage />} />
           <Route path="plan" element={<PlanPage />} />
           <Route path="life" element={<LifePage />} />
+          {/* Money and Safety are rendered from the API's own sections, so a block the composer
+              starts sending appears without a change here. */}
+          <Route path="money" element={<SectionPage section="money" />} />
+          <Route path="safety" element={<SectionPage section="safety" />} />
           <Route path="inbox" element={<InboxPage />} />
           <Route path="approvals/:approvalId" element={<ApprovalPage />} />
           <Route path="interview" element={<InterviewPage />} />

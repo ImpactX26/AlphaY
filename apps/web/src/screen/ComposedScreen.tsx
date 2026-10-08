@@ -6,6 +6,7 @@ import { Link } from 'react-router';
 import { ErrorBoundary } from '../app/ErrorBoundary';
 import { Skeleton } from '../ui/misc';
 import { BlockRenderer } from './BlockRenderer';
+import { sectionPath } from './sections';
 
 /** "requirement_matrix" reads as "Requirement matrix" when a block fails to draw. */
 function blockLabel(type: string): string {
@@ -66,14 +67,13 @@ const ELSEWHERE: Partial<Record<Block['type'], { to: string; page: string }>> = 
   arrival: { to: '/app/life', page: 'Life' },
   documents: { to: '/app/profile', page: 'Profile' },
   community: { to: '/app/inbox', page: 'Cohort' },
-  // The five jury blocks are all standing reference rather than something to act on today, and
-  // dropping them on Home would rebuild the wall of boxes the simpler-interface note asked us to
-  // tear down. Life owns the money and the move; "Is it safe?" owns the rest.
-  finance_plan: { to: '/app/life', page: 'Life' },
-  cohort_group: { to: '/app/life', page: 'Life' },
-  scam_check: { to: '/app/life', page: 'Life' },
-  reality_check: { to: '/app/life', page: 'Life' },
-  help: { to: '/app/life', page: 'Life' },
+  // The five newer blocks are routed by the composer's `section` instead, which is why there is no
+  // entry for them here: two tables deciding the same thing is how they come to disagree.
+  finance_plan: { to: '/app/money', page: 'Money' },
+  scam_check: { to: '/app/safety', page: 'Safety' },
+  help: { to: '/app/safety', page: 'Safety' },
+  reality_check: { to: '/app/plan', page: 'Plan' },
+  cohort_group: { to: '/app/inbox', page: 'Cohort' },
 };
 
 // Everything else stays on Home, including the truth map and the requirement matrix: the agent
@@ -114,10 +114,13 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
 
   // Home asks for `focus`: keep what needs an answer or a tap now, and point at the page that
   // owns the rest. Without it every block renders, which is what the staff read-only view wants.
+  //
+  // `section` on the block wins when the API sends it, because the API is what knows a block
+  // exists; `ELSEWHERE` is the fallback for a stored screen composed before sections existed.
   const kept = useMemo(() => {
     if (!screen) return [];
     if (!focus) return screen.blocks;
-    return screen.blocks.filter((b) => !ELSEWHERE[b.type]);
+    return screen.blocks.filter((b) => (b.section ? b.section === 'home' : !ELSEWHERE[b.type]));
   }, [screen, focus]);
 
   // Four things shouting at once is not a dashboard. The most urgent ask keeps its panel; the
@@ -139,6 +142,14 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
   const movedOut = useMemo(() => {
     if (!screen || !focus) return [];
     const pages = new Map<string, string>();
+    // Prefer the API's own sections: it lists only the ones that have blocks, already in reading
+    // order, so Home never offers a link to an empty page.
+    if (screen.sections?.length) {
+      for (const s of screen.sections) {
+        if (s.id !== 'home' && s.blockIds.length) pages.set(s.label, sectionPath(s.id));
+      }
+      return [...pages].map(([page, to]) => ({ page, to }));
+    }
     for (const b of screen.blocks) {
       const dest = ELSEWHERE[b.type];
       if (dest) pages.set(dest.page, dest.to);
@@ -229,6 +240,15 @@ export function BlocksOfType({ screen, types, className }: { screen: Screen | un
   // ranked them the other way, because you pick a room before you plan your first week.
   const all = screen?.blocks ?? [];
   const blocks = types.flatMap((t) => all.filter((b) => b.type === t));
+  if (!blocks.length) return null;
+  return <BlockList blocks={blocks} className={className} />;
+}
+
+/**
+ * Blocks in the order given, each boxed so one bad block cannot take the page with it.
+ * Used by any page that has already decided what it is showing — a section, or a type filter.
+ */
+export function BlockList({ blocks, className }: { blocks: Block[]; className?: string }) {
   if (!blocks.length) return null;
   return (
     <div className={clsx('space-y-5', className)}>
