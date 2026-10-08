@@ -26,6 +26,7 @@ export interface ApplicantState {
   approvals: ApprovalRow[];
   calendar: CalendarRow[];
   outputs: Record<string, { output: Record<string, any>; at: Date }>;
+  community: (typeof schema.communityPosts.$inferSelect)[];
 }
 
 /** Best value for a key: document beats the applicant's own correction beats CV beats video. */
@@ -52,7 +53,7 @@ export class StateService {
 
   async load(applicantId: string): Promise<ApplicantState> {
     const applicant = await this.applicant(applicantId);
-    const [files, facts, questions, shortlist, gaps, approvals, calendar, outs] = await Promise.all([
+    const [files, facts, questions, shortlist, gaps, approvals, calendar, outs, community] = await Promise.all([
       db.query.files.findMany({ where: eq(schema.files.applicantId, applicantId), orderBy: asc(schema.files.createdAt) }),
       this.facts.list(applicantId),
       db.query.questions.findMany({ where: eq(schema.questions.applicantId, applicantId), orderBy: asc(schema.questions.createdAt) }),
@@ -61,6 +62,8 @@ export class StateService {
       db.query.approvals.findMany({ where: eq(schema.approvals.applicantId, applicantId), orderBy: desc(schema.approvals.createdAt) }),
       db.query.calendarEvents.findMany({ where: eq(schema.calendarEvents.applicantId, applicantId), orderBy: asc(schema.calendarEvents.startsAt) }),
       db.query.specialistOutputs.findMany({ where: eq(schema.specialistOutputs.applicantId, applicantId) }),
+      // The cohort thread is shared, not per-applicant: the newest handful, for the screen.
+      db.query.communityPosts.findMany({ orderBy: desc(schema.communityPosts.createdAt), limit: 24 }),
     ]);
     const outputs: ApplicantState['outputs'] = {};
     for (const o of outs) outputs[o.specialist] = { output: o.output as Record<string, any>, at: o.createdAt };
@@ -70,7 +73,7 @@ export class StateService {
       const q = questions.find((x) => x.status === 'open' && (x.meta?.candidateId?.endsWith(r.key) ?? false));
       if (q) r.questionId = q.id;
     }
-    return { applicant, files, facts, truth, questions, shortlist, gaps, approvals, calendar, outputs };
+    return { applicant, files, facts, truth, questions, shortlist, gaps, approvals, calendar, outputs, community };
   }
 
   /**

@@ -71,6 +71,13 @@ export class ComposerService {
           ],
         });
       }
+      // Once they are here, the safety half matters more than the planning half: rights at work, a
+      // landlord to check before a deposit leaves, and the people who arrived the same month.
+      const safetyG = outputs.safety?.output as any;
+      if (safetyG?.rights) blocks.push(helpBlock(safetyG));
+      if (safetyG?.group) blocks.push(groupBlock(safetyG.group));
+      if (safetyG?.scam) blocks.push(scamBlock(safetyG));
+      if (state.community.length) blocks.push(communityBlock(state));
       blocks.push({ id: 'services', type: 'services', services: [service('integration-companion')!, service('intercultural-workshop')!, service('consultant', state.applicant.id)!] });
       blocks.push(timelineBlock(state));
       return {
@@ -222,6 +229,18 @@ export class ComposerService {
     const tl = timelineBlock(state);
     if (tl.items.length) blocks.push(tl);
 
+    // ---------- is this real, and what is it actually like ----------
+    const safety = outputs.safety?.output as any;
+    if (safety?.scam) blocks.push(scamBlock(safety));
+    if (safety?.reality) blocks.push(realityBlock(safety.reality));
+    if (safety?.group) blocks.push(groupBlock(safety.group));
+    const finance = safety?.finance as any;
+    if (finance?.oneOff?.length) blocks.push(financeBlock(finance));
+    if (safety?.rights) blocks.push(helpBlock(safety));
+
+    // ---------- the cohort thread ----------
+    if (state.community.length) blocks.push(communityBlock(state));
+
     // ---------- services ----------
     if (route) blocks.push({ id: 'services', type: 'services', services: servicesForRoute(route, state.applicant.id) });
 
@@ -313,6 +332,97 @@ function rentalsBlock(housing: any): Block {
       note: l.note,
     })),
     source: housing.listingSource ?? 'Educaro district averages',
+  };
+}
+
+
+/** The cohort thread, newest first, with replies counted rather than inlined. */
+function communityBlock(state: ApplicantState): Block {
+  const roots = state.community.filter((p) => !p.parentId).slice(0, 6);
+  return {
+    id: 'community',
+    type: 'community',
+    channel: state.applicant.cohortChannel ?? 'educaro-cohort',
+    posts: roots.map((p) => ({
+      id: p.id,
+      author: p.author,
+      authorKind: p.authorKind,
+      text: p.text,
+      createdAt: p.createdAt.toISOString(),
+      replies: state.community.filter((r) => r.parentId === p.id).length,
+      viaDiscord: p.viaDiscord,
+    })),
+  };
+}
+
+
+/** Is this university, employer or landlord real, and is the contract fair. */
+function scamBlock(safety: any): Block {
+  return {
+    id: 'scam_check',
+    type: 'scam_check',
+    subject: safety.scam.subject,
+    verdict: safety.scam.verdict,
+    score: safety.scam.score,
+    signals: safety.scam.signals ?? [],
+    contractFlags: safety.contractFlags ?? [],
+    neverDo: safety.scam.neverDo ?? [],
+  };
+}
+
+/** What the route is actually like, including the parts a brochure leaves out. */
+function realityBlock(reality: any): Block {
+  return {
+    id: 'reality_check',
+    type: 'reality_check',
+    route: reality.route,
+    headline: reality.headline,
+    shifts: reality.shifts ?? [],
+    money: reality.money ?? [],
+    hard: reality.hard ?? [],
+    voices: reality.voices ?? [],
+    source: reality.source,
+  };
+}
+
+/** Who else is going to the same city in the same month. */
+function groupBlock(group: any): Block {
+  return {
+    id: 'cohort_group',
+    type: 'cohort_group',
+    city: group.city,
+    month: group.month,
+    members: group.members ?? [],
+    flatShare: group.flatShare ?? null,
+    travel: group.travel ?? null,
+    joined: Boolean(group.joined),
+  };
+}
+
+/** What they need before they can go, and when each piece lands. */
+function financeBlock(plan: any): Block {
+  return {
+    id: 'finance_plan',
+    type: 'finance_plan',
+    currency: 'EUR',
+    inrPerEur: plan.inrPerEur,
+    oneOff: plan.oneOff ?? [],
+    monthlyEur: plan.monthlyEur,
+    needBeforeTravelEur: plan.needBeforeTravelEur,
+    haveEur: plan.haveEur ?? null,
+    fundingGapEur: plan.fundingGapEur ?? null,
+    options: plan.options ?? [],
+  };
+}
+
+/** One tap when something is wrong, and the rights that apply whatever the contract says. */
+function helpBlock(safety: any): Block {
+  return {
+    id: 'help',
+    type: 'help',
+    rights: safety.rights ?? [],
+    contacts: safety.contacts ?? [],
+    reportHint: 'Tell us privately if an employer treats you badly. It stays between you and Educaro, and it changes how we rate that employer for everyone who comes after you.',
   };
 }
 

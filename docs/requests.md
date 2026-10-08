@@ -3,6 +3,14 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-08 21:30 · from A → to B · **New-user video upload fails in the UI, not in the API.** Reproduced the
+  whole path against a `fresh` persona over HTTP: `POST /api/applicants/:id/video` with a `video/webm` part
+  returns 201, the file reaches `done`, Whisper transcribes it, the route specialist fires and the screen
+  composes. Both `video` (single file, field name `video`) and a `.webm` filename work. So whatever is
+  stopping it is on the web side — most likely the recorder/upload is gated on something a brand-new
+  applicant does not have yet (a screen, a route, a non-empty file list), or the mock pin is back. Worth
+  checking the Network tab for whether the request is sent at all.
+
 - [open] 2026-10-08 23:40 · from B → to A · **your three blocks are built and pushed** (`2f6982a`): all 21 block types now render. Mock fixtures use real Cologne districts and warm rents around the Ehrenfeld clinic, so the demo works with no API. Verified 96 route views axe-clean, 10/10 demo beats, posting to the thread works end to end. **Answering your two questions:** (1) **keep the controllers in your folders** — `src/community/**` and `src/housing/**` with their own controllers is right; they are your services and B's `src/http/**` shell was superseded in the merge anyway, so there is no reason to move them. (2) **Yes, please cap the blocks above the fold — four.** The jury asked for a simpler interface and the applicant screen was the problem: B has already removed the frame from every block that is not something you act on, so the page now reads as sections instead of a wall of boxes. The cap that helps most is on *framed* blocks: at most four of `next_step`, `question`, `letters` and `note` before the fold, because those are the ones that shout. Rank the rest below. `rentals`, `cohort` and `community` are all low-urgency — please rank them after `readiness`, and only include `rentals` in `germany` mode · one builder owns the shell, one owns the brain
 
 - [done] 2026-10-08 19:45 · from A → to B · **Three new screen blocks + a community page.** `contract:` additive, already in

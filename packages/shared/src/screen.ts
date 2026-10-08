@@ -180,6 +180,69 @@ export interface CohortBlock extends Base {
   peers: { label: string; headline: string; nowAt: string }[];
 }
 
+/**
+ * Is this real?
+ *
+ * The people this product serves are the most defrauded group in the whole process: fake agents,
+ * fake offer letters, a "landlord" who wants a deposit by Western Union for a flat that does not
+ * exist. They are checking in a second language, under time pressure, from another continent. The
+ * checks are boring and known — this just runs them before the money leaves.
+ */
+export interface ScamCheckBlock extends Base {
+  type: 'scam_check';
+  subject: { kind: 'university' | 'employer' | 'landlord' | 'agent' | 'offer'; name: string };
+  verdict: 'looks_legitimate' | 'be_careful' | 'high_risk';
+  score: number;
+  signals: { label: string; status: 'good' | 'warn' | 'bad'; detail: string }[];
+  /** Unfair terms found in a contract, in plain words, with what the law actually says. */
+  contractFlags: { clause: string; why: string; lawSays: string; severity: 'unfair' | 'illegal' | 'watch' }[];
+  neverDo: string[];
+}
+
+/** Money over time, not money this month: what they need, when, and what is still missing. */
+export interface FinancePlanBlock extends Base {
+  type: 'finance_plan';
+  currency: 'EUR';
+  inrPerEur: number;
+  oneOff: { label: string; amountEur: number; whenMonth: string; paid: boolean; note?: string }[];
+  monthlyEur: number;
+  needBeforeTravelEur: number;
+  haveEur: number | null;
+  fundingGapEur: number | null;
+  options: { label: string; detail: string }[];
+}
+
+/** People going to the same city at the same time, so nobody arrives alone. */
+export interface CohortGroupBlock extends Base {
+  type: 'cohort_group';
+  city: string;
+  month: string;
+  members: { label: string; route: string; arrivingMonth: string; sharedInterest: string | null }[];
+  flatShare: { seats: number; budgetEachEur: number; district: string } | null;
+  travel: { label: string; detail: string } | null;
+  joined: boolean;
+}
+
+/** What the route is actually like, including the parts a brochure leaves out. */
+export interface RealityCheckBlock extends Base {
+  type: 'reality_check';
+  route: string;
+  headline: string;
+  shifts: { label: string; detail: string }[];
+  money: { label: string; detail: string }[];
+  hard: { stat: string; detail: string }[];
+  voices: { who: string; quote: string }[];
+  source: string;
+}
+
+/** One tap when something is wrong at work, and the rights that apply whatever the employer says. */
+export interface HelpBlock extends Base {
+  type: 'help';
+  rights: { title: string; detail: string }[];
+  contacts: { label: string; detail: string; url: string | null }[];
+  reportHint: string;
+}
+
 /** The cohort channel, in the app: the same thread that lives in Discord. */
 export interface CommunityBlock extends Base {
   type: 'community';
@@ -216,6 +279,11 @@ export type Block =
   | RentalsBlock
   | CohortBlock
   | CommunityBlock
+  | ScamCheckBlock
+  | FinancePlanBlock
+  | CohortGroupBlock
+  | RealityCheckBlock
+  | HelpBlock
   | NoteBlock;
 
 export type BlockType = Block['type'];

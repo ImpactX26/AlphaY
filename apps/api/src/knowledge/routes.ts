@@ -13,9 +13,11 @@ export type SpecialistName =
   | 'life'
   | 'writer'
   | 'interview'
-  | 'factcheck';
+  | 'factcheck'
+  | 'safety';
 
 export const SPECIALIST_LABEL: Record<SpecialistName, string> = {
+  safety: 'Safety and reality check',
   route: 'Route',
   exams: 'Exams and language',
   scout: 'University scout',
@@ -66,7 +68,7 @@ export const ROUTES: Record<Route, RouteSpec> = {
       { key: 'german', label: 'German certificate', kinds: ['language_certificate'], required: true },
     ],
     checks: ['papers', 'eligibility', 'language', 'money'],
-    specialists: ['route', 'exams', 'recognition', 'jobs', 'visa', 'money', 'housing', 'life'],
+    specialists: ['route', 'exams', 'recognition', 'jobs', 'visa', 'money', 'housing', 'life', 'safety'],
   },
   study: {
     route: 'study',
@@ -83,7 +85,7 @@ export const ROUTES: Record<Route, RouteSpec> = {
       { key: 'aps', label: 'APS certificate', kinds: ['aps_certificate'], required: true },
     ],
     checks: ['papers', 'eligibility', 'language', 'aps', 'money', 'deadline'],
-    specialists: ['route', 'exams', 'scout', 'visa', 'money', 'housing', 'life'],
+    specialists: ['route', 'exams', 'scout', 'visa', 'money', 'housing', 'life', 'safety'],
   },
   ausbildung: {
     route: 'ausbildung',
@@ -97,7 +99,7 @@ export const ROUTES: Record<Route, RouteSpec> = {
       { key: 'german', label: 'German certificate', kinds: ['language_certificate'], required: true },
     ],
     checks: ['papers', 'eligibility', 'language', 'money'],
-    specialists: ['route', 'exams', 'jobs', 'visa', 'money', 'housing', 'life'],
+    specialists: ['route', 'exams', 'jobs', 'visa', 'money', 'housing', 'life', 'safety'],
   },
   skilled_job: {
     route: 'skilled_job',
@@ -112,7 +114,7 @@ export const ROUTES: Record<Route, RouteSpec> = {
       { key: 'experience', label: 'Experience letters', kinds: ['experience_letter'], required: true },
     ],
     checks: ['papers', 'eligibility', 'language', 'money'],
-    specialists: ['route', 'exams', 'jobs', 'recognition', 'visa', 'money', 'housing', 'life'],
+    specialists: ['route', 'exams', 'jobs', 'recognition', 'visa', 'money', 'housing', 'life', 'safety'],
   },
   chancenkarte: {
     route: 'chancenkarte',
@@ -127,6 +129,6 @@ export const ROUTES: Record<Route, RouteSpec> = {
       { key: 'language', label: 'Language certificate', kinds: ['language_certificate'], required: true },
     ],
     checks: ['papers', 'eligibility', 'language', 'money'],
-    specialists: ['route', 'exams', 'jobs', 'visa', 'money', 'housing', 'life'],
+    specialists: ['route', 'exams', 'jobs', 'visa', 'money', 'housing', 'life', 'safety'],
   },
 };

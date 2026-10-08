@@ -337,3 +337,27 @@ export const interviewSessions = pgTable('interview_sessions', {
   status: text('status').$type<'active' | 'done'>().notNull().default('active'),
   createdAt: createdAt(),
 });
+
+/**
+ * The cohort thread. One row per post, replies point at their parent.
+ *
+ * The same thread lives in Discord: a post made in the app is mirrored there, and a message typed
+ * in the channel comes back here. `discordMessageId` is what keeps the two from echoing each other
+ * — a post we already know about is never re-posted when it arrives from the other side.
+ */
+export const communityPosts = pgTable(
+  'community_posts',
+  {
+    id: id(),
+    channel: text('channel').notNull().default('educaro-cohort'),
+    parentId: uuid('parent_id'),
+    applicantId: uuid('applicant_id').references(() => applicants.id, { onDelete: 'set null' }),
+    author: text('author').notNull(),
+    authorKind: text('author_kind').$type<'applicant' | 'agent' | 'staff'>().notNull().default('applicant'),
+    text: text('text').notNull(),
+    discordMessageId: text('discord_message_id').unique(),
+    viaDiscord: boolean('via_discord').notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index('community_channel_idx').on(t.channel, t.createdAt)],
+);

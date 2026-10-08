@@ -4,6 +4,8 @@ import { EventEmitter } from 'node:events';
 export interface BusEvents {
   agent_message: { applicantId: string; text: string; channel: 'web' | 'email' | 'discord' };
   notify: { applicantId: string; title: string; text: string; ics?: string; channels?: ('email' | 'discord')[] };
+  /** A post in the cohort thread that should be mirrored into the Discord channel. */
+  community_post: { id: string; channel: string; author: string; text: string; replyToDiscordId?: string | null };
 }
 
 /** In-process bus so chat, mail and Discord can talk without import cycles. */

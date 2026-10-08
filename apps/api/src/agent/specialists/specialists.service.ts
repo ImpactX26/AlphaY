@@ -11,6 +11,7 @@ import type { Kit, SpecialistResult } from './kit';
 import { routeSpecialist } from './route';
 import { examsSpecialist, recognitionSpecialist, visaSpecialist } from './papers';
 import { housingSpecialist, lifeSpecialist, moneySpecialist } from './living';
+import { safetySpecialist } from './safety';
 import { factcheckSpecialist, jobsSpecialist, scoutSpecialist } from './matching';
 
 type Fn = (kit: Kit) => Promise<SpecialistResult>;
@@ -27,6 +28,7 @@ export const LOOP_SPECIALISTS: Partial<Record<SpecialistName, Fn>> = {
   housing: housingSpecialist,
   life: lifeSpecialist,
   factcheck: factcheckSpecialist,
+  safety: safetySpecialist,
 };
 
 export function personalStrings(state: ApplicantState): string[] {

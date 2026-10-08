@@ -9,6 +9,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
   type Guild,
+  type Message,
   type TextChannel,
 } from 'discord.js';
 import { eq } from 'drizzle-orm';
@@ -22,6 +23,7 @@ import { QueueService } from '../queue/queue.service';
 import { TraceService } from '../trace/trace.service';
 import { ROUTE_LABEL, type Route } from '@educaro/shared';
 import { DISCORD_LINKS } from '../seed/catalogue';
+import { CommunityService } from '../community/community.service';
 
 const COHORT = 'educaro-cohort';
 
@@ -43,6 +45,7 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly bus: BusService,
+    private readonly community: CommunityService,
     private readonly chat: ChatService,
     private readonly state: StateService,
     private readonly q: QueueService,
@@ -71,7 +74,12 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     });
     this.client.on(Events.MessageCreate, (m) => {
       if (m.author.bot) return;
-      if (m.channel.type === ChannelType.DM) void this.onDm(m.author.id, m.content, (t) => m.reply(t)).catch((e) => this.log.error(e.message));
+      if (m.channel.type === ChannelType.DM) {
+        void this.onDm(m.author.id, m.content, (t) => m.reply(t)).catch((e) => this.log.error(e.message));
+        return;
+      }
+      // Anything typed in the cohort channel is a post in the thread, and shows in the app.
+      if ((m.channel as TextChannel).name === COHORT && m.content.trim()) void this.onCohortMessage(m).catch((e) => this.log.error(e.message));
     });
 
     this.bus.on('agent_message', async (p) => {
@@ -79,6 +87,13 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     });
     this.bus.on('notify', async (p) => {
       if (!p.channels || p.channels.includes('discord')) await this.dmApplicant(p.applicantId, `**${p.title}**\n${p.text}`);
+    });
+    this.bus.on('community_post', async (p) => {
+      const ch = await this.ensureCohort();
+      if (!ch) return;
+      // The bot is posting on someone's behalf, so the message says whose it is.
+      const sent = await ch.send(`**${p.author}:** ${p.text}`.slice(0, 1900)).catch(() => null);
+      if (sent) this.mirrored.add(sent.id);
     });
 
     try {
@@ -191,6 +206,23 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
   async announce(text: string) {
     const ch = await this.ensureCohort();
     await ch?.send(text);
+  }
+
+
+  /** Posts this bot wrote itself, so a mirrored message is never read back in as a new one. */
+  private readonly mirrored = new Set<string>();
+
+  private async onCohortMessage(m: Message) {
+    if (this.mirrored.has(m.id)) return;
+    const u = await db.query.users.findFirst({ where: eq(schema.users.discordUserId, m.author.id) });
+    const applicant = u ? await db.query.applicants.findFirst({ where: eq(schema.applicants.userId, u.id) }) : null;
+    await this.community.fromDiscord({
+      discordMessageId: m.id,
+      author: applicant?.name.split(' ')[0] ?? m.author.displayName ?? m.author.username,
+      text: m.content.trim(),
+      channel: COHORT,
+      applicantId: applicant?.id ?? null,
+    });
   }
 
   // ---------------- per-applicant ----------------
