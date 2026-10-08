@@ -3,7 +3,7 @@
 > Live board. Open it in VS Code and press **Ctrl+Shift+V** for a preview that refreshes on every save.
 > Both builders update their own section at every checkpoint. Legend: ✅ done · 🔨 in progress · ⏳ next · ⛔ blocked
 
-**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 18:40 IST
+**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 19:30 IST
 
 ## Checkpoints
 
@@ -38,7 +38,7 @@
 - ⏳ Supervisor (LLM plan + rule fallback) + required-checks guard
 - ⏳ Specialists: route, exams, scout, money, life, recognition, visa, housing, jobs, writer, interview, fact-checker
 - ⏳ Screen composer (code fills blocks, LLM orders and writes)
-- ⏳ HTTP API per contract + auth + demo logins
+- ✅ HTTP API per contract + auth + demo logins (**built by B** — 27 routes, boots, guards verified)
 - ⏳ Shortlist → official page → requirement matrix
 - ⏳ Gap finder → fix-it plans routed to Educaro services; readiness; pipeline stages
 - ⏳ Mail: real mailbox (SMTP + IMAP) + safe mode + Mailpit mirror as tracker
@@ -66,8 +66,10 @@
 - ✅ Polish: motion, empty states, a11y pass (axe-clean over 96 route views: 4 personas × light/dark × 375/1280)
 - ✅ Survives a half-built API: per-block + per-route + app error boundaries, so one bad field
   degrades to a labelled card instead of a white screen
-- ⛔ Swap mock mode for the real API — **blocked on Claude A**: `apps/api` has no `main.ts`,
-  no modules and no controllers, so nothing serves `/api` (nothing listening on :3000)
+- ✅ **Built the API's HTTP layer** (`main.ts`, `app.module.ts`, `src/http/**`): 27 routes, auth
+  guard + role rules, DTO mapping over A's services. `nest build` passes and the app boots.
+- ⏳ Swap mock mode for the real API — needs Postgres running (`docker compose up -d`,
+  `npm run db:push`) and A's seed, neither available on this machine (no Docker installed)
 
 **Run the web app on its own, with no backend:**
 ```bash
@@ -83,6 +85,12 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
 - 16:40 · B · Whole frontend runs end to end in mock mode: both personas, all 18 blocks, letter
   review, the staff command centre, employer matching and Germany mode with the OSM map. Driven in
   a real browser with zero console errors; 375px clean. Waiting on API endpoints to integrate.
+- 19:30 · B · **The API boots for the first time.** The HTTP layer did not exist after six hours,
+  so B built it on top of A's services as new files only: main.ts, app.module.ts and src/http/**
+  (auth + 4 demo personas, applicant reads, uploads, chat, plan reads, staff pipeline + queue,
+  system status). 27 routes map; guards verified live over HTTP (401/400/403). A's services are
+  untouched; the only edit to A's files is one missing `mammoth` dependency line that was breaking
+  `nest build` for everyone. A's remaining work is now the brain, not the shell — see requests.md.
 - 18:40 · B · Frontend polish done. a11y pass over 96 route views (4 personas x light/dark x
   375/1280px) with axe-core: 5 real violations fixed, now zero violations, zero console errors,
   no horizontal overflow. Hardened for integration: a malformed block from a half-built API used
