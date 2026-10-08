@@ -217,13 +217,13 @@ async function readFiles(s: ApplicantState, fileIds: string[]): Promise<void> {
   for (const fid of fileIds) {
     const file = s.files.find((f) => f.id === fid);
     if (!file) continue;
-    await wait(450);
+    await wait(220);
     file.status = 'reading';
     status(id, 'working', file.kind === 'video' ? 'Transcribing your video' : `Reading ${file.originalName}`);
     setBlock(s, documentsBlock(s));
     pushScreen(s);
     refresh(id, ['files']);
-    await wait(file.kind === 'video' ? 2600 : 900 + Math.random() * 900);
+    await wait(file.kind === 'video' ? 2400 : 420 + Math.random() * 480);
     if (file.kind === 'video') {
       file.status = 'done';
       s.transcript = {
@@ -241,6 +241,15 @@ async function readFiles(s: ApplicantState, fileIds: string[]): Promise<void> {
       file.confidence = Math.round(g.confidence * 100) / 100;
       file.status = g.confidence < 0.5 ? 'unclear' : 'done';
       trace(id, 'tool', 'classify_upload', { file: file.originalName, kind: g.kind, confidence: file.confidence, by: 'rules' });
+      // The truth map grows while the files are read: that is the moment the demo opens on.
+      if (file.status === 'done') {
+        s.truth = [
+          ...s.truth.filter((r) => r.key !== file.kind),
+          { key: file.kind, label: file.kindLabel ?? file.originalName, video: null, cv: null, document: file.originalName, status: 'verified', note: 'Read from the document.' },
+        ];
+        setBlock(s, { id: `b-${id}-truth`, type: 'truth_map', title: 'What your documents prove', rows: s.truth }, 'end');
+        refresh(id, ['truth-map']);
+      }
     }
     setBlock(s, documentsBlock(s));
     pushScreen(s);
@@ -254,7 +263,6 @@ function composeFirstRead(s: ApplicantState): void {
   const id = s.applicant.id;
   const first = s.applicant.name.split(' ')[0];
   const done = s.files.filter((f) => f.status === 'done' && f.kind !== 'video');
-  const unclear = s.files.filter((f) => f.status === 'unclear');
   const question = {
     id: `q-${id}-route`,
     prompt: 'What do you most want to do in Germany?',
@@ -262,29 +270,8 @@ function composeFirstRead(s: ApplicantState): void {
     options: ['Study (Bachelor or Master)', 'Ausbildung', 'Work as a nurse', 'A skilled job', 'Not sure yet'],
   };
   s.questions = [{ ...question, factKey: 'route', status: 'open', answer: null, createdAt: nowIso() }, ...s.questions];
-  s.truth = done.map((f) => ({
-    key: f.kind,
-    label: f.kindLabel ?? f.originalName,
-    video: null,
-    cv: null,
-    document: f.originalName,
-    status: 'verified' as const,
-    note: 'Read from the document.',
-  }));
-  s.screen = { ...s.screen, blocks: [] };
-  setBlock(s, { id: `b-${id}-q-route`, type: 'question', title: 'One question', questionId: question.id, prompt: question.prompt, why: question.why, options: question.options }, 'end');
-  if (unclear.length)
-    setBlock(
-      s,
-      {
-        id: `b-${id}-unclear`,
-        type: 'note',
-        tone: 'warn',
-        title: `${unclear.length === 1 ? 'One photo is' : `${unclear.length} photos are`} hard to read`,
-        body: 'Retake it in daylight, flat on a table, with all four corners in the frame. I won’t guess what it says.',
-      },
-      'end',
-    );
+  setBlock(s, { id: `b-${id}-q-route`, type: 'question', title: 'One question', questionId: question.id, prompt: question.prompt, why: question.why, options: question.options }, 'top');
+  // The unclear-photo warning lives in the documents block, next to the file itself.
   setBlock(s, documentsBlock(s), 'end');
   setBlock(s, { id: `b-${id}-truth`, type: 'truth_map', title: 'What your documents prove', rows: s.truth }, 'end');
   s.applicant = { ...s.applicant, mode: 'planning' };
