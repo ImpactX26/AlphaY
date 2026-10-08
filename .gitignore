@@ -1,7 +1,10 @@
 node_modules
 dist
 .env
-storage/
+# Uploaded and generated files at the repo root only. A bare `storage/` also matched
+# apps/api/src/storage/, which silently kept storage.service.ts out of the repo and broke
+# the build for everyone but its author.
+/storage/
 *.log
 .DS_Store
 WhisperFlow/
