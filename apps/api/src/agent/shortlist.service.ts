@@ -10,6 +10,7 @@ import { WebService } from '../web/web.service';
 import { cefrIndex, parseCefr } from '../knowledge/cefr';
 import { convertIndianGrade } from '../knowledge/grades';
 import { squashQuote } from '../knowledge/normalize';
+import { PROVIDERS } from '../knowledge/providers';
 import { daysUntil } from '../knowledge/normalize';
 import { AgentEventsService } from './events.service';
 import { StateService, bestFact, factData, type ApplicantState } from './state.service';
@@ -213,7 +214,7 @@ function programmeMatrix(st: ApplicantState, req: Requirements, url: string, onP
     });
   }
   const aps = st.files.some((f) => f.kind === 'aps_certificate' && f.status === 'done');
-  rows.push({ requirement: 'APS certificate', needs: 'Required for Indian degrees', has: aps ? 'On file' : 'Not started', status: aps ? 'meets' : 'start_now', tag: aps ? 'verified' : 'web', sourceUrl: 'https://www.aps-india.de/' });
+  rows.push({ requirement: 'APS certificate', needs: 'Required for Indian degrees', has: aps ? 'On file' : 'Not started', status: aps ? 'meets' : 'start_now', tag: aps ? 'verified' : 'web', sourceUrl: 'https://aps-india.de/' });
   if (req.gre?.required) rows.push({ requirement: 'GRE', needs: 'Required', has: 'Not found', status: 'missing', tag: 'web', sourceUrl: src(req.gre.quote) });
   rows.push({
     requirement: 'Application route',
@@ -269,7 +270,7 @@ function openingMatrix(st: ApplicantState, o: typeof schema.openings.$inferSelec
   ];
   if (o.needsRecognition) {
     const rec = st.facts.find((f) => f.key === 'recognition.status');
-    rows.push({ requirement: 'Recognition', needs: 'Anerkennung started', has: rec?.value ?? 'Not started', status: rec ? 'meets' : 'start_now', tag: 'ai', sourceUrl: 'https://www.educaro.de/anerkennung/' });
+    rows.push({ requirement: 'Recognition', needs: 'Anerkennung started', has: rec?.value ?? 'Not started', status: rec ? 'meets' : 'start_now', tag: 'ai', sourceUrl: PROVIDERS.recognition[0].url });
   }
   rows.push({ requirement: 'Start date', needs: o.startDate, has: 'Fits your timeline', status: 'info', tag: 'ai', sourceUrl: null });
   rows.push({ requirement: 'Location', needs: o.city, has: '', status: 'info', tag: 'ai', sourceUrl: null });

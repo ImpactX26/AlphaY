@@ -2,6 +2,7 @@ import type { CefrLevel, PipelineStage, Route } from '@educaro/shared';
 import { cefrIndex, parseCefr, WEEKS_PER_LEVEL } from '../knowledge/cefr';
 import { CEFR } from '@educaro/shared';
 import { OFFICIAL } from '../knowledge/official';
+import { linksFor } from '../knowledge/providers';
 import { ROUTES, type CheckId } from '../knowledge/routes';
 import { convertIndianGrade } from '../knowledge/grades';
 import { daysUntil } from '../knowledge/normalize';
@@ -193,7 +194,7 @@ export function runChecks(state: ApplicantState): CheckReport {
           where: 'ÖSD exam centre at Educaro',
           howLong: 'next exam date, results in about 2 weeks',
           cost: 'exam fee on educaro.de',
-          links: [{ label: 'Educaro language courses and ÖSD', url: 'https://www.educaro.de/sprachkurse/' }],
+          links: linksFor('german_exam', 3),
           serviceId: 'osd-exam',
           priority: 18,
         });
@@ -206,7 +207,7 @@ export function runChecks(state: ApplicantState): CheckReport {
           where: 'Educaro online batches + ÖSD exam centre at Educaro',
           howLong: `about ${steps * WEEKS_PER_LEVEL} weeks`,
           cost: 'course and exam fees on educaro.de',
-          links: [{ label: 'Educaro German courses', url: 'https://www.educaro.de/sprachkurse/' }],
+          links: linksFor('german_course'),
           serviceId: 'german-courses',
           priority: 10,
         });
@@ -264,7 +265,7 @@ export function runChecks(state: ApplicantState): CheckReport {
         where: 'APS India (aps-india.de), documents by courier',
         howLong: OFFICIAL.aps_time.value,
         cost: OFFICIAL.aps_fee.value,
-        links: [{ label: 'APS India', url: 'https://www.aps-india.de/' }],
+        links: linksFor('aps'),
         serviceId: 'study-guidance',
         priority: 5,
       });
@@ -282,10 +283,10 @@ export function runChecks(state: ApplicantState): CheckReport {
         key: 'blocked_account',
         title: 'Open a blocked account',
         what: `The student visa needs proof of ${OFFICIAL.blocked_account.value}. Open a blocked account (Sperrkonto) once you have an admission.`,
-        where: 'A provider listed by the German missions in India',
+        where: 'Fintiba or Expatrio, opened online from India',
         howLong: '1 to 2 weeks',
         cost: `${OFFICIAL.blocked_account.value} deposit plus a small provider fee`,
-        links: [{ label: 'Federal Foreign Office', url: OFFICIAL.blocked_account.url }],
+        links: [...linksFor('blocked_account', 2), { label: 'Federal Foreign Office', url: OFFICIAL.blocked_account.url }],
         serviceId: 'study-guidance',
         priority: 35,
       });
@@ -305,7 +306,7 @@ export function runChecks(state: ApplicantState): CheckReport {
         where: 'educaro Akademie',
         howLong: 'about 3 to 4 months for the decision',
         cost: 'authority fees vary by state',
-        links: [{ label: 'Anerkennung at Educaro', url: 'https://www.educaro.de/anerkennung/' }],
+        links: linksFor('recognition_nursing'),
         serviceId: 'anerkennung',
         priority: 25,
       });

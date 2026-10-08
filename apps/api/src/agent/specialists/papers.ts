@@ -1,5 +1,6 @@
 import { ROUTES } from '../../knowledge/routes';
 import { servicesForRoute, service } from '../../knowledge/services';
+import { linksFor } from '../../knowledge/providers';
 import { bestFact } from '../state.service';
 import { cite, type Kit, type SpecialistResult } from './kit';
 
@@ -31,7 +32,7 @@ export async function examsSpecialist(kit: Kit): Promise<SpecialistResult> {
       status: eng.some((f) => f.sourceKind === 'document') ? 'done' : eng.length ? 'pending' : 'not_started',
       note: eng.some((f) => f.sourceKind === 'document') ? 'Report on file' : eng.length ? `${eng[0].value} claimed, report not uploaded` : 'Book a test date',
     });
-    exams.push({ name: 'APS certificate', status: kinds.has('aps_certificate') ? 'done' : 'not_started', note: kinds.has('aps_certificate') ? 'On file' : 'Start now: every application waits for it', url: 'https://www.aps-india.de/' });
+    exams.push({ name: 'APS certificate', status: kinds.has('aps_certificate') ? 'done' : 'not_started', note: kinds.has('aps_certificate') ? 'On file' : 'Start now: every application waits for it', url: 'https://aps-india.de/' });
     exams.push({ name: 'GRE', status: 'not_needed', note: 'Not required by most public German universities' });
     exams.push({ name: 'TestDaF', status: 'not_needed', note: 'Only for German-taught programmes' });
   }
@@ -66,10 +67,7 @@ export async function recognitionSpecialist(kit: Kit): Promise<SpecialistResult>
       duration: 'about 3 to 4 months for the decision after a complete application',
       language: lang,
       service: service('anerkennung'),
-      links: [
-        { label: 'Anerkennung in Deutschland: nurses', url: `${process.env.API_URL || 'http://localhost:3000'}/api/mock/anerkennung-nursing` },
-        { label: 'Anerkennung at Educaro', url: 'https://www.educaro.de/anerkennung/' },
-      ],
+      links: linksFor('recognition_nursing'),
     },
   };
 }

@@ -27,7 +27,7 @@ export interface ContractFlag {
 export const REGISTERS = {
   university: { label: 'Hochschulkompass (official register of German universities)', url: 'https://www.hochschulkompass.de/' },
   anabin: { label: 'anabin (is this degree recognised in Germany)', url: 'https://anabin.kmk.org/' },
-  employer: { label: 'Handelsregister (German company register)', url: 'https://www.handelsregister.de/' },
+  employer: { label: 'Unternehmensregister (German company register)', url: 'https://www.unternehmensregister.de/' },
   agent: { label: 'Make it in Germany — official portal', url: 'https://www.make-it-in-germany.com/' },
   recognition: { label: 'Recognition in Germany — official finder', url: 'https://www.anerkennung-in-deutschland.de/' },
 };
