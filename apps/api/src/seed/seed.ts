@@ -13,6 +13,7 @@ import { QueueService } from '../queue/queue.service';
 import { ANANYA_DOCS, ANANYA_VIDEO_SCRIPT, ROHAN_DOCS, ROHAN_VIDEO_SCRIPT, type DemoDoc } from './documents';
 import { OPENINGS, PROGRAMME_ROWS } from './catalogue';
 import { seedCohort } from './cohort';
+import { AnnouncementsService } from '../community/announcements.service';
 import { WebService } from '../web/web.service';
 
 const log = new Logger('Seed');
@@ -167,6 +168,19 @@ async function main() {
   log.log(counts.join(' · '));
 
   await seedCohort(log);
+
+  // The feed is published by a Monday cron, so a database seeded on any other day shows an empty
+  // "New in Germany" tab — which reads as "not built" rather than "nothing this week", the same
+  // trap seedCohort exists to avoid. Publishing it here means the tab has something in it the
+  // moment the demo is seeded. It runs after seedCohort so the shortlist deadlines it collects
+  // already exist, and `jobs()` already swallows a network failure, so with no network this still
+  // yields the programme catalogue and the deadlines.
+  try {
+    const announced = await app.get(AnnouncementsService).publish();
+    log.log(`${announced.posted} announcements in the feed (${[...new Set(announced.items.map((i) => i.kind))].join(', ') || 'none'})`);
+  } catch (e) {
+    log.log(`announcements feed not published: ${(e as Error)?.message ?? e}`);
+  }
 
   await q.redis.quit().catch(() => undefined);
   await app.close();
