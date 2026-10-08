@@ -369,6 +369,17 @@
   .qr:disabled {
     opacity: 0.55;
   }
+  /* Answering: the tapped option holds, the rest step back. Both override the blanket
+     :disabled fade, which otherwise greys the chosen one along with everything else. */
+  .qr-chosen:disabled {
+    opacity: 1;
+    background: var(--agent);
+    border-color: var(--agent);
+    color: var(--surface);
+  }
+  .qr-dimmed:disabled {
+    opacity: 0.3;
+  }
 
   /* Form fields */
   .input {

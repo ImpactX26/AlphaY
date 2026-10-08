@@ -64,6 +64,7 @@ export function QuestionCard({ block }: { block: QuestionBlock }) {
   const { answerQuestion, answeringQuestionId, readOnly, sendChat } = useScreenActions();
   const [typed, setTyped] = useState('');
   const [typing, setTyping] = useState(false);
+  const [chosen, setChosen] = useState<string | null>(null);
   const busy = answeringQuestionId === block.questionId;
   const freeText = block.options.some((o) => /explain|something else|other/i.test(o));
   // A question is waiting on the applicant, so it stays framed: it is a thing to act on.
@@ -107,9 +108,17 @@ export function QuestionCard({ block }: { block: QuestionBlock }) {
             <button
               key={option}
               type="button"
-              className="qr"
+              // While the answer is in flight, the one they tapped stays lit and the others step
+              // back, so the tap is visibly received instead of a spinner appearing beside four
+              // buttons that all still look available.
+              className={clsx('qr', busy && (chosen === option ? 'qr-chosen' : 'qr-dimmed'))}
+              aria-pressed={chosen === option ? true : undefined}
               disabled={readOnly || busy}
-              onClick={() => (/explain|something else|other/i.test(option) ? setTyping(true) : answerQuestion(block.questionId, option))}
+              onClick={() => {
+                if (/explain|something else|other/i.test(option)) return setTyping(true);
+                setChosen(option);
+                answerQuestion(block.questionId, option);
+              }}
             >
               {option}
             </button>
