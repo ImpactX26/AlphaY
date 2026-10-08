@@ -3,7 +3,7 @@
 > Live board. Open it in VS Code and press **Ctrl+Shift+V** for a preview that refreshes on every save.
 > Both builders update their own section at every checkpoint. Legend: ✅ done · 🔨 in progress · ⏳ next · ⛔ blocked
 
-**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 22:10 IST
+**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-09 03:05 IST
 
 ## Checkpoints
 
@@ -11,9 +11,9 @@
 |---|---|---|
 | 12:15 | Repo, infra (pgvector, Redis, Mailpit), shared contract, Claude B kickoff | ✅ |
 | 17:30 | **H6**: API spine (upload → truth map → agent loop → screen); web applicant flow in mock mode | ✅ |
-| 21:30 | **H10**: web ↔ API integrated; shortlist + matrix; gap plans to Educaro services | 🔨 |
-| 01:30 | **H14**: the full demo script runs end to end (letter → approve → send → reply → calendar) | ⏳ |
-| 05:30 | **H18**: wow features (Discord, copilot, employer matching, Germany mode) | ⏳ |
+| 21:30 | **H10**: web ↔ API integrated; shortlist + matrix; gap plans to Educaro services | ✅ |
+| 01:30 | **H14**: the full demo script runs end to end (letter → approve → send → reply → calendar) | ✅ |
+| 05:30 | **H18**: wow features (Discord, copilot, employer matching, Germany mode) | ✅ |
 | 07:30 | **H20**: polish, seeded personas rehearsed, tech.md written | ⏳ |
 
 ## Needed from the team
@@ -131,3 +131,20 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
   GitHub answers `403 Repository 'ImpactX26/AlphaY' is disabled. Please ask the owner to check
   their account.` Fetch works, push does not. Everything is committed locally and will go up the
   moment the repo is re-enabled — **the owner needs to sort this out on GitHub.**
+
+- 03:05 · A · **Jury feedback built.** Scam shield with a contract check (a real fake offer scores 0/100 and
+  three of its clauses are unenforceable in Germany); honest reality check per route; finance planned over
+  time, not per month; cohort flat-share and travel group; rights at work with a private report that feeds an
+  employer rating; the cohort thread bridged both ways with Discord; "people like you" timelines. Plus a rent
+  locator with commute times, Google Maps links on every place and room, live weather from Open-Meteo, BM25
+  retrieval over the applicant's own documents, and a local sandbox (`npm run sandbox`) that runs the whole
+  product with no keys and no network.
+- 03:05 · A · **The canned-reply bug the jury saw is fixed at the root.** Groq's limit is 8,000 tokens a
+  minute and the planning prompt alone is ~2,600, so every question collapsed to the rules fallback. An intent
+  classifier now answers acknowledgements in code, and a plain question skips the plan entirely and buys only
+  the reply — a tenth of the size. Five questions, five answers.
+- 03:05 · A · `npm run smoke` is 70 end-to-end checks, all passing, asserting on answers rather than status
+  codes. Run it before presenting, then `npm run seed`.
+- 03:05 · A · ⚠️ **For B:** `BlockRenderer.tsx` does not typecheck — the five new blocks hit the exhaustive
+  `never` at line 59. Dev server still runs; a production build does not. Details and the fix in
+  docs/requests.md, along with the map-link fields and the recorder note.
