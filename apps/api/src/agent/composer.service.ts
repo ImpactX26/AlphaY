@@ -237,6 +237,20 @@ export class ComposerService {
     const housing = outputs.housing?.output as any;
     if (housing?.listings?.length) blocks.push(rentalsBlock(housing));
 
+    // What is around where they are going, while they are still deciding whether to go.
+    //
+    // This was gated behind Germany mode, so the map only appeared once somebody had already
+    // arrived — which is the one moment they no longer need it. "Is there an Indian shop, where is
+    // the Bürgeramt, how far is the station" are questions people ask months before the flight, and
+    // every alumnus says a version of "find the Indian shop in week one".
+    const lifeNow = outputs.life?.output as any;
+    // Empty categories are dropped rather than shown at zero: Overpass throttles, and a chip
+    // reading "Pharmacies 0" says we looked and there are none, which is false and unhelpful.
+    const lifeGroups = (lifeNow?.groups ?? []).filter((g: any) => g.places?.length);
+    if (lifeGroups.length) {
+      blocks.push({ id: 'places', type: 'places', city: lifeNow.city, center: lifeNow.center, groups: lifeGroups });
+    }
+
     // ---------- timeline ----------
     const tl = timelineBlock(state);
     if (tl.items.length) blocks.push(tl);
@@ -698,7 +712,7 @@ const DEMANDING = new Set<Block['type']>(['next_step', 'question', 'letters', 'n
 const MAX_DEMANDING_ABOVE_FOLD = 4;
 
 /** Low-urgency by nature: worth having, never worth interrupting for. */
-const CALM = new Set<Block['type']>(['rentals', 'cohort', 'cohort_group', 'community', 'services', 'reality_check']);
+const CALM = new Set<Block['type']>(['rentals', 'places', 'cohort', 'cohort_group', 'community', 'services', 'reality_check']);
 
 function rankForReading(blocks: Block[]): Block[] {
   const demanding: Block[] = [];

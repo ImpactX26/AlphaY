@@ -3,17 +3,11 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import { PLACE_COLOR as COLOR } from './placeStyle';
 
 type Place = PlacesBlock['groups'][number]['places'][number] & { kind: string; groupLabel: string };
 
-const COLOR: Record<string, string> = {
-  office: 'var(--agent)',
-  grocery: 'var(--applicant)',
-  worship: 'var(--staff)',
-  pharmacy: 'var(--bad)',
-  restaurant: 'var(--loop)',
-  transport: 'var(--rules)',
-};
+
 
 const homeIcon = L.divIcon({
   className: '',

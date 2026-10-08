@@ -1,31 +1,78 @@
 import type { PlacesBlock } from '@educaro/shared';
 import clsx from 'clsx';
-import { Building2, Church, Cross, MapPin, ShoppingBasket, Train, Utensils } from 'lucide-react';
+import { BedDouble, Building2, Church, Cross, Dumbbell, GraduationCap, Landmark, MapPin, Shield, ShoppingBasket, Stethoscope, Train, Utensils } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { Spinner } from '../../ui/Spinner';
 import { BlockFrame } from '../BlockFrame';
+import { PLACE_COLOR } from './placeStyle';
 
 // Leaflet is ~150 KB: only the Germany-mode screen pays for it.
 const PlacesMap = lazy(() => import('./PlacesMap'));
 
+/** Keys match `place-groups.ts`. The previous set did not, so every category drew the same pin. */
 const GROUP_ICON: Record<string, typeof MapPin> = {
-  office: Building2,
   grocery: ShoppingBasket,
-  worship: Church,
-  pharmacy: Cross,
+  supermarket: ShoppingBasket,
   restaurant: Utensils,
-  transport: Train,
+  temple: Church,
+  church: Church,
+  buergeramt: Building2,
+  station: Train,
+  pharmacy: Cross,
+  doctor: Stethoscope,
+  police: Shield,
+  hostel: BedDouble,
+  language_school: GraduationCap,
+  bank: Landmark,
+  gym: Dumbbell,
 };
 
 export function PlacesCard({ block }: { block: PlacesBlock }) {
   const [active, setActive] = useState<string | null>(null);
-  const places = block.groups.flatMap((g) => g.places.map((p) => ({ ...p, kind: g.kind, groupLabel: g.label })));
+  // Which categories are drawn. Eight categories at once is a sheet of confetti rather than a map,
+  // so a tap narrows it to the one question somebody actually has right now.
+  const [only, setOnly] = useState<string | null>(null);
+
+  const shown = only ? block.groups.filter((g) => g.kind === only) : block.groups;
+  const places = shown.flatMap((g) => g.places.map((p) => ({ ...p, kind: g.kind, groupLabel: g.label })));
+
   return (
     <BlockFrame
       kicker={block.title ?? `Near you in ${block.city}`}
       body={block.body}
       footer={<span>Places from OpenStreetMap. Distances are straight-line, from your address.</span>}
     >
+      <div className="mb-2.5 flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => setOnly(null)}
+          aria-pressed={only === null}
+          className={clsx('rounded-full border px-2.5 py-1 text-[12px] transition', only === null ? 'border-ink bg-ink font-medium text-surface' : 'border-line hover:border-ink/40')}
+        >
+          Everything
+        </button>
+        {block.groups.map((g) => {
+          const Icon = GROUP_ICON[g.kind] ?? MapPin;
+          return (
+            <button
+              key={g.kind}
+              type="button"
+              onClick={() => setOnly(only === g.kind ? null : g.kind)}
+              aria-pressed={only === g.kind}
+              className={clsx(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition',
+                only === g.kind ? 'border-ink bg-ink font-medium text-surface' : 'border-line hover:border-ink/40',
+              )}
+            >
+              <span className="h-2 w-2 flex-none rounded-full" style={{ background: PLACE_COLOR[g.kind] ?? 'var(--ink)' }} aria-hidden />
+              <Icon size={12} aria-hidden />
+              {g.label}
+              <span className="num text-muted">{g.places.length}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="overflow-hidden rounded-lg border border-line">
         <Suspense
           fallback={
@@ -40,7 +87,7 @@ export function PlacesCard({ block }: { block: PlacesBlock }) {
         </Suspense>
       </div>
       <div className="mt-3 space-y-3">
-        {block.groups.map((group) => {
+        {shown.map((group) => {
           const Icon = GROUP_ICON[group.kind] ?? MapPin;
           return (
             <section key={group.kind}>

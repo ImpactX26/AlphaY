@@ -95,14 +95,14 @@ export const PLACE_GROUPS: PlaceGroup[] = [
     label: 'Police stations',
     filters: ['["amenity"="police"]'],
     match: /\b(police|polizei|report a (crime|theft)|stolen|unsafe)\b/i,
-    primary: false,
+    primary: true,
   },
   {
     kind: 'hostel',
     label: 'Hostels and cheap first nights',
     filters: ['["tourism"~"hostel|guest_house"]', '["tourism"="hotel"]["stars"~"1|2"]'],
     match: /\b(hostel|guest ?house|first night|somewhere to stay|temporary (place|accommodation)|cheap hotel)\b/i,
-    primary: false,
+    primary: true,
   },
   {
     kind: 'language_school',
