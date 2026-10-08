@@ -77,6 +77,19 @@ export class WebService {
 
   /** web_fetch: open a page, keep its visible text, log it as a source for this run. */
   async fetchPage(url: string, ctx: Ctx, opts: { fresh?: boolean } = {}): Promise<Page | null> {
+    // Offline: anything we have already read is still readable, and anything else is refused at
+    // once rather than after a timeout. Our own stand-in pages are served locally, so they work.
+    if (config.offline && !/^https?:\/\/(localhost|127\.0\.0\.1)/.test(url)) {
+      const cached = await db.query.pageCache.findFirst({ where: eq(schema.pageCache.url, url) });
+      if (!cached) {
+        this.log.warn(`offline: ${url} is not cached, using the stand-in if there is one`);
+        await this.trace.record('tool', 'web_fetch', { url, ok: false, offline: true }, ctx);
+        return null;
+      }
+      await db.insert(schema.sources).values({ runId: ctx.runId, applicantId: ctx.applicantId ?? null, url, title: cached.title ?? '', text: cached.text });
+      await this.trace.record('source', 'web_fetch', { url, title: cached.title, chars: cached.text.length, cached: true, offline: true }, ctx);
+      return { url, title: cached.title ?? '', text: cached.text, cached: true };
+    }
     let title = '';
     let text = '';
     let cached = false;
@@ -123,6 +136,7 @@ export class WebService {
    * working — so they back each other up and the trace records which one answered.
    */
   private async searchProviders(query: string): Promise<SearchHit[]> {
+    if (config.offline) return [];
     const useTavily = config.tavilyKey && config.searchProvider !== 'duckduckgo';
     let tavily: SearchHit[] = [];
     if (useTavily) {

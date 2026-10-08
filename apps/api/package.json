@@ -6,6 +6,7 @@
     "build": "nest build",
     "dev": "nest start --watch --preserveWatchOutput",
     "start": "node dist/main.js",
+    "sandbox": "nest build && node -e \"process.env.SANDBOX='1';require('./dist/main.js')\"",
     "db:push": "drizzle-kit push",
     "seed": "nest build && node dist/seed/seed.js",
     "demo:docs": "nest build && node dist/seed/write-documents.js",

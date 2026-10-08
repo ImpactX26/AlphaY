@@ -15,6 +15,7 @@
     "seed": "npm run seed -w @educaro/api",
     "demo:docs": "npm run demo:docs -w @educaro/api",
     "smoke": "node tools/smoke.mjs",
+    "sandbox": "npm run sandbox -w @educaro/api",
     "smoke:api": "npm run smoke -w @educaro/web",
     "rehearse": "npm run rehearse -w @educaro/web"
   }

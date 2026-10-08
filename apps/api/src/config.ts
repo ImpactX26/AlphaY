@@ -1,5 +1,10 @@
 import 'dotenv/config';
 import * as path from 'node:path';
+import { applySandbox } from './config.sandbox';
+
+// Before anything is read: SANDBOX=1 blanks the keys and pins the outside edges to their offline
+// paths, so the config below sees the same environment every other process would.
+applySandbox();
 
 const env = (k: string, d = '') => process.env[k]?.trim() || d;
 
@@ -36,6 +41,8 @@ export const config = {
   imapHost: env('IMAP_HOST', 'imap.gmail.com'),
   imapPort: Number(env('IMAP_PORT', '993')),
   mailpitUrl: env('MAILPIT_URL', 'http://localhost:8025'),
+  sandbox: env('SANDBOX') === '1' || env('SANDBOX') === 'true',
+  offline: env('OFFLINE') === '1',
   mailFrom: env('MAIL_FROM', env('SMTP_USER') ? `Educaro Agent <${env('SMTP_USER')}>` : 'Educaro Agent <agent@educaro.local>'),
   /** Safe mode: every third-party recipient is redirected to the team inbox. Never mail a real office from a prototype. */
   mailSafeMode: env('MAIL_SAFE_MODE', 'true') !== 'false',
