@@ -1,4 +1,10 @@
 import type {
+  EmployerRatingDTO,
+  EmployerReportDTO,
+  ReportInput,
+  SafetyCheckDTO,
+  SafetyCheckInput,
+  SafetyCheckSummaryDTO,
   ApplicantDTO,
   ApprovalDetailDTO,
   ApprovalDTO,
@@ -93,6 +99,11 @@ export interface Api {
   germany(id: string, input: { city: string; address?: string; startDate?: string }): Promise<ApplicantDTO>;
   rentals(id: string): Promise<RentalsBlock>;
   cohort(id: string): Promise<CohortDTO>;
+  check(id: string, input: SafetyCheckInput): Promise<SafetyCheckDTO>;
+  checks(id: string): Promise<SafetyCheckSummaryDTO[]>;
+  report(id: string, input: ReportInput): Promise<{ id: string; status: string; createdAt: string }>;
+  employerRatings(): Promise<EmployerRatingDTO[]>;
+  employerReports(employer?: string): Promise<EmployerReportDTO[]>;
   community(): Promise<CommunityPostDTO[]>;
   postToCommunity(input: { text: string; applicantId: string }): Promise<CommunityPostDTO>;
   replyInCommunity(postId: string, text: string): Promise<CommunityPostDTO>;

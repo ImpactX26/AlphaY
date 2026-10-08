@@ -20,7 +20,7 @@ import type {
   TruthRow,
 } from './domain';
 import type { ChatMessageDTO } from './realtime';
-import type { MatrixBlock, Screen } from './screen';
+import type { MatrixBlock, ScamCheckBlock, Screen } from './screen';
 
 // ---------- auth ----------
 // POST /api/auth/register  { email, password, name }        -> AuthResponse  (always role applicant)
@@ -367,6 +367,68 @@ export interface SystemStatusDTO {
   };
   discord: boolean;
   mailpitUrl: string;
+}
+
+// ---------- safety: "someone sent me this, is it real?" ----------
+// POST /api/applicants/:id/check   SafetyCheckInput   -> SafetyCheckDTO
+// GET  /api/applicants/:id/checks                     -> SafetyCheckSummaryDTO[]
+// POST /api/applicants/:id/report  ReportInput        -> { id, status, createdAt }
+// GET  /api/staff/employers                           -> EmployerRatingDTO[]   (staff)
+// GET  /api/staff/reports?employer=                   -> EmployerReportDTO[]   (staff)
+
+export interface SafetyCheckInput {
+  kind: 'university' | 'employer' | 'landlord' | 'agent' | 'offer';
+  name?: string;
+  url?: string;
+  email?: string;
+  /** The offer letter, the message, the contract — whatever they were sent. */
+  text?: string;
+}
+
+export type SafetyCheckDTO = Omit<ScamCheckBlock, 'id' | 'type' | 'title' | 'body' | 'section' | 'actions' | 'tone'> & { id: string };
+
+export interface SafetyCheckSummaryDTO {
+  id: string;
+  kind: string;
+  subject: string;
+  verdict: string;
+  score: number;
+  createdAt: string;
+}
+
+export type ReportCategory = 'pay' | 'hours' | 'housing' | 'documents' | 'respect' | 'safety' | 'other';
+export type ReportSeverity = 'note' | 'concern' | 'serious';
+
+export interface ReportInput {
+  employer: string;
+  text: string;
+  category?: ReportCategory;
+  severity?: ReportSeverity;
+}
+
+/** Built only from the aggregate: one report is a person's experience, not a rating. */
+export interface EmployerRatingDTO {
+  employer: string;
+  rating: number;
+  reports: number;
+  serious: number;
+  themes: string[];
+  /** Below three reports we say so, rather than publishing a rating built on one bad week. */
+  confident: boolean;
+  latest: string | null;
+}
+
+export interface EmployerReportDTO {
+  id: string;
+  employer: string;
+  category: ReportCategory;
+  severity: ReportSeverity;
+  text: string;
+  status: 'new' | 'acknowledged' | 'resolved';
+  /** Staff see who it was, because they have to act on it. The employer never does. */
+  applicantName: string | null;
+  applicantId: string | null;
+  createdAt: string;
 }
 
 // Re-exported elsewhere in the package; imported here so the endpoint comments above type-check in editors.

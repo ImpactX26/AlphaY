@@ -1,6 +1,7 @@
 import type { ChatMessageDTO, FileDTO } from '@educaro/shared';
 import { type QueryKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
+import type { ReportInput, SafetyCheckInput } from '@educaro/shared';
 import type { ShortlistInput } from './types';
 
 type Id = string | null | undefined;
@@ -25,6 +26,9 @@ export const qk = {
   calendar: (id: string) => ['applicant', id, 'calendar'] as const,
   rentals: (id: string) => ['applicant', id, 'rentals'] as const,
   cohort: (id: string) => ['applicant', id, 'cohort'] as const,
+  checks: (id: string) => ['applicant', id, 'checks'] as const,
+  employers: ['staff', 'employers'] as const,
+  reports: ['staff', 'reports'] as const,
   community: () => ['community'] as const,
   approval: (approvalId: string) => ['approval', approvalId] as const,
   pipeline: ['staff', 'pipeline'] as const,
@@ -162,6 +166,45 @@ export function useSetRoute(id: Id) {
     onSuccess: (applicant) => qc.setQueryData(qk.applicant(applicant.id), applicant),
   });
 }
+
+/**
+ * "Is this real?" — run on demand, from the box on the Safety page.
+ *
+ * The screen is invalidated as well as the history, because a high-risk verdict changes what the
+ * agent puts in front of them: the check lands as a block and the agent says something in the chat.
+ */
+export function useRunCheck(id: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SafetyCheckInput) => api.check(id ?? '', input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.checks(id ?? '') });
+      void qc.invalidateQueries({ queryKey: qk.screen(id ?? '') });
+      void qc.invalidateQueries({ queryKey: qk.chat(id ?? '') });
+    },
+  });
+}
+
+export const useCheckHistory = (id: Id) =>
+  useQuery({ queryKey: qk.checks(id ?? ''), queryFn: () => api.checks(id ?? ''), enabled: !!id });
+
+/**
+ * Telling us privately that something is wrong at work.
+ *
+ * Deliberately not optimistic: somebody sending this needs to see that it actually arrived, and a
+ * row that appears instantly and vanishes on a failed request is the worst possible outcome here.
+ */
+export function useSendReport(id: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ReportInput) => api.report(id ?? '', input),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.chat(id ?? '') }),
+  });
+}
+
+export const useEmployerRatings = () => useQuery({ queryKey: qk.employers, queryFn: () => api.employerRatings() });
+export const useEmployerReports = (employer?: string) =>
+  useQuery({ queryKey: [...qk.reports, employer ?? 'all'], queryFn: () => api.employerReports(employer) });
 
 // ---------- staff ----------
 

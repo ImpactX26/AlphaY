@@ -386,6 +386,54 @@ export const employerReports = pgTable('employer_reports', {
   createdAt: createdAt(),
 });
 
+/**
+ * Flat-shares and travel groups: an actual group, not a suggestion.
+ *
+ * The screen used to compute a sentence — "a flat for 3 in Ehrenfeld works out around EUR 490 each"
+ * — which is a good sentence and does nothing. Arriving alone in a country whose language you do
+ * not yet have is the part that breaks people, and it is solvable with a list this product already
+ * holds. What was missing was the ability to say yes to someone.
+ *
+ * Nobody is a member until they have agreed. A row exists from the moment somebody is invited, but
+ * `status` is what makes it real, and until it is `joined` neither side sees the other's details.
+ */
+export const cohortGroups = pgTable('cohort_groups', {
+  id: id(),
+  kind: text('kind').$type<'flat_share' | 'travel'>().notNull().default('flat_share'),
+  title: text('title').notNull(),
+  city: text('city').notNull(),
+  /** The month everyone is arriving, as a label: "March 2026". */
+  month: text('month').notNull(),
+  district: text('district'),
+  seats: integer('seats').notNull().default(3),
+  budgetEachEur: integer('budget_each_eur'),
+  /** 'even' is the only split the bot will set on its own. Anything else is agreed by people. */
+  rentSplit: text('rent_split').$type<'even' | 'by_room'>().notNull().default('even'),
+  /** For a travel group: where they are flying from. */
+  fromCity: text('from_city'),
+  createdBy: uuid('created_by').references(() => applicants.id, { onDelete: 'set null' }),
+  status: text('status').$type<'open' | 'full' | 'closed'>().notNull().default('open'),
+  note: text('note'),
+  createdAt: createdAt(),
+});
+
+export const cohortMembers = pgTable(
+  'cohort_members',
+  {
+    id: id(),
+    groupId: uuid('group_id').notNull().references(() => cohortGroups.id, { onDelete: 'cascade' }),
+    applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+    role: text('role').$type<'owner' | 'member'>().notNull().default('member'),
+    /** Nobody is in a group until they said yes, whoever put the row there. */
+    status: text('status').$type<'invited' | 'requested' | 'joined' | 'declined'>().notNull().default('requested'),
+    /** Their agreed share, once the group has a budget and a size. */
+    shareEur: integer('share_eur'),
+    note: text('note'),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('cohort_members_group_applicant').on(t.groupId, t.applicantId)],
+);
+
 /** Safety checks the applicant ran on something they were sent. Kept so staff can see patterns. */
 export const safetyChecks = pgTable('safety_checks', {
   id: id(),

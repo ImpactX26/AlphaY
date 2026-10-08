@@ -69,7 +69,10 @@ export function ScamCheckCard({ block, bare }: { block: ScamCheckBlock; bare?: b
       {block.contractFlags.length ? (
         <div className="mt-4">
           <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted">
-            <Scale size={13} aria-hidden /> In the contract
+            <Scale size={13} aria-hidden /> In the {block.contractKind === 'rental' ? 'rental agreement' : 'contract'}
+            <span className="font-normal normal-case tracking-normal">
+              — {block.contractFlags.filter((f) => f.severity === 'illegal').length} of {block.contractFlags.length} will not hold
+            </span>
           </p>
           <ul className="mt-2 space-y-2.5">
             {block.contractFlags.map((f, i) => (
@@ -78,14 +81,42 @@ export function ScamCheckCard({ block, bare }: { block: ScamCheckBlock; bare?: b
                   {f.clause}
                   <span className={clsx('ml-2 align-middle text-[11px] font-semibold uppercase', f.severity === 'illegal' ? 'text-bad' : 'text-warn')}>{SEVERITY[f.severity]}</span>
                 </p>
-                <p className="mt-1 text-[13px] text-muted">{f.why}</p>
+                {/* Their own sentence, verbatim. A finding they cannot locate in their own paper is
+                    one they cannot act on, and one they have no reason to believe. */}
+                {f.quote ? <p className="mt-1.5 border-l-2 border-line pl-2.5 text-[12.5px] italic text-muted">“{f.quote}”</p> : null}
+                <p className="mt-1.5 text-[13px] text-muted">{f.why}</p>
                 <p className="mt-1 text-[13px] text-muted">
                   <span className="font-medium text-ink">The law says:</span> {f.lawSays}
+                  {f.cite ? <span className="ml-1 whitespace-nowrap text-[12px] text-muted">({f.cite})</span> : null}
                 </p>
               </li>
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {/* Silence about hours or notice is its own warning, and nobody notices an absence. */}
+      {block.missing?.length ? (
+        <p className="mt-3 rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--warn)_7%,transparent)] px-3 py-2 text-[13px]">
+          <span className="font-medium">Not in this {block.contractKind === 'rental' ? 'agreement' : 'contract'} at all:</span>{' '}
+          {block.missing.map((m) => m.label.toLowerCase()).join('; ')}. Ask for each of them in writing before you sign.
+        </p>
+      ) : null}
+
+      {block.registers?.length ? (
+        <details className="mt-4 text-[13px]">
+          <summary className="cursor-pointer font-medium">Check it yourself, in the official registers</summary>
+          <ul className="mt-2 space-y-1 pl-1 text-muted">
+            {block.registers.map((r, i) => (
+              <li key={i}>
+                <a href={r.url} target="_blank" rel="noreferrer" className="font-medium text-ink underline underline-offset-2">
+                  {r.label}
+                  <ExternalLink size={12} className="ml-1 inline align-[-1px]" aria-hidden />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
       ) : null}
 
       {block.neverDo.length ? (

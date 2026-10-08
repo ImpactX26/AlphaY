@@ -430,17 +430,21 @@ export function checkContract(text: string, kindHint?: ContractKind): ContractFl
  * What a fair contract contains, so the check can say what is *missing* rather than only what is
  * wrong. A contract with no clause about hours at all is its own warning.
  */
+// German builds compounds, so a trailing `\b` is the enemy here: "Urlaubsanspruch" does not match
+// `\burlaub\b`, and the check then reported holiday as absent from a contract that grants it. Every
+// German stem below is left open for that reason; the English ones stay closed, because "start"
+// should not be satisfied by "started".
 const MUST_HAVE: { id: string; label: string; re: RegExp; kind: ContractKind }[] = [
-  { id: 'pay', label: 'A stated salary or hourly rate', re: /\b(eur|euro|€|gehalt|salary|vergütung|lohn)\b/i, kind: 'work' },
-  { id: 'hours', label: 'The weekly working hours', re: /\b(hours?|stunden|arbeitszeit)\b/i, kind: 'work' },
-  { id: 'holiday', label: 'Your holiday entitlement', re: /\b(urlaub|holiday|vacation)\b/i, kind: 'work' },
-  { id: 'notice', label: 'The notice period on both sides', re: /\b(kündigungsfrist|notice period|kündigung)\b/i, kind: 'work' },
-  { id: 'start', label: 'The start date', re: /\b(start|beginn|commenc\w+|eintritt)\b/i, kind: 'work' },
-  { id: 'role', label: 'What your job actually is', re: /\b(tätigkeit|position|role|aufgaben|duties|stelle)\b/i, kind: 'work' },
-  { id: 'rent', label: 'The cold rent, stated separately from bills', re: /\b(kaltmiete|cold rent|grundmiete|net rent)\b/i, kind: 'rental' },
-  { id: 'deposit', label: 'The deposit amount', re: /\b(kaution|deposit|sicherheitsleistung)\b/i, kind: 'rental' },
-  { id: 'nebenkosten', label: 'What the service charges cover', re: /\b(nebenkosten|betriebskosten|service charges|utilities)\b/i, kind: 'rental' },
-  { id: 'wgb', label: 'A Wohnungsgeberbestätigung — you cannot register without it', re: /\b(wohnungsgeberbest|wohnungsgeberbesch|landlord confirmation)\w*/i, kind: 'rental' },
+  { id: 'pay', label: 'A stated salary or hourly rate', re: /\b(eur|euro|€|gehalt\w*|salary\b|vergütung\w*|lohn\w*)/i, kind: 'work' },
+  { id: 'hours', label: 'The weekly working hours', re: /\b(hours?\b|stunden\w*|arbeitszeit\w*)/i, kind: 'work' },
+  { id: 'holiday', label: 'Your holiday entitlement', re: /\b(urlaub\w*|holidays?\b|vacation\b)/i, kind: 'work' },
+  { id: 'notice', label: 'The notice period on both sides', re: /\b(kündigung\w*|notice period\b)/i, kind: 'work' },
+  { id: 'start', label: 'The start date', re: /\b(beginn\w*|eintritt\w*|starts?\b|commenc\w+)/i, kind: 'work' },
+  { id: 'role', label: 'What your job actually is', re: /\b(tätigkeit\w*|aufgabe\w*|stelle\w*|position\b|role\b|duties\b)/i, kind: 'work' },
+  { id: 'rent', label: 'The cold rent, stated separately from bills', re: /\b(kaltmiete\w*|grundmiete\w*|cold rent\b|net rent\b)/i, kind: 'rental' },
+  { id: 'deposit', label: 'The deposit amount', re: /\b(kaution\w*|sicherheitsleistung\w*|deposit\b)/i, kind: 'rental' },
+  { id: 'nebenkosten', label: 'What the service charges cover', re: /\b(nebenkosten\w*|betriebskosten\w*|service charges\b|utilities\b)/i, kind: 'rental' },
+  { id: 'wgb', label: 'A Wohnungsgeberbestätigung — you cannot register without it', re: /\b(wohnungsgeberbest\w*|wohnungsgeberbesch\w*|landlord confirmation\b)/i, kind: 'rental' },
 ];
 
 export function missingFromContract(text: string, kind: ContractKind): { id: string; label: string }[] {

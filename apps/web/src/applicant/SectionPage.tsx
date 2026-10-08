@@ -6,6 +6,7 @@ import { useApplicantId } from '../auth/auth';
 import { BlockList } from '../screen/ComposedScreen';
 import { ScreenActionsProvider, useReadOnlyActions } from '../screen/context';
 import { EmptyState, PageHeader } from '../ui/misc';
+import { SafetyCheckPanel } from './SafetyCheckPanel';
 
 /**
  * One section of the screen, whatever the API decided to put in it.
@@ -20,7 +21,7 @@ import { EmptyState, PageHeader } from '../ui/misc';
  */
 const INTRO: Partial<Record<SectionId, string>> = {
   money: 'What the whole plan costs, when each piece is due, and what is still missing.',
-  safety: 'How to tell a real offer from a fake one, and the rights that hold whatever a contract says.',
+  safety: 'Check anything you have been sent before you reply to it, and read the rights that hold whatever a contract says.',
   papers: 'Every document you have given me, and what each one proves.',
   community: 'The people on your route, and the thread you share with them.',
 };
@@ -46,11 +47,21 @@ export default function SectionPage({ section }: { section: SectionId }) {
   return (
     <div className="mx-auto max-w-[980px]">
       <PageHeader title={label}>{INTRO[section]}</PageHeader>
+
+      {/* Safety is the one section with something to do rather than something to read: the whole
+          point of the shield is that an applicant can bring us the thing they were sent. The blocks
+          below it are the agent's own findings and the rights that apply either way. */}
+      {section === 'safety' ? (
+        <div className="mb-6">
+          <SafetyCheckPanel />
+        </div>
+      ) : null}
+
       {blocks.length ? (
         <ScreenActionsProvider value={readOnly}>
           <BlockList blocks={blocks} />
         </ScreenActionsProvider>
-      ) : (
+      ) : section === 'safety' ? null : (
         <EmptyState title={isLoading ? 'Loading' : 'Nothing here yet'} icon={FolderOpen}>
           {isLoading
             ? `Reading your ${label.toLowerCase()}.`
