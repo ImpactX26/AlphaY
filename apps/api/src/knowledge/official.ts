@@ -82,7 +82,7 @@ export const OFFICIAL: Record<string, OfficialFact> = {
     id: 'nursing_language',
     label: 'German level for nursing recognition',
     value: 'usually B2',
-    url: `${process.env.API_URL || 'http://localhost:3000'}/api/mock/anerkennung-nursing`,
+    url: 'https://www.make-it-in-germany.com/en/working-in-germany/recognition-of-foreign-professional-qualifications',
     quote: 'B2',
   },
 };

@@ -12,3 +12,4 @@ WhisperFlow/
 __pycache__/
 *.tsbuildinfo
 docker-compose.override.yml
+tools/.shots/

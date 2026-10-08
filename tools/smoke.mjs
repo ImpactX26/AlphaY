@@ -156,7 +156,21 @@ async function main() {
   const gaps = (await api(`/applicants/${A}/gaps`, { token: aT })).body;
   check('gaps have fix-it plans', Array.isArray(gaps) && gaps.length > 0 && gaps.every((g) => g.what && g.howLong), `${gaps?.length} gaps`);
   check('gaps route to an Educaro service', (gaps ?? []).some((g) => g.service?.name));
-  check('no service link leaves the product', !(gaps ?? []).some((g) => /educaro\.de/.test(g.service?.url ?? '')));
+  // Service links used to be stand-ins served from /api/mock, and this check enforced that. It is
+  // the opposite now: a link that opens localhost reads as the product being fake, so every service
+  // must point at the real page on educaro.de that describes it.
+  const svcUrls = (gaps ?? []).map((g) => g.service?.url).filter(Boolean);
+  check(
+    'every service opens a real page, not a stand-in',
+    // Booking a call is the one that should stay here: it books a real slot and opens the call in
+    // the product, which beats handing somebody a contact form.
+    svcUrls.length > 0 && svcUrls.every((u) => u.includes('book-call') || (u.startsWith('https://') && !u.includes('/api/mock/'))),
+    svcUrls.join(' '),
+  );
+  check(
+    'every step also names the German institution behind it',
+    (gaps ?? []).some((g) => (g.links ?? []).some((l) => /telc|goethe|osd|fintiba|expatrio|anerkennung|aps-india|uni-assist|arbeitsagentur|volkshochschule|make-it-in-germany/i.test(l.url))),
+  );
 
   const questions = (await api(`/applicants/${A}/questions`, { token: aT })).body;
   check('at most two questions are open', (questions ?? []).filter((q) => q.status === 'open').length <= 2);
