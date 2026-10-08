@@ -1,6 +1,7 @@
 import { CITIES, DEFAULT_CITY, findCity, type CityInfo } from '../../knowledge/cities';
 import { monthlyBudget, netPay } from '../../knowledge/money';
 import { OFFICIAL } from '../../knowledge/official';
+import { seededPlaces } from '../../knowledge/places';
 import { bestFact, type ApplicantState } from '../state.service';
 import { cite, type Kit, type SpecialistResult } from './kit';
 
@@ -101,8 +102,14 @@ export async function lifeSpecialist(kit: Kit): Promise<SpecialistResult> {
   if (addr) center = (await kit.web.geocode(`${addr}, ${city.name}`, { runId: kit.runId, applicantId: kit.applicantId })) ?? center;
   const radius = addr ? 4000 : 6000;
   const groups = [];
+  let liveHits = 0;
   for (const g of PLACE_GROUPS) {
-    const places = await kit.web.placesNearby(center.lat, center.lon, g.filters, radius, { runId: kit.runId, applicantId: kit.applicantId });
+    let places = await kit.web.placesNearby(center.lat, center.lon, g.filters, radius, { runId: kit.runId, applicantId: kit.applicantId });
+    liveHits += places.length;
+    // Overpass is free, often busy, and on some networks blocked outright. An empty map reads as
+    // "there is nothing here for you" in the exact moment this is meant to say the opposite, so a
+    // short hand-checked list stands in — and the source line below says which one you are seeing.
+    if (!places.length) places = seededPlaces(city.name, g.kind, center, radius);
     groups.push({ kind: g.kind, label: g.label, places: places.slice(0, 6) });
   }
   const winter = ['Winter jacket rated below 0 °C', 'Waterproof shoes', 'Thermal layers', 'Gloves and a hat'];
@@ -112,5 +119,6 @@ export async function lifeSpecialist(kit: Kit): Promise<SpecialistResult> {
     { title: 'First month', items: ['First payslip explained line by line', 'Join the city Discord channel', 'Educaro intercultural workshop'] },
   ];
   const found = groups.reduce((s, g) => s + g.places.length, 0);
-  return { summary: `Life in ${city.name}: ${found} places found near ${addr ? 'the new address' : 'the centre'}`, output: { city: city.name, center, groups, arrival, source: 'OpenStreetMap (Overpass API)' } };
+  const source = liveHits ? 'OpenStreetMap (Overpass API)' : 'Educaro city list (OpenStreetMap was unreachable)';
+  return { summary: `Life in ${city.name}: ${found} places near ${addr ? 'the new address' : 'the centre'}`, output: { city: city.name, center, groups, arrival, source } };
 }

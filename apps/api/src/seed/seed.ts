@@ -12,6 +12,7 @@ import { AgentEventsService } from '../agent/events.service';
 import { QueueService } from '../queue/queue.service';
 import { ANANYA_DOCS, ANANYA_VIDEO_SCRIPT, ROHAN_DOCS, ROHAN_VIDEO_SCRIPT, type DemoDoc } from './documents';
 import { OPENINGS, PROGRAMME_ROWS } from './catalogue';
+import { WebService } from '../web/web.service';
 
 const log = new Logger('Seed');
 
@@ -77,6 +78,20 @@ async function main() {
     removed += 1;
   }
   if (removed) log.log(`removed ${removed} empty throwaway applicant(s)`);
+
+  // Open each university page once now and let it land in the page cache. The agent still fetches
+  // it for real during a run — the source log and the quote check are unchanged — but a rehearsal
+  // on bad wifi reads from Postgres instead of waiting on a server in Aachen.
+  const web = app.get(WebService);
+  let warmed = 0;
+  for (const p of PROGRAMME_ROWS) {
+    const page = await web.fetchPage(p.url, { runId: 'seed_warm', applicantId: null }, { fresh: true }).catch(() => null);
+    if (page) {
+      warmed += 1;
+      log.log(`  cached ${p.university}: ${page.text.length} chars`);
+    } else log.warn(`  could not reach ${p.url} — the stand-in will be used`);
+  }
+  log.log(`${warmed}/${PROGRAMME_ROWS.length} university pages cached`);
 
   // ---------------- staff ----------------
   await user(DEMO_EMAILS.staff, 'Meera Pillai', 'staff');

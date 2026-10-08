@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { MatrixBlock, MatrixStatus, Tag } from '@educaro/shared';
@@ -9,6 +9,7 @@ import { TraceService } from '../trace/trace.service';
 import { WebService } from '../web/web.service';
 import { cefrIndex, parseCefr } from '../knowledge/cefr';
 import { convertIndianGrade } from '../knowledge/grades';
+import { squashQuote } from '../knowledge/normalize';
 import { daysUntil } from '../knowledge/normalize';
 import { AgentEventsService } from './events.service';
 import { StateService, bestFact, factData, type ApplicantState } from './state.service';
@@ -43,6 +44,8 @@ type MatrixRow = MatrixBlock['rows'][number];
 /** Stage 6: shortlist one, read its official page, compare in code, plan every gap. */
 @Injectable()
 export class ShortlistService {
+  private readonly log = new Logger('Shortlist');
+
   constructor(
     private readonly web: WebService,
     private readonly llm: LlmService,
@@ -103,8 +106,16 @@ export class ShortlistService {
       matrix = openingMatrix(st, o!);
       requirements = { keywords: o?.keywords ?? [] };
     } else {
-      const page = row.url ? await this.web.fetchPage(row.url, ctx) : null;
       const prog = row.refId ? await db.query.programmes.findFirst({ where: eq(schema.programmes.id, row.refId) }) : null;
+      // The university's own page is the source. If it cannot be reached and nothing is cached, a
+      // seeded programme falls back to the stand-in we serve, so a dead network degrades the demo
+      // rather than ending it — and the matrix still says which URL every quote came from.
+      let page = row.url ? await this.web.fetchPage(row.url, ctx) : null;
+      const fallbackUrl = (prog?.data as any)?.fallbackUrl as string | undefined;
+      if (!page && fallbackUrl) {
+        this.log.warn(`${row.url} unreachable; reading the stand-in at ${fallbackUrl}`);
+        page = await this.web.fetchPage(fallbackUrl, ctx);
+      }
       let req: Requirements | null = (prog?.data as any)?.requirements ?? null;
       if (!req && page) {
         req = await this.llm.json({
@@ -121,7 +132,7 @@ export class ShortlistService {
       if (!req) req = emptyReq(row.title);
       // Each requirement counts as Web-sourced only if its quote is on the page we opened in this run.
       const onPage = (q?: string | null) => !!(q && page && squash(page.text).includes(squash(q)));
-      matrix = programmeMatrix(st, req, row.url, onPage);
+      matrix = programmeMatrix(st, req, page?.url ?? row.url, onPage);
       requirements = req as unknown as Record<string, unknown>;
       if (title === 'Reading the page…') {
         title = req.title;
@@ -139,7 +150,7 @@ export class ShortlistService {
   }
 }
 
-const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ');
+const squash = squashQuote;
 
 function relevant(text: string): string {
   const lines = text.split('\n');

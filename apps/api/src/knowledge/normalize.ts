@@ -133,3 +133,27 @@ export function tidyCase(value: string | null | undefined): string {
     })
     .join('');
 }
+
+/**
+ * Normalises a string for comparing a quote against the page it came from.
+ *
+ * Web pages are full of typographic punctuation — curly apostrophes, en dashes, non-breaking
+ * spaces — and a quote reproduced with the plain ASCII equivalent is the same quote to every human
+ * who reads it. Comparing the raw characters rejected those, so the source guard was downgrading
+ * honest citations to "ai" and the product looked less sourced than it actually was.
+ *
+ * This only unifies how a character is encoded. It does not make the match looser: different words
+ * still fail, which is the entire point of the guard.
+ */
+export function squashQuote(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[‘’‚‛′´`]/g, "'")
+    .replace(/[“”„‟″]/g, '"')
+    .replace(/[‐-―−]/g, '-')
+    .replace(/[     ]/g, ' ')
+    .replace(/…/g, '...')
+    .replace(/­/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

@@ -1,22 +1,27 @@
 import { config } from '../config';
-import type { Requirements } from '../agent/shortlist.service';
 
 const mock = (slug: string) => `${config.apiUrl}/api/mock/${slug}`;
 
 /**
- * The seeded programme catalogue. Every quote below is copied verbatim from the matching page in
- * src/mockweb/pages.ts, so the "no source, no save" guard passes honestly: the agent opens the
- * page in the run, finds the quote on it, and only then writes a Web fact.
+ * The seeded programme catalogue, pointing at the universities' own pages.
+ *
+ * No curated requirements. The agent opens the real page in the run, reads what it says and quotes
+ * it — which is the only version of this that is actually true. A hand-written table would have
+ * been steadier on stage and worth nothing, because the whole claim of the product is that it read
+ * the page rather than that somebody typed the answer in beforehand.
+ *
+ * `fallbackSlug` is a stand-in served from /api/mock, used only when the real page cannot be
+ * reached and nothing is cached. Hotel wifi should degrade the demo, not end it.
  */
 export interface SeedProgramme {
   title: string;
   university: string;
   city: string;
-  slug: string;
+  url: string;
+  fallbackSlug: string;
   degree: string;
   language: string;
   field: string;
-  requirements: Requirements;
 }
 
 export const PROGRAMMES: SeedProgramme[] = [
@@ -24,73 +29,31 @@ export const PROGRAMMES: SeedProgramme[] = [
     title: 'M.Sc. Data Science',
     university: 'RWTH Aachen University',
     city: 'Aachen',
-    slug: 'rwth-aachen-msc-data-science',
+    url: 'https://sc.informatik.rwth-aachen.de/en/studium/master/master-data-science/application-for-admission/',
+    fallbackSlug: 'rwth-aachen-msc-data-science',
     degree: 'master',
     language: 'english',
     field: 'data science',
-    requirements: {
-      title: 'M.Sc. Data Science',
-      university: 'RWTH Aachen University',
-      city: 'Aachen',
-      teachingLanguage: 'english',
-      degree: { value: 'Bachelor in computer science, mathematics, statistics or a close subject, 180 ECTS', quote: 'Bachelor degree in computer science, mathematics, statistics or a closely related subject with at least 180 ECTS credits' },
-      minGrade: { value: 2.5, quote: 'A final grade of at least 2.5 on the German grading scale is required' },
-      english: { ielts: 6.5, toefl: 90, quote: 'IELTS Academic with an overall band of 6.5, or TOEFL iBT 90, are accepted' },
-      german: { value: 'none required', quote: 'No proof of German is required for admission' },
-      gre: { required: false, quote: 'GRE is not required for this programme' },
-      applicationRoute: { value: 'uni-assist, with the APS certificate', quote: 'must apply through uni-assist and must enclose the APS certificate' },
-      deadline: { date: '2027-03-01', text: '1 March for the winter semester', quote: 'deadline for the winter semester is 1 March for applicants who need a visa' },
-      fees: { value: 'No tuition fees; EUR 330 semester contribution', quote: 'There are no tuition fees. The semester contribution is EUR 330 per semester' },
-      keywords: ['machine learning', 'statistics', 'data mining', 'distributed systems', 'visualisation', 'ethics of data'],
-    },
   },
   {
     title: 'M.Sc. Informatics',
     university: 'Technical University of Munich',
     city: 'Munich',
-    slug: 'tum-msc-informatics',
+    url: 'https://www.cit.tum.de/en/cit/studies/degree-programs/master-informatics',
+    fallbackSlug: 'tum-msc-informatics',
     degree: 'master',
     language: 'english',
     field: 'computer science',
-    requirements: {
-      title: 'M.Sc. Informatics',
-      university: 'Technical University of Munich',
-      city: 'Munich',
-      teachingLanguage: 'english',
-      degree: { value: 'Bachelor in informatics or equivalent, 180 ECTS', quote: 'A Bachelor degree in informatics or an equivalent subject with at least 180 ECTS credits is required' },
-      minGrade: { value: 2.3, quote: 'Applicants must reach a final grade of 2.3 or better on the German grading scale' },
-      english: { ielts: 6.5, toefl: 88, quote: 'English proficiency must be proven with IELTS 6.5, TOEFL iBT 88' },
-      german: { value: 'none required', quote: 'German is not required for admission to this programme' },
-      gre: null,
-      applicationRoute: { value: 'TUM application portal, APS certificate mandatory', quote: 'must submit an APS certificate with the application' },
-      deadline: { date: '2027-05-31', text: '31 May for the winter semester', quote: 'The deadline for the winter semester is 31 May' },
-      fees: { value: 'No tuition fees; EUR 85 student union fee', quote: 'There are no tuition fees for the Master programme. The student union fee is EUR 85 per semester' },
-      keywords: ['algorithms', 'machine learning', 'computer vision', 'robotics', 'databases', 'software engineering'],
-    },
   },
   {
-    title: 'M.Sc. Autonomous Systems',
+    title: 'M.Sc. Autonomous Systems and Robotics',
     university: 'Technical University of Darmstadt',
     city: 'Darmstadt',
-    slug: 'tu-darmstadt-msc-autonomous-systems',
+    url: 'https://www.informatik.tu-darmstadt.de/studium_fb20/im_studium/studiengaenge_liste/asur_msc.en.jsp',
+    fallbackSlug: 'tu-darmstadt-msc-autonomous-systems',
     degree: 'master',
     language: 'english',
     field: 'robotics',
-    requirements: {
-      title: 'M.Sc. Autonomous Systems',
-      university: 'Technical University of Darmstadt',
-      city: 'Darmstadt',
-      teachingLanguage: 'english',
-      degree: { value: 'Bachelor in CS, electrical engineering or mechatronics, 180 ECTS', quote: 'A Bachelor degree in computer science, electrical engineering or mechatronics with at least 180 ECTS credits' },
-      minGrade: { value: 2.7, quote: 'A final grade of at least 2.7 on the German grading scale' },
-      english: { ielts: 6.0, toefl: 80, quote: 'IELTS 6.0 overall or TOEFL iBT 80 are accepted' },
-      german: { value: 'none required', quote: 'No German language certificate is required for admission' },
-      gre: null,
-      applicationRoute: { value: 'uni-assist, with the APS certificate', quote: 'apply through uni-assist and must enclose the APS certificate' },
-      deadline: { date: '2027-07-15', text: '15 July for the winter semester', quote: 'The application deadline for the winter semester is 15 July' },
-      fees: { value: 'No tuition fees; EUR 283 semester fee with a transport ticket', quote: 'No tuition fees are charged. The semester fee is EUR 283' },
-      keywords: ['robotics', 'reinforcement learning', 'computer vision', 'sensor fusion', 'real-time systems'],
-    },
   },
 ];
 
@@ -98,11 +61,11 @@ export const PROGRAMME_ROWS = PROGRAMMES.map((p) => ({
   title: p.title,
   university: p.university,
   city: p.city,
-  url: mock(p.slug),
+  url: p.url,
   degree: p.degree,
   language: p.language,
   field: p.field,
-  data: { requirements: p.requirements } as Record<string, unknown>,
+  data: { fallbackUrl: mock(p.fallbackSlug) } as Record<string, unknown>,
 }));
 
 export const OPENINGS = [
@@ -145,9 +108,9 @@ export const OPENINGS = [
 
 /** Links the Discord bot posts into the cohort channel. */
 export const DISCORD_LINKS = [
-  { label: 'M.Sc. Data Science — RWTH Aachen', url: mock('rwth-aachen-msc-data-science'), tag: 'study' },
-  { label: 'M.Sc. Informatics — TU Munich', url: mock('tum-msc-informatics'), tag: 'study' },
-  { label: 'M.Sc. Autonomous Systems — TU Darmstadt', url: mock('tu-darmstadt-msc-autonomous-systems'), tag: 'study' },
+  { label: 'M.Sc. Data Science — RWTH Aachen', url: PROGRAMMES[0].url, tag: 'study' },
+  { label: 'M.Sc. Informatics — TU Munich', url: PROGRAMMES[1].url, tag: 'study' },
+  { label: 'M.Sc. Autonomous Systems — TU Darmstadt', url: PROGRAMMES[2].url, tag: 'study' },
   { label: 'APS certificate: how and when to apply', url: mock('aps-india'), tag: 'study' },
   { label: 'Applying through uni-assist from India', url: mock('uni-assist'), tag: 'study' },
   { label: 'Student visa: the blocked account amount', url: mock('student-visa-finance'), tag: 'visa' },

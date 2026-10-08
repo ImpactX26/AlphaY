@@ -11,7 +11,7 @@ import { QueueService } from '../queue/queue.service';
 import { FactsService } from '../profile/facts.service';
 import { StateService } from '../agent/state.service';
 import { AgentEventsService } from '../agent/events.service';
-import { sameOrg, slug } from '../knowledge/normalize';
+import { sameOrg, slug, squashQuote } from '../knowledge/normalize';
 import { classifyByRules } from './classify';
 import {
   CV_SYSTEM,
@@ -182,7 +182,7 @@ export class IngestService implements OnModuleInit {
     });
     const claims = llmClaims ?? extractTranscriptByRules(tr.text);
     // A quote must really be in the transcript, or it is dropped.
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const norm = (s: string) => squashQuote(s).replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
     const transcript = norm(tr.text);
     const keep = <T extends { quote: string }>(x: T | null): T | null => (x && x.quote && !transcript.includes(norm(x.quote)) ? { ...x, quote: '' } : x);
     const checked: TranscriptClaims = {
