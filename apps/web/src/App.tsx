@@ -14,6 +14,7 @@ import { Toaster } from './ui/Toast';
 const Profile = lazy(() => import('./applicant/Profile'));
 const ShortlistPage = lazy(() => import('./applicant/ShortlistPage'));
 const PlanPage = lazy(() => import('./applicant/PlanPage'));
+const LifePage = lazy(() => import('./applicant/LifePage'));
 const InboxPage = lazy(() => import('./applicant/InboxPage'));
 const ApprovalPage = lazy(() => import('./applicant/ApprovalPage'));
 const InterviewPage = lazy(() => import('./applicant/InterviewPage'));
@@ -60,6 +61,7 @@ export function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="shortlist" element={<ShortlistPage />} />
           <Route path="plan" element={<PlanPage />} />
+          <Route path="life" element={<LifePage />} />
           <Route path="inbox" element={<InboxPage />} />
           <Route path="approvals/:approvalId" element={<ApprovalPage />} />
           <Route path="interview" element={<InterviewPage />} />

@@ -51,74 +51,29 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-      {/*
-        Applicants arrive on a phone, so signing in comes first there and the pitch
-        follows it. On a wide screen the two sit side by side, pitch on the left.
-      */}
-      <section className="order-2 flex flex-col gap-8 overflow-hidden bg-ink px-6 py-9 text-bg sm:px-10 lg:order-1 lg:justify-between lg:gap-10 lg:py-12">
-        <div className="hidden items-center gap-2.5 lg:flex">
+    // One calm panel on the ground. The old page split the screen dark/light and ran a three-colour
+    // headline beside three feature blurbs — a lot to take in before you have even signed in.
+    <div className="flex min-h-dvh flex-col items-center justify-center px-5 py-10">
+      <div className="mb-6 flex w-full max-w-[420px] items-center justify-between">
+        <span className="flex items-center gap-2.5">
           <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden>
-            <rect width="32" height="32" rx="7" fill="var(--bg)" />
-            <path d="M8 8h14v3.6h-9.7v2.7h8.4v3.4h-8.4v2.7H22V24H8z" fill="var(--ink)" />
-            <rect x="23" y="14.3" width="3.4" height="3.4" rx=".8" fill="#0c7683" />
+            <rect width="32" height="32" rx="7" fill="var(--ink)" />
+            <path d="M8 8h14v3.6h-9.7v2.7h8.4v3.4h-8.4v2.7H22V24H8z" fill="var(--bg)" />
+            <rect x="23" y="14.3" width="3.4" height="3.4" rx=".8" fill="var(--applicant)" />
           </svg>
           <span className="display text-[19px] font-extrabold">Educaro</span>
-          <span className="ml-auto text-[12px] uppercase tracking-[0.12em] opacity-60">Applicant flow v2</span>
-        </div>
+        </span>
+        <span className="flex items-center gap-2">
+          {isMock ? (
+            <Tag s={{ label: 'Demo data', cls: 't-warn' }} title="Mock mode: nothing is sent to a server">
+              <FlaskConical size={12} aria-hidden /> Demo data
+            </Tag>
+          ) : null}
+          <ThemeToggle />
+        </span>
+      </div>
 
-        <div>
-          <h1 className="display text-[clamp(28px,5.4vw,44px)] font-extrabold leading-[1.04] tracking-[-0.02em]">
-            Talk once.
-            <br />
-            Upload everything.
-            <br />
-            <span className="text-[#46c1cf]">Get a real plan.</span>
-          </h1>
-          <p className="mt-5 max-w-[44ch] text-[15.5px] leading-relaxed opacity-80">
-            Record a short video, drop every document, and the agent builds your profile, checks it against the real requirements of the university or employer you pick, and fixes the
-            gaps with Educaro’s own courses and services.
-          </p>
-        </div>
-
-        <ul className="grid max-w-md gap-2.5 text-[14px]">
-          {[
-            ['Every fact carries its source', 'Verified, You said, Web-sourced or AI-generated. Only a document can verify.'],
-            ['Never a rejection', 'Every gap gets a plan: what, where, how long, what it costs.'],
-            ['Nothing leaves without your tap', 'The agent drafts applications. You approve them.'],
-          ].map(([title, body]) => (
-            <li key={title} className="flex gap-3 border-l-2 border-[#46c1cf] pl-3.5">
-              <span>
-                <span className="block font-semibold">{title}</span>
-                <span className="block opacity-70">{body}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Sign in. */}
-      <section className="order-1 flex flex-col px-5 py-6 sm:px-10 lg:order-2 lg:justify-center lg:py-12">
-        <div className="mb-7 flex items-center gap-2">
-          <span className="flex items-center gap-2.5 lg:hidden">
-            <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden>
-              <rect width="32" height="32" rx="7" fill="var(--ink)" />
-              <path d="M8 8h14v3.6h-9.7v2.7h8.4v3.4h-8.4v2.7H22V24H8z" fill="var(--bg)" />
-              <rect x="23" y="14.3" width="3.4" height="3.4" rx=".8" fill="var(--applicant)" />
-            </svg>
-            <span className="display text-[18px] font-extrabold">Educaro</span>
-          </span>
-          <span className="ml-auto flex items-center gap-2">
-            {isMock ? (
-              <Tag s={{ label: 'Demo data', cls: 't-warn' }} title="Mock mode: nothing is sent to a server">
-                <FlaskConical size={12} aria-hidden /> Demo data
-              </Tag>
-            ) : null}
-            <ThemeToggle />
-          </span>
-        </div>
-
-        <div className="mx-auto w-full max-w-sm">
+      <section className="card w-full max-w-[420px] px-6 py-7">
           <h2 className="display text-[26px] font-extrabold leading-tight">{mode === 'register' ? 'Create your account' : 'Sign in'}</h2>
           <p className="mt-1.5 text-[14px] text-muted">
             {mode === 'demo' ? 'Pick a seeded persona, or use your own account.' : mode === 'register' ? 'Email and password. Your profile stays yours.' : 'With the email and password you signed up with.'}
@@ -240,7 +195,6 @@ export function Login() {
               </>
             )}
           </p>
-        </div>
       </section>
     </div>
   );

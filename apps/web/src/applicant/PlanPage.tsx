@@ -1,12 +1,13 @@
-import { CalendarCheck, CheckCircle2, Clock, Download, FileText, MessageSquare, Send, Sparkles, Wallet } from 'lucide-react';
+import { CalendarCheck, ChevronDown, CheckCircle2, Clock, Download, FileText, MessageSquare, Send, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorText, links } from '../api/client';
 import { qk, useApplicant, useGaps, useReadiness, useScreen } from '../api/queries';
 import { useApplicantId } from '../auth/auth';
 import { formatDate } from '../lib/format';
 import { OUTCOME } from '../lib/tags';
-import { BudgetCard, ServicesCard, TimelineCard } from '../screen/blocks/outcome';
+import { ServicesCard, TimelineCard } from '../screen/blocks/outcome';
 import { GapPlanCard } from '../screen/blocks/plan';
 import { BlocksOfType } from '../screen/ComposedScreen';
 import { ScreenActionsProvider, useReadOnlyActions } from '../screen/context';
@@ -28,7 +29,6 @@ export default function PlanPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const openGaps = gaps?.filter((g) => g.status !== 'done') ?? [];
-  const budgets = screen?.blocks.filter((b): b is Extract<typeof b, { type: 'budget' }> => b.type === 'budget') ?? [];
   const timelines = screen?.blocks.filter((b): b is Extract<typeof b, { type: 'timeline' }> => b.type === 'timeline') ?? [];
   const services = screen?.blocks.filter((b): b is Extract<typeof b, { type: 'services' }> => b.type === 'services') ?? [];
   const outcome = readiness ? OUTCOME[readiness.outcome] : null;
@@ -51,6 +51,22 @@ export default function PlanPage() {
     <ScreenActionsProvider value={readOnly}>
       <div className="max-w-4xl">
         <PageHeader title="Your plan and outcome">Where you stand, what is still open, and what Educaro can do with you.</PageHeader>
+
+        {/* Profile and Shortlist left the tab bar, so this is the way in to both. */}
+        <nav aria-label="More about your application" className="mb-7 flex flex-wrap gap-2">
+          <Link
+            to="/app/shortlist"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-[13.5px] font-semibold shadow-[var(--lift)] transition-colors hover:border-ink"
+          >
+            Shortlist and requirements
+          </Link>
+          <Link
+            to="/app/profile"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-[13.5px] font-semibold shadow-[var(--lift)] transition-colors hover:border-ink"
+          >
+            Your papers and facts
+          </Link>
+        </nav>
 
         {isLoading ? (
           <Skeleton className="h-52 w-full" />
@@ -134,8 +150,6 @@ export default function PlanPage() {
           </EmptyState>
         ) : null}
 
-        <BlocksOfType screen={screen} types={['places', 'rentals', 'arrival']} className="mb-10" />
-
         {services.length ? (
           <section className="mb-10">
             <SectionTitle>Next step inside Educaro</SectionTitle>
@@ -147,7 +161,16 @@ export default function PlanPage() {
           </section>
         ) : null}
 
-        <BlocksOfType screen={screen} types={['route', 'cohort']} className="mb-10" />
+        {/* Context, not this week's work: true all month, so it opens on request. */}
+        {(screen?.blocks ?? []).some((b) => b.type === 'route' || b.type === 'cohort') ? (
+          <details className="group mb-10">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-[13.5px] font-semibold shadow-[var(--lift)] transition-colors hover:border-ink">
+              Why this route, and how long it takes others
+              <ChevronDown size={15} className="transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <BlocksOfType screen={screen} types={['route', 'cohort']} className="mt-5" />
+          </details>
+        ) : null}
 
         {timelines.length ? (
           <section className="mb-10">
@@ -160,21 +183,6 @@ export default function PlanPage() {
           </section>
         ) : null}
 
-        {budgets.length ? (
-          <section className="mb-10">
-            <SectionTitle>
-              <span className="flex items-center gap-2">
-                <Wallet size={17} className="text-muted" aria-hidden />
-                Money
-              </span>
-            </SectionTitle>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {budgets.map((block) => (
-                <BudgetCard key={block.id} block={block} bare />
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         <section className="mb-10">
           <SectionTitle>Practise before it counts</SectionTitle>

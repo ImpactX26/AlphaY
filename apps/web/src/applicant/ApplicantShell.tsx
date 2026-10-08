@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { CalendarCheck, FlaskConical, House, Inbox, ListChecks, MailX, Repeat, UserRound, Waypoints } from 'lucide-react';
+import { CalendarCheck, FlaskConical, House, Inbox, MailX, Repeat, UserRound, Waypoints } from 'lucide-react';
 import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { RouteBoundary } from '../app/RouteBoundary';
@@ -10,11 +10,14 @@ import { AgentPill, Logo, MenuItem, MockBadge, ThemeToggle, UserMenu } from '../
 import { useApplicantId } from '../auth/auth';
 import { FullPageSpinner } from '../ui/Spinner';
 
+/**
+ * Four places to look, not six. Profile and Shortlist are reached from Plan, which is where you
+ * are already thinking about them; Life holds the move itself.
+ */
 const NAV = [
   { to: '/app', label: 'Home', icon: House, end: true },
-  { to: '/app/profile', label: 'Profile', icon: UserRound, end: false },
-  { to: '/app/shortlist', label: 'Shortlist', icon: ListChecks, end: false },
   { to: '/app/plan', label: 'Plan', icon: Waypoints, end: false },
+  { to: '/app/life', label: 'Life', icon: UserRound, end: false },
   { to: '/app/inbox', label: 'Inbox', icon: Inbox, end: false },
 ] as const;
 

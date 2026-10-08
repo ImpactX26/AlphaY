@@ -223,8 +223,19 @@ export function NoteCard({ block }: { block: NoteBlock }) {
 }
 
 /** The truth map: what they said, wrote and proved, side by side. */
-export function TruthMapCard({ block, bare }: { block: TruthMapBlock; bare?: boolean }) {
+/**
+ * On a dashboard the whole seven-by-five grid is too much: what matters is what disagrees.
+ * `compact` shows only the rows that need settling and puts the rest behind a disclosure;
+ * Profile renders the full table, which is what that page is for.
+ */
+export function TruthMapCard({ block, bare, compact }: { block: TruthMapBlock; bare?: boolean; compact?: boolean }) {
   const conflicts = block.rows.filter((r) => r.status === 'conflict').length;
+  // A row the applicant just settled must not vanish the moment it is fixed: seeing the fix land
+  // is the point. `note` is what the agent writes when it has acted on a row, so those stay too.
+  const needs = block.rows.filter((r) => r.status === 'conflict' || r.status === 'no_proof' || Boolean(r.note));
+  const settled = block.rows.length - needs.length;
+  const [showAll, setShowAll] = useState(false);
+  const rows = compact && !showAll ? needs : block.rows;
   return (
     <BlockFrame bare={bare}
       kicker={block.title ?? 'What you said, wrote and proved'}
@@ -242,7 +253,16 @@ export function TruthMapCard({ block, bare }: { block: TruthMapBlock; bare?: boo
       }
       footer={<span>Only a document can make a fact Verified.</span>}
     >
-      <TruthTable rows={block.rows} />
+      <TruthTable rows={rows} />
+      {compact && !showAll && settled > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="mt-2.5 text-[13.5px] font-semibold text-muted underline-offset-2 hover:text-ink hover:underline"
+        >
+          Show the {settled} that already line up
+        </button>
+      ) : null}
     </BlockFrame>
   );
 }

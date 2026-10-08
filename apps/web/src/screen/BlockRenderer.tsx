@@ -11,7 +11,7 @@ import { GapPlanCard, MatrixCard, OpportunitiesCard, RouteCard, ShortlistCard } 
  * One component per block type. The switch is exhaustive: a new type in screen.ts
  * fails the build here until it has a component.
  */
-export function BlockRenderer({ block }: { block: Block }) {
+export function BlockRenderer({ block, compact }: { block: Block; compact?: boolean }) {
   switch (block.type) {
     case 'next_step':
       return <NextStepCard block={block} />;
@@ -22,7 +22,7 @@ export function BlockRenderer({ block }: { block: Block }) {
     case 'documents':
       return <DocumentsCard block={block} />;
     case 'truth_map':
-      return <TruthMapCard block={block} />;
+      return <TruthMapCard block={block} compact={compact} />;
     case 'route':
       return <RouteCard block={block} />;
     case 'opportunities':

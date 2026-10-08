@@ -1,6 +1,6 @@
 import type { Block, Screen } from '@educaro/shared';
 import clsx from 'clsx';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { ErrorBoundary } from '../app/ErrorBoundary';
@@ -58,12 +58,12 @@ const ELSEWHERE: Partial<Record<Block['type'], { to: string; page: string }>> = 
   readiness: { to: '/app/plan', page: 'Plan' },
   timeline: { to: '/app/plan', page: 'Plan' },
   services: { to: '/app/plan', page: 'Plan' },
-  budget: { to: '/app/plan', page: 'Plan' },
+  budget: { to: '/app/life', page: 'Life' },
   route: { to: '/app/plan', page: 'Plan' },
   cohort: { to: '/app/plan', page: 'Plan' },
-  places: { to: '/app/plan', page: 'Plan' },
-  rentals: { to: '/app/plan', page: 'Plan' },
-  arrival: { to: '/app/plan', page: 'Plan' },
+  places: { to: '/app/life', page: 'Life' },
+  rentals: { to: '/app/life', page: 'Life' },
+  arrival: { to: '/app/life', page: 'Life' },
   documents: { to: '/app/profile', page: 'Profile' },
   community: { to: '/app/inbox', page: 'Cohort' },
 };
@@ -71,6 +71,28 @@ const ELSEWHERE: Partial<Record<Block['type'], { to: string; page: string }>> = 
 // Everything else stays on Home, including the truth map and the requirement matrix: the agent
 // raises those in answer to something, and sending the reader to another page to see the answer
 // is worse than one more section here.
+
+/**
+ * Asks that may be folded into a one-line list when several pile up.
+ *
+ * `question` is deliberately absent: a guard caps open questions at two, and showing both is the
+ * product's promise that it will not interrogate you. Hiding one behind a disclosure breaks that.
+ */
+const FOLDABLE: Block['type'][] = ['letters', 'next_step'];
+
+/** One line in the "also waiting" list, so three more asks cost three lines instead of three panels. */
+function waitingLabel(b: Block): string {
+  switch (b.type) {
+    case 'question':
+      return b.prompt;
+    case 'letters':
+      return b.drafts.length === 1 ? 'A letter is ready for you to check' : `${b.drafts.length} letters ready for you to check`;
+    case 'next_step':
+      return b.title ?? 'Your next step';
+    default:
+      return b.title ?? b.type;
+  }
+}
 
 
 export function ComposedScreen({ screen: raw, loading, className, focus }: { screen: Screen | undefined; loading?: boolean; className?: string; focus?: boolean }) {
@@ -84,11 +106,27 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
 
   // Home asks for `focus`: keep what needs an answer or a tap now, and point at the page that
   // owns the rest. Without it every block renders, which is what the staff read-only view wants.
-  const shown = useMemo(() => {
+  const kept = useMemo(() => {
     if (!screen) return [];
     if (!focus) return screen.blocks;
     return screen.blocks.filter((b) => !ELSEWHERE[b.type]);
   }, [screen, focus]);
+
+  // Four things shouting at once is not a dashboard. The most urgent ask keeps its panel; the
+  // rest become one line each, and open in place when tapped.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const { shown, waiting, leadId } = useMemo(() => {
+    if (!focus) return { shown: kept, waiting: [] as Block[], leadId: null as string | null };
+    const asks = kept.filter((b) => FOLDABLE.includes(b.type));
+    if (asks.length < 2) return { shown: kept, waiting: [] as Block[], leadId: null as string | null };
+    const rest = asks.slice(1);
+    const restIds = new Set(rest.map((b) => b.id));
+    return {
+      shown: kept.filter((b) => !restIds.has(b.id) || b.id === openId),
+      waiting: rest.filter((b) => b.id !== openId),
+      leadId: asks[0].id,
+    };
+  }, [kept, focus, openId]);
 
   const movedOut = useMemo(() => {
     if (!screen || !focus) return [];
@@ -125,12 +163,34 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
               style={entering.has(block.id) ? ({ '--delay': `${Math.min(i, 8) * 55}ms` } as CSSProperties) : undefined}
             >
               <ErrorBoundary label={blockLabel(block.type)}>
-                <BlockRenderer block={block} />
+                <BlockRenderer block={block} compact={focus} />
               </ErrorBoundary>
+
+              {/* The rest of the asks sit directly under the lead one, as lines rather than panels. */}
+              {waiting.length && block.id === leadId ? (
+                <section className="mt-3 overflow-hidden rounded-[var(--r)] border border-line bg-surface shadow-[var(--lift)]">
+                  <h2 className="px-4 pt-3 text-[12.5px] font-semibold text-muted">Also waiting on you</h2>
+                  <ul className="mt-1 divide-y divide-line">
+                    {waiting.map((w) => (
+                      <li key={w.id}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenId(w.id)}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2"
+                        >
+                          <span className="min-w-0 flex-1 text-[14px] leading-snug">{waitingLabel(w)}</span>
+                          <ChevronRight size={16} className="flex-none text-muted" aria-hidden />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
             </div>
           ))}
         </div>
       ) : null}
+
 
       {movedOut.length ? (
         <nav aria-label="The rest of your plan" className="mt-7 flex flex-wrap gap-2">
@@ -157,7 +217,10 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
  * Home hands the rest off with `focus`; this is the other half of that split.
  */
 export function BlocksOfType({ screen, types, className }: { screen: Screen | undefined; types: Block['type'][]; className?: string }) {
-  const blocks = (screen?.blocks ?? []).filter((b) => types.includes(b.type));
+  // The page's `types` order wins here: Life wants rentals before arrival even when the agent
+  // ranked them the other way, because you pick a room before you plan your first week.
+  const all = screen?.blocks ?? [];
+  const blocks = types.flatMap((t) => all.filter((b) => b.type === t));
   if (!blocks.length) return null;
   return (
     <div className={clsx('space-y-7', className)}>
