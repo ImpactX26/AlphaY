@@ -161,7 +161,9 @@ export async function lifeSpecialist(kit: Kit): Promise<SpecialistResult> {
       places: places.slice(0, 6).map((pl) => ({
         ...pl,
         mapsUrl: mapsUrl(pl),
-        directionsUrl: directionsUrl(pl, addr ? `${addr}, ${city.name}` : center),
+        // The geocoded point, not the address string: an umlaut that survived a form, a database and a
+        // URL encoder is one that has survived three chances to break, and the coordinates are exact.
+        directionsUrl: directionsUrl(pl, center),
       })),
     });
   }
