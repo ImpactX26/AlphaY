@@ -4,6 +4,7 @@ import { PlacesCard } from './blocks/PlacesCard';
 import { RentalsCard } from './blocks/RentalsCard';
 import { CohortCard } from './blocks/CohortCard';
 import { CommunityCard } from './blocks/CommunityCard';
+import { CohortGroupCard, FinancePlanCard, HelpCard, RealityCheckCard, ScamCheckCard } from './blocks/safety';
 import { ChecklistCard, DocumentsCard, NextStepCard, NoteCard, QuestionCard, TruthMapCard } from './blocks/core';
 import { GapPlanCard, MatrixCard, OpportunitiesCard, RouteCard, ShortlistCard } from './blocks/plan';
 
@@ -55,6 +56,16 @@ export function BlockRenderer({ block, compact }: { block: Block; compact?: bool
       return <CohortCard block={block} />;
     case 'community':
       return <CommunityCard block={block} />;
+    case 'scam_check':
+      return <ScamCheckCard block={block} />;
+    case 'finance_plan':
+      return <FinancePlanCard block={block} />;
+    case 'cohort_group':
+      return <CohortGroupCard block={block} />;
+    case 'reality_check':
+      return <RealityCheckCard block={block} />;
+    case 'help':
+      return <HelpCard block={block} />;
     default:
       return exhaustive(block);
   }
