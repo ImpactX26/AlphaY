@@ -31,6 +31,7 @@ import type {
   TraceDTO,
 } from '@educaro/shared';
 import { ApiError } from './errors';
+import { loadSnapshot, saveSnapshot } from './mockStore';
 import { ANANYA_ID, ananyaState } from './fixtures/ananya';
 import { type ApplicantState, DAY, emptyScreen, freshState, guessKind, HOUR, SERVICES } from './fixtures/common';
 import { germanyScreen } from './fixtures/germany';
@@ -43,20 +44,41 @@ import type { Api, ReplyKind, ShortlistInput } from './types';
 // ---------- state ----------
 
 const clone = <T>(v: T): T => structuredClone(v);
-const states = new Map<string, ApplicantState>([
-  [ANANYA_ID, clone(ananyaState())],
-  [ROHAN_ID, clone(rohanState())],
-]);
+
+const snapshot = loadSnapshot();
+
+const states = new Map<string, ApplicantState>(
+  snapshot
+    ? (Object.entries(snapshot.states) as [string, ApplicantState][])
+    : [
+        [ANANYA_ID, clone(ananyaState())],
+        [ROHAN_ID, clone(rohanState())],
+      ],
+);
 const otherCards = new Map(OTHER_CARDS.map((c) => [c.applicantId, clone(c)]));
-const openings: OpeningDTO[] = clone(OPENINGS);
-const matchesByOpening = new Map<string, MatchDTO[]>();
-const broadcasts: BroadcastDTO[] = clone(BROADCASTS);
+const openings: OpeningDTO[] = snapshot ? (snapshot.openings as OpeningDTO[]) : clone(OPENINGS);
+const matchesByOpening = new Map<string, MatchDTO[]>(snapshot ? (Object.entries(snapshot.matches) as [string, MatchDTO[]][]) : []);
+const broadcasts: BroadcastDTO[] = snapshot ? (snapshot.broadcasts as BroadcastDTO[]) : clone(BROADCASTS);
 const interviews = new Map<string, { applicantId: string; dto: InterviewDTO; asked: number }>();
 const uploadedBlobs = new Map<string, string>();
-const consultantBookings = new Map<string, string>();
-const globalTrace: TraceDTO[] = [];
-let openaiSpent = 3.42;
-let seq = 1000;
+const consultantBookings = new Map<string, string>(snapshot ? Object.entries(snapshot.bookings) : []);
+const globalTrace: TraceDTO[] = snapshot ? (snapshot.globalTrace as TraceDTO[]) : [];
+let openaiSpent = snapshot?.openaiSpent ?? 3.42;
+let seq = snapshot?.seq ?? 1000;
+
+/** Mirror the demo into sessionStorage, so a reload mid-demo resumes instead of resetting. */
+function persist(): void {
+  saveSnapshot(() => ({
+    states: Object.fromEntries(states),
+    openings,
+    matches: Object.fromEntries(matchesByOpening),
+    broadcasts,
+    bookings: Object.fromEntries(consultantBookings),
+    globalTrace,
+    openaiSpent,
+    seq,
+  }));
+}
 
 const uid = (prefix: string) => `${prefix}-${(++seq).toString(36)}`;
 const nowIso = () => new Date().toISOString();
@@ -112,19 +134,24 @@ function findApproval(approvalId: string): { s: ApplicantState; a: ApprovalDetai
 // ---------- live messages ----------
 
 const emit = (msg: ServerMessage) => mockBus.emit(msg);
-const refresh = (applicantId: string, what: string[]) => emit({ type: 'refresh', applicantId, what });
+const refresh = (applicantId: string, what: string[]) => {
+  emit({ type: 'refresh', applicantId, what });
+  persist();
+};
 const status = (applicantId: string, s: 'idle' | 'thinking' | 'working', detail?: string) =>
   emit({ type: 'agent_status', applicantId, status: s, detail });
 
 function pushScreen(s: ApplicantState, patch: Partial<Screen> = {}): void {
   s.screen = { ...s.screen, ...patch, version: s.screen.version + 1, updatedAt: nowIso() };
   emit({ type: 'screen', screen: clone(s.screen) });
+  persist();
 }
 
 function say(s: ApplicantState, author: ChatMessageDTO['author'], text: string, channel: ChatMessageDTO['channel'] = 'web'): ChatMessageDTO {
   const message: ChatMessageDTO = { id: uid('c'), applicantId: s.applicant.id, author, channel, text, createdAt: nowIso() };
   s.chat.push(message);
   emit({ type: 'chat', applicantId: s.applicant.id, message: clone(message) });
+  persist();
   return message;
 }
 
@@ -135,6 +162,7 @@ function trace(applicantId: string | null, kind: TraceDTO['kind'], name: string,
   else globalTrace.push(t);
   openaiSpent += costUsd;
   emit({ type: 'trace', trace: clone(t) });
+  persist();
 }
 
 function moveStage(s: ApplicantState, stage: PipelineStage, reason: string, by: 'agent' | 'staff' = 'agent'): void {
@@ -673,6 +701,7 @@ export const mockApi: Api = {
     const applicantId = `app-${email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase() || 'new'}`;
     const user: MeDTO = { userId: `u-${applicantId}`, role: 'applicant', name: name || 'New applicant', email, applicantId };
     states.set(applicantId, freshState(applicantId, user.name, email));
+    persist();
     return { token: encodeToken(user), user };
   },
   async login({ email }) {
@@ -684,7 +713,11 @@ export const mockApi: Api = {
   async demo(persona): Promise<AuthResponse> {
     await latency();
     const user = DEMO_USERS[persona];
-    if (persona === 'fresh') states.set(user.applicantId ?? 'app-fresh', freshState(user.applicantId ?? 'app-fresh', user.name, user.email));
+    if (persona === 'fresh')  {
+      // "Start from nothing" always starts from nothing, even after a reload.
+      states.set(user.applicantId ?? 'app-fresh', freshState(user.applicantId ?? 'app-fresh', user.name, user.email));
+      persist();
+    }
     return { token: encodeToken(user), user };
   },
   async me() {
