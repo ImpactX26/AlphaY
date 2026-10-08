@@ -78,7 +78,17 @@ function withQuery(path: string, query?: Query): string {
   return s ? `${path}?${s}` : path;
 }
 
-const seg = encodeURIComponent;
+/**
+ * A path segment, encoded.
+ *
+ * It refuses an empty one. `encodeURIComponent('')` is `''`, which silently collapses
+ * `/applicants/${id}/video` into `/applicants//video` — a 404 that looks like a broken endpoint
+ * rather than a missing id, and it cost an afternoon of looking at the wrong side of the wire.
+ */
+const seg = (value: string): string => {
+  if (!value) throw new ApiError(0, 'Missing an id for this request. Try signing in again.', null);
+  return encodeURIComponent(value);
+};
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };

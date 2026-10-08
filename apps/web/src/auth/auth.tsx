@@ -73,10 +73,18 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-/** The signed-in applicant's id. Only use inside the applicant app. */
+/**
+ * The signed-in applicant's id. Only use inside the applicant app, which `RequireApplicant`
+ * guarantees has one.
+ *
+ * It used to fall back to `''`, which does not throw anywhere — it builds `/applicants//video`,
+ * and the upload 404s before it reaches the API. An id that is missing is a broken session, so
+ * it says so here rather than three layers down in a request nobody is watching.
+ */
 export function useApplicantId(): string {
   const { me } = useAuth();
-  return me?.applicantId ?? '';
+  if (!me?.applicantId) throw new Error('No applicant id on this session: useApplicantId outside RequireApplicant');
+  return me.applicantId;
 }
 
 export const homeFor = (role: Role | undefined): string => (role === 'staff' ? '/staff' : '/app');
@@ -87,7 +95,29 @@ export function RequireRole({ role, children }: { role: Role; children: ReactNod
   if (!ready) return <FullPageSpinner label="Signing you in" />;
   if (!me) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   if (me.role !== role) return <Navigate to={homeFor(me.role)} replace />;
+  if (role === 'applicant' && !me.applicantId) return <NoApplicantRow />;
   return <>{children}</>;
+}
+
+/**
+ * An applicant user with no `applicants` row. `AuthUser.applicantId` is nullable in the contract,
+ * so this is reachable — and every id-shaped call would otherwise go out with an empty segment.
+ * Says what is wrong and offers the way out, instead of an upload button that quietly 404s.
+ */
+function NoApplicantRow() {
+  const { signOut } = useAuth();
+  return (
+    <div className="mx-auto max-w-prose px-4 py-16">
+      <h1 className="headline">This account has no applicant profile yet.</h1>
+      <p className="mt-3 text-[15px] text-muted">
+        You are signed in, but there is no applicant record attached to the account, so there is nothing to upload
+        documents to. On a fresh demo database this means the seed has not run: <code>npm run seed</code>.
+      </p>
+      <button type="button" onClick={signOut} className="mt-5 text-[14px] font-semibold underline underline-offset-2">
+        Sign in as someone else
+      </button>
+    </div>
+  );
 }
 
 export function HomeRedirect() {
