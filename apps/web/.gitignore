@@ -1,0 +1,3 @@
+# Local dev overrides (e.g. VITE_MOCK=1, API_TARGET=...)
+.env.local
+.env.*.local
