@@ -10,6 +10,7 @@ import { QuestionsService } from '../profile/questions.service';
 import { forwardOnly, runChecks, stageFor, type CheckReport } from './checks';
 import { ComposerService } from './composer.service';
 import { ShortlistService } from './shortlist.service';
+import { essentialQuestion } from './essentials';
 import { AgentEventsService, kLock, type AgentEvent } from './events.service';
 import { SpecialistsService } from './specialists/specialists.service';
 import { StateService, type ApplicantState } from './state.service';
@@ -114,6 +115,17 @@ export class AgentLoopService implements OnModuleInit {
     }
     if (plan.customQuestion) {
       await this.questions.ask(applicantId, { ...plan.customQuestion, actions: {}, id: `custom:${plan.customQuestion.prompt.slice(0, 40)}` }, { runId });
+    }
+
+    // There is a cap of two open questions, but there was no floor, and a floor matters more.
+    // Someone who has just uploaded a short intro has almost nothing to compare yet, so the truth
+    // map offers no candidates and the supervisor plans no question — and they land on a screen
+    // that asks them for nothing at all, which reads as the agent having given up on them. Ask for
+    // the next thing we genuinely do not know, in code, so the conversation always has a next move.
+    const open = await this.questions.openCount(applicantId);
+    if (open === 0) {
+      const essential = essentialQuestion(st);
+      if (essential) await this.questions.ask(applicantId, essential, { runId });
     }
 
     // Reply first, so the applicant is not left waiting while specialists work.

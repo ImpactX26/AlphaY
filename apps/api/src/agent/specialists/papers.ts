@@ -67,7 +67,7 @@ export async function recognitionSpecialist(kit: Kit): Promise<SpecialistResult>
       language: lang,
       service: service('anerkennung'),
       links: [
-        { label: 'Anerkennung in Deutschland: nurses', url: 'https://www.anerkennung-in-deutschland.de/html/en/professions/nurse.php' },
+        { label: 'Anerkennung in Deutschland: nurses', url: `${process.env.API_URL || 'http://localhost:3000'}/api/mock/anerkennung-nursing` },
         { label: 'Anerkennung at Educaro', url: 'https://www.educaro.de/anerkennung/' },
       ],
     },

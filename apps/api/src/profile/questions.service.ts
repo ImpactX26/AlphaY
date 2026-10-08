@@ -35,6 +35,12 @@ export class QuestionsService {
     private readonly trace: TraceService,
   ) {}
 
+  /** How many questions are still waiting on the applicant right now. */
+  async openCount(applicantId: string): Promise<number> {
+    const rows = await db.query.questions.findMany({ where: eq(schema.questions.applicantId, applicantId) });
+    return rows.filter((q) => q.status === 'open').length;
+  }
+
   async ask(
     applicantId: string,
     q: Pick<QuestionCandidate, 'prompt' | 'why' | 'options' | 'factKey' | 'actions'> & { id?: string },

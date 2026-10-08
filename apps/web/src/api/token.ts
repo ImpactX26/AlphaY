@@ -30,11 +30,46 @@ export const tokenStore = {
   },
 };
 
-/** Mock mode: VITE_MOCK=1 at build time, or switched on at runtime from the sign-in page. */
-export const isMock: boolean = import.meta.env.VITE_MOCK === '1' || read(MOCK_KEY) === '1';
+/**
+ * Mock mode: VITE_MOCK=1 at build time, or switched on at runtime from the sign-in page.
+ *
+ * The runtime switch is deliberately **session**-scoped. It used to live in localStorage, which
+ * meant one tap on the sign-in page pinned that browser to mocks permanently: `isMock` is read once
+ * at module load and never re-checked, so a perfectly healthy API was ignored for good. What you
+ * saw was not an error — it was the mock answering, with canned chat replies, "mock mode has no
+ * transcription", and placeholder requirement tables. That is a horrible failure to debug, because
+ * everything looks like it works and is simply wrong.
+ *
+ * A pin you set while looking at the app should last as long as you are looking at it. A new
+ * session asks again, and the old permanent pin is cleared on the way past.
+ */
+function readMockPin(): boolean {
+  try {
+    if (read(MOCK_KEY) === '1') {
+      // Migrate a legacy permanent pin into this session, then drop it for good.
+      sessionStorage.setItem(MOCK_KEY, '1');
+      write(MOCK_KEY, null);
+    }
+    if (new URLSearchParams(window.location.search).get('mock') === '0') {
+      sessionStorage.removeItem(MOCK_KEY);
+      return false;
+    }
+    return sessionStorage.getItem(MOCK_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export const isMock: boolean = import.meta.env.VITE_MOCK === '1' || readMockPin();
 
 export function setMockMode(on: boolean): void {
-  write(MOCK_KEY, on ? '1' : null);
+  try {
+    if (on) sessionStorage.setItem(MOCK_KEY, '1');
+    else sessionStorage.removeItem(MOCK_KEY);
+    write(MOCK_KEY, null);
+  } catch {
+    /* storage blocked: the choice lasts until reload */
+  }
   tokenStore.set(null);
   window.location.assign('/login');
 }
