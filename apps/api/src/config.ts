@@ -27,11 +27,24 @@ export const config = {
   searchProvider: env('SEARCH_PROVIDER', 'duckduckgo') as 'duckduckgo' | 'tavily',
   tavilyKey: env('TAVILY_API_KEY'),
 
-  smtpHost: env('SMTP_HOST', 'localhost'),
-  smtpPort: Number(env('SMTP_PORT', '1025')),
+  // Mail: the team's own mailbox (SMTP to send, IMAP to read replies). Without credentials, Mailpit catches everything.
+  smtpUser: env('SMTP_USER'),
+  smtpPass: env('SMTP_PASS'),
+  smtpHost: env('SMTP_HOST', env('SMTP_USER') ? 'smtp.gmail.com' : 'localhost'),
+  smtpPort: Number(env('SMTP_PORT', env('SMTP_USER') ? '465' : '1025')),
+  smtpSecure: env('SMTP_SECURE', env('SMTP_USER') ? 'true' : 'false') === 'true',
+  imapHost: env('IMAP_HOST', 'imap.gmail.com'),
+  imapPort: Number(env('IMAP_PORT', '993')),
   mailpitUrl: env('MAILPIT_URL', 'http://localhost:8025'),
-  mailFrom: env('MAIL_FROM', 'Educaro Agent <agent@educaro.local>'),
-  mailReplyDomain: env('MAIL_REPLY_DOMAIN', 'educaro.local'),
+  mailFrom: env('MAIL_FROM', env('SMTP_USER') ? `Educaro Agent <${env('SMTP_USER')}>` : 'Educaro Agent <agent@educaro.local>'),
+  /** Safe mode: every third-party recipient is redirected to the team inbox. Never mail a real office from a prototype. */
+  mailSafeMode: env('MAIL_SAFE_MODE', 'true') !== 'false',
+  mailSafeRedirect: env('MAIL_SAFE_REDIRECT', env('SMTP_USER', 'demo-inbox@educaro.local')),
+  mailAllowed: env('MAIL_ALLOWED')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+  mailPollSeconds: Number(env('MAIL_POLL_SECONDS', '20')),
 
   discordToken: env('DISCORD_TOKEN'),
   discordAppId: env('DISCORD_APP_ID'),

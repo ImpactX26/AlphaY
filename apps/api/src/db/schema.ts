@@ -82,6 +82,7 @@ export const facts = pgTable(
     sourceRef: text('source_ref'),
     sourceUrl: text('source_url'),
     quote: text('quote'),
+    data: jsonb('data').$type<Record<string, unknown>>(),
     active: boolean('active').notNull().default(true),
     createdAt: createdAt(),
   },
@@ -95,6 +96,8 @@ export const questions = pgTable('questions', {
   why: text('why').notNull(),
   options: jsonb('options').$type<string[]>().notNull().default([]),
   factKey: text('fact_key'),
+  /** Candidate id (e.g. "conflict:experience.aster") so the same question is never asked twice, plus option actions. */
+  meta: jsonb('meta').$type<{ candidateId?: string; actions?: Record<string, string> }>().notNull().default({}),
   status: text('status').$type<'open' | 'answered' | 'dismissed'>().notNull().default('open'),
   answer: text('answer'),
   answeredAt: timestamp('answered_at', { withTimezone: true }),
@@ -201,6 +204,9 @@ export const emails = pgTable('emails', {
   toAddr: text('to_addr').notNull(),
   subject: text('subject').notNull(),
   text: text('text').notNull(),
+  kind: text('kind'),
+  originalTo: text('original_to'),
+  safeRedirected: boolean('safe_redirected').notNull().default(false),
   classified: jsonb('classified').$type<Record<string, unknown>>(),
   createdAt: createdAt(),
 });
