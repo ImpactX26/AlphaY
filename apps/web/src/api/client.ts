@@ -10,6 +10,8 @@ import type {
   ChatMessageDTO,
   CohortDTO,
   CohortGroupDTO,
+  DocStandardDTO,
+  FailingDocDTO,
   CohortGroupsDTO,
   CommunityPostDTO,
   CopilotResultDTO,
@@ -50,7 +52,7 @@ import type { Api, UploadProgress } from './types';
 export { ApiError, errorText } from './errors';
 export { isMock, setMockMode, tokenStore } from './token';
 
-type Method = 'GET' | 'POST' | 'DELETE';
+type Method = 'GET' | 'POST' | 'DELETE' | 'PATCH';
 type Query = Record<string, string | number | undefined>;
 
 let unauthorizedHandler: (() => void) | null = null;
@@ -146,6 +148,7 @@ function upload<T>(path: string, form: FormData, onProgress?: UploadProgress): P
 const get = <T>(path: string, query?: Query) => request<T>('GET', withQuery(path, query));
 const post = <T>(path: string, body?: unknown) => request<T>('POST', path, body ?? {});
 const del = <T>(path: string) => request<T>('DELETE', path);
+const patch = <T>(path: string, body?: unknown) => request<T>('PATCH', path, body ?? {});
 
 export const httpApi: Api = {
   register: (input) => post<AuthResponse>('/auth/register', input),
@@ -203,6 +206,10 @@ export const httpApi: Api = {
   requestGroup: (id, groupId) => post<CohortGroupDTO>(`/applicants/${seg(id)}/groups/${seg(groupId)}/request`),
   leaveGroup: (id, groupId) => del<{ ok: true }>(`/applicants/${seg(id)}/groups/${seg(groupId)}`),
   staffGroups: () => get<StaffGroupDTO[]>('/staff/groups'),
+  docStandards: () => get<DocStandardDTO[]>('/staff/standards'),
+  updateStandard: (id, input) => patch<DocStandardDTO[]>(`/staff/standards/${seg(id)}`, input),
+  failingDocuments: () => get<FailingDocDTO[]>('/staff/standards/failing'),
+  recheckDocuments: (id) => post<{ rechecked: number }>(`/applicants/${seg(id)}/recheck-documents`),
   watchedSources: () => get<WatchedSourceDTO[]>('/staff/watch'),
   addSource: (input) => post<WatchedSourceDTO[]>('/staff/watch', input),
   removeSource: (id) => del<WatchedSourceDTO[]>(`/staff/watch/${seg(id)}`),

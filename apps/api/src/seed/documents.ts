@@ -281,3 +281,85 @@ I want to do a Master's in data science or informatics in Germany, starting next
 I took IELTS and got an overall band of 7.0. I have not done the APS yet and I am not sure how long it takes. My German is very basic, maybe A1.
 
 My main questions are whether my CGPA is good enough for these universities, what the German grade equivalent is, and whether I can apply for the winter intake if I start the APS now.`;
+
+// ------------------------------------------------- the standards demo: one accepted, one not
+
+/**
+ * A matched pair, for showing what a document is checked against.
+ *
+ * The question is "when I upload a certificate, what decides whether it counts?" — and the answer
+ * is only convincing if both halves can be seen. These two are the same claim, made by the same
+ * person, about the same level of German: one on a certificate German authorities recognise, one on
+ * a certificate from a private academy of the kind sold to applicants every day in Kerala.
+ *
+ * The second one is not a forgery and nothing on it is false. It is simply not issued by a body any
+ * Anerkennung office accepts, it is three years old, and the name on it carries a middle name the
+ * passport does not. Each of those is a real reason real files are returned, and none of them is
+ * visible to somebody reading it for the first time in a second language.
+ */
+export const STANDARDS_DEMO_DOCS: DemoDoc[] = [
+  {
+    name: 'ACCEPTED-Goethe-Zertifikat-B1.pdf',
+    build: (d) => {
+      head(d, 'GOETHE-INSTITUT', 'Goethe-Zertifikat B1 · Zertifikat Deutsch');
+      d.font('Helvetica-Bold').fontSize(12).text('GOETHE-ZERTIFIKAT B1', { align: 'center' });
+      d.moveDown(1.2);
+      d.font('Helvetica').fontSize(11.5);
+      A(d, 'Ananya Nair');
+      A(d, 'geboren am 12.03.1998 in Kochi, Indien');
+      d.moveDown(0.8);
+      A(d, 'hat die Prüfung Goethe-Zertifikat B1 am 14. Februar 2026 bestanden.');
+      A(d, 'has passed the Goethe-Zertifikat B1 examination on 14 February 2026.');
+      d.moveDown(0.8);
+      A(d, 'Lesen 78/100 · Hören 81/100 · Schreiben 74/100 · Sprechen 80/100');
+      d.moveDown(0.6);
+      A(d, 'Das Goethe-Zertifikat B1 bestätigt Sprachkenntnisse auf der Stufe B1 des Gemeinsamen Europäischen Referenzrahmens für Sprachen (GER).');
+      d.moveDown(0.6);
+      A(d, 'Prüfungsnummer: GI-B1-2026-114872. Goethe-Institut Max Mueller Bhavan, Bangalore.');
+      sign(d, 'Dr. Katrin Bauer', 'Pruefungsverantwortliche, Goethe-Institut', 'Bangalore');
+    },
+  },
+  {
+    name: 'NOT-ACCEPTED-Deutsch-Akademie-Level-A2.pdf',
+    build: (d) => {
+      head(d, 'DEUTSCH AKADEMIE KOCHI', 'Premier German Language Training Institute · Est. 2016');
+      d.font('Helvetica-Bold').fontSize(12).text('CERTIFICATE OF COMPLETION', { align: 'center' });
+      d.moveDown(1.2);
+      d.font('Helvetica').fontSize(11.5);
+      A(d, 'This is to certify that');
+      d.moveDown(0.5);
+      // The middle name is the whole point: her passport reads "Ananya Nair".
+      d.font('Helvetica-Bold').text('Ms. ANANYA RAJAN NAIR');
+      d.font('Helvetica');
+      d.moveDown(0.5);
+      A(d, 'has successfully completed our German Language Course, Level A2, with a score of 82%.');
+      d.moveDown(0.6);
+      A(d, 'The course covered reading, writing, listening and speaking at A2 level of the Common European Framework, over 120 contact hours.');
+      d.moveDown(0.6);
+      A(d, 'Course duration: January 2023 to March 2023. Certificate issued: 28 March 2023.');
+      d.moveDown(0.6);
+      A(d, 'Roll Number: DAK-A2-2023-0418. We wish her all success in her future career in Germany.');
+      sign(d, 'Mr. Suresh Menon', 'Director, Deutsch Akademie Kochi', 'Kochi');
+    },
+  },
+  {
+    name: 'NOT-ACCEPTED-Experience-Letter-unsigned.pdf',
+    build: (d) => {
+      head(d, 'SUNRISE MULTISPECIALITY HOSPITAL', 'Kakkanad, Kochi 682030, Kerala');
+      d.font('Helvetica-Bold').fontSize(12).text('EXPERIENCE CERTIFICATE', { align: 'center' });
+      d.moveDown(1.2);
+      d.font('Helvetica').fontSize(11.5);
+      A(d, 'TO WHOM IT MAY CONCERN');
+      d.moveDown(0.8);
+      // No start date, no signature, no seal — a draft somebody was handed and told was enough.
+      A(d, 'This is to certify that Ms. Ananya Nair worked at Sunrise Multispeciality Hospital as a Staff Nurse in the Department of General Medicine.');
+      d.moveDown(0.6);
+      A(d, 'Her duties included patient care, administration of medication and post-operative monitoring. Her conduct was found satisfactory throughout.');
+      d.moveDown(0.6);
+      A(d, 'Issued on request.');
+      d.moveDown(2);
+      A(d, 'Human Resources Department');
+      A(d, 'Sunrise Multispeciality Hospital');
+    },
+  },
+];

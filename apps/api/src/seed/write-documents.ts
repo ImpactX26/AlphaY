@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import PDFDocument from 'pdfkit';
-import { ANANYA_DOCS, ANANYA_VIDEO_SCRIPT, ROHAN_DOCS, ROHAN_VIDEO_SCRIPT, type DemoDoc } from './documents';
+import { ANANYA_DOCS, ANANYA_VIDEO_SCRIPT, ROHAN_DOCS, ROHAN_VIDEO_SCRIPT, STANDARDS_DEMO_DOCS, type DemoDoc } from './documents';
 
 /**
  * Writes the demo papers to disk as real PDFs you can drag into the app during a demo.
@@ -47,6 +47,20 @@ Upload all four. CGPA 8.2 on a 10 scale, which is 1.9 on the German scale; the t
 every semester's SGPA before the cumulative figure, so check the agent reports 8.2 and not 7.6.
 IELTS 7.0 is claimed on the CV with no Test Report Form attached, and APS has not been started.
 
+## standards-check/ — what a document is checked against
+
+Three papers that make the same point from both sides. Upload them and open the document in the
+applicant's Papers section, or Command centre -> Document standards.
+
+| File | Verdict | Why |
+|---|---|---|
+| \`ACCEPTED-Goethe-Zertifikat-B1.pdf\` | Accepted | Recognised issuer, level stated, recent, name matches. |
+| \`NOT-ACCEPTED-Deutsch-Akademie-Level-A2.pdf\` | Not accepted | A private academy is not an issuer any Anerkennung office accepts; it is three years old; and the name carries a middle name the passport does not. |
+| \`NOT-ACCEPTED-Experience-Letter-unsigned.pdf\` | Not accepted | No start date and no signature or seal. |
+
+Nothing on the rejected certificate is false. That is the point: none of the three reasons is
+visible to somebody reading it for the first time in a second language.
+
 ## intro scripts
 
 \`*-intro-script.txt\` is what to read aloud if you want to record the intro video live. About 60-90
@@ -58,11 +72,23 @@ Sign in with the **fresh** persona for an empty account, record or upload the in
 documents in. Everything you see after that was built from these files.
 `;
 
+const STANDARDS_NOTE = `These three are for showing what a document is checked against.
+
+ACCEPTED-Goethe-Zertifikat-B1.pdf        -> accepted
+NOT-ACCEPTED-Deutsch-Akademie-Level-A2.pdf -> not accepted (issuer not recognised, 3 years old, name mismatch)
+NOT-ACCEPTED-Experience-Letter-unsigned.pdf -> not accepted (no start date, no signature or seal)
+
+The rejected certificate contains nothing false. It is simply not issued by a body German
+authorities accept, and neither of those things is visible to somebody reading it for the first
+time in a second language.
+`;
+
 async function main() {
   const root = path.resolve(process.cwd(), '../../demo-documents');
   const sets: [string, DemoDoc[], string, string][] = [
     ['ananya-nursing', ANANYA_DOCS, 'ananya-intro-script.txt', ANANYA_VIDEO_SCRIPT],
     ['rohan-masters', ROHAN_DOCS, 'rohan-intro-script.txt', ROHAN_VIDEO_SCRIPT],
+    ['standards-check', STANDARDS_DEMO_DOCS, 'what-these-are.txt', STANDARDS_NOTE],
   ];
   for (const [folder, docs, scriptName, script] of sets) {
     const dir = path.join(root, folder);

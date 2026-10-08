@@ -106,6 +106,8 @@ export interface FileDTO {
   status: 'queued' | 'reading' | 'done' | 'unclear';
   confidence: number | null;
   createdAt: string;
+  /** What this document was checked against, and whether it passed. */
+  check?: DocVerdictDTO | null;
 }
 
 export interface TranscriptDTO {
@@ -559,6 +561,77 @@ export interface WatchCheckDTO {
   changed: boolean;
   changes: RequirementChangeDTO[];
   notified: { applicantId: string; name: string; why: string }[];
+}
+
+// ---------- document standards (admin) ----------
+// GET   /api/staff/standards              -> DocStandardDTO[]
+// PATCH /api/staff/standards/:id          -> DocStandardDTO[]
+// GET   /api/staff/standards/failing      -> FailingDocDTO[]
+// POST  /api/applicants/:id/recheck-documents -> { rechecked: number }
+
+export type StandardRuleKind =
+  | 'required_field'
+  | 'not_expired'
+  | 'max_age_months'
+  | 'min_level'
+  | 'min_score'
+  | 'issuer_allowed'
+  | 'name_matches_passport'
+  | 'has_signature_or_stamp'
+  | 'min_legible_length';
+
+export interface StandardRuleDTO {
+  kind: StandardRuleKind;
+  field?: string;
+  value?: string | number;
+  options?: string[];
+  severity: 'blocking' | 'warning';
+  /** Why the rule exists, in the words we would use to the applicant. */
+  because: string;
+}
+
+export interface DocStandardDTO {
+  id: string;
+  docKind: string;
+  label: string;
+  /** Where the rule comes from, so a disagreement is with a source and not with us. */
+  authority: string;
+  active: boolean;
+  rules: StandardRuleDTO[];
+  updatedAt: string;
+}
+
+/** One check that ran against one document. */
+export interface DocCheckDTO {
+  rule: StandardRuleKind;
+  field: string | null;
+  passed: boolean;
+  severity: 'blocking' | 'warning';
+  found: string;
+  expected: string;
+  because: string;
+}
+
+export interface DocVerdictDTO {
+  docKind: string;
+  standard: string;
+  authority: string;
+  verdict: 'accepted' | 'accepted_with_notes' | 'not_accepted';
+  checks: DocCheckDTO[];
+  blocking: number;
+  warnings: number;
+}
+
+export interface FailingDocDTO {
+  fileId: string;
+  applicantId: string;
+  applicantName: string;
+  originalName: string;
+  docKind: string;
+  standard: string;
+  authority: string;
+  failed: { rule: StandardRuleKind; found: string; expected: string; because: string }[];
+  createdAt: string;
 }
 
 // Re-exported elsewhere in the package; imported here so the endpoint comments above type-check in editors.

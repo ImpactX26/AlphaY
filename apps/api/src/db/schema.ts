@@ -64,6 +64,14 @@ export const files = pgTable(
     confidence: real('confidence'),
     text: text('text'),
     extracted: jsonb('extracted').$type<Record<string, unknown>>(),
+    /**
+     * What this document was checked against, and whether it passed.
+     *
+     * The answer to "against what is this verified?" has to be stored next to the document, not
+     * recomputed on demand: a standard can be edited afterwards, and the applicant was told
+     * something on a particular day under a particular rule.
+     */
+    checkResult: jsonb('check_result').$type<Record<string, unknown>>(),
     createdAt: createdAt(),
   },
   (t) => [index('files_applicant_idx').on(t.applicantId)],
@@ -480,6 +488,24 @@ export const sourceChanges = pgTable('source_changes', {
   notified: jsonb('notified').$type<Record<string, unknown>[]>().notNull().default([]),
   notifiedAt: timestamp('notified_at', { withTimezone: true }),
   createdAt: createdAt(),
+});
+
+/**
+ * The written standard an uploaded document is checked against.
+ *
+ * In the database rather than in the source because it is a policy, not a constant: an Anerkennung
+ * office changes what it accepts and a consultant has to be able to follow that the same afternoon.
+ * `authority` names where the rule comes from, so a disagreement is with a source rather than with us.
+ */
+export const docStandards = pgTable('doc_standards', {
+  id: id(),
+  docKind: text('doc_kind').notNull().unique(),
+  label: text('label').notNull(),
+  authority: text('authority').notNull(),
+  rules: jsonb('rules').$type<Record<string, unknown>[]>().notNull().default([]),
+  active: boolean('active').notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** Safety checks the applicant ran on something they were sent. Kept so staff can see patterns. */

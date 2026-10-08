@@ -11,6 +11,7 @@ import { AgentEventsService } from './events.service';
 import { daysUntil, midSentence } from '../knowledge/normalize';
 import { AnnouncementsService } from '../community/announcements.service';
 import { WatchService } from '../watch/watch.service';
+import { StandardsService } from '../standards/standards.service';
 
 type Tick = { kind: 'deadlines' | 'recheck' | 'stalled' | 'announce' | 'watch' };
 
@@ -37,6 +38,7 @@ export class TimersService implements OnModuleInit {
     private readonly trace: TraceService,
     private readonly announcements: AnnouncementsService,
     private readonly watch: WatchService,
+    private readonly standards: StandardsService,
   ) {}
 
   async onModuleInit() {
@@ -52,6 +54,7 @@ export class TimersService implements OnModuleInit {
     await this.every('watch', '7 * * * *');
     // Seeding and a first read happen in the background: a database that is not up yet must not
     // stop the API from booting, and the first read is the baseline, so it notifies nobody.
+    void this.standards.ensureSeeded().catch((e) => this.log.warn(`standards seed: ${e.message}`));
     void this.watch
       .ensureSeeded()
       .then(() => this.watch.checkDue())

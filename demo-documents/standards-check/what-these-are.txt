@@ -1,0 +1,9 @@
+These three are for showing what a document is checked against.
+
+ACCEPTED-Goethe-Zertifikat-B1.pdf        -> accepted
+NOT-ACCEPTED-Deutsch-Akademie-Level-A2.pdf -> not accepted (issuer not recognised, 3 years old, name mismatch)
+NOT-ACCEPTED-Experience-Letter-unsigned.pdf -> not accepted (no start date, no signature or seal)
+
+The rejected certificate contains nothing false. It is simply not issued by a body German
+authorities accept, and neither of those things is visible to somebody reading it for the first
+time in a second language.

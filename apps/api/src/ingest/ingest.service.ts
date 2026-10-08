@@ -10,6 +10,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { QueueService } from '../queue/queue.service';
 import { FactsService } from '../profile/facts.service';
 import { RetrievalService } from '../profile/retrieval.service';
+import { StandardsService } from '../standards/standards.service';
 import { StateService } from '../agent/state.service';
 import { AgentEventsService } from '../agent/events.service';
 import { sameOrg, slug, squashQuote } from '../knowledge/normalize';
@@ -46,6 +47,7 @@ export class IngestService implements OnModuleInit {
     private readonly state: StateService,
     private readonly events: AgentEventsService,
     private readonly retrieval: RetrievalService,
+    private readonly standards: StandardsService,
   ) {}
 
   onModuleInit() {
@@ -123,6 +125,11 @@ export class IngestService implements OnModuleInit {
 
     const expKey = await this.expKey(file.applicantId);
     const saved = unclear ? [] : await this.facts.saveMany(file.applicantId, docFacts({ ...ext, kind }, file.id, expKey), { runId });
+
+    // Check it against the written standard for its kind, so "verified" means something a person
+    // can point at. Done before the row is written, so the verdict and the document land together.
+    const verdict = await this.standards.check(file.applicantId, kind, ext as unknown as Record<string, unknown>, text, runId);
+
     await this.setFile(file, {
       kind,
       kindLabel: kindLabel(kind, ext),
@@ -130,6 +137,7 @@ export class IngestService implements OnModuleInit {
       status: unclear ? 'unclear' : 'done',
       text: text.slice(0, 20000),
       extracted: { ...ext, passportNumber: ext.passportNumber ? '••••' + ext.passportNumber.slice(-3) : null, method, facts: saved.length },
+      checkResult: (verdict ?? undefined) as Record<string, unknown> | undefined,
     });
     // Index the page itself, not only the facts we pulled out of it. "What exactly did my
     // experience letter say about my ward" is a sentence on the page, and the facts do not hold it.

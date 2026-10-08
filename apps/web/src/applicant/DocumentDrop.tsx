@@ -1,7 +1,7 @@
 import type { FileDTO } from '@educaro/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { CircleAlert, CircleCheck, FileText, Image as ImageIcon, Paperclip, Upload } from 'lucide-react';
+import { CircleAlert, CircleCheck, FileText, Image as ImageIcon, Paperclip, Upload, ShieldCheck } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { api, errorText, links } from '../api/client';
 import { qk } from '../api/queries';
@@ -102,7 +102,8 @@ export function DocumentList({ files, className, showOpen = true }: { files: Fil
         const href = showOpen ? links.file(file.id) : null;
         const low = file.confidence !== null && file.confidence < 0.5;
         return (
-          <li key={file.id} className="flex items-center gap-3 px-3.5 py-2.5">
+          <li key={file.id} className="px-3.5 py-2.5">
+          <span className="flex items-center gap-3">
             <FileIcon file={file} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14px] font-medium">
@@ -128,6 +129,8 @@ export function DocumentList({ files, className, showOpen = true }: { files: Fil
             ) : (
               <Tag s={FILE_STATUS[file.status]} className="flex-none" />
             )}
+          </span>
+          <DocumentVerdict check={file.check} />
           </li>
         );
       })}
@@ -143,5 +146,54 @@ export function FileCount({ files }: { files: FileDTO[] }) {
       {files.length} {files.length === 1 ? 'file' : 'files'}
       {reading ? <span className="text-agent">· reading {reading}</span> : null}
     </span>
+  );
+}
+
+/**
+ * What this document was checked against, and whether it passed.
+ *
+ * The answer to "verified against what?" belongs on the document itself, not in an admin panel the
+ * applicant will never see. An accepted document says so in one quiet line; a rejected one has to
+ * carry every reason, because "not accepted" with no reasons is exactly what a consulate already
+ * does to these applicants and the only thing we can add is the why.
+ */
+export function DocumentVerdict({ check }: { check: FileDTO['check'] }) {
+  if (!check) return null;
+  const failed = check.checks.filter((c) => !c.passed);
+
+  if (check.verdict === 'accepted') {
+    return (
+      <p className="mt-1.5 flex items-start gap-1.5 pl-[34px] text-[12.5px] text-muted">
+        <ShieldCheck size={13} className="mt-[2px] flex-none text-ok" aria-hidden />
+        <span>
+          Meets the {check.standard.toLowerCase()} standard — checked against {check.authority}.
+        </span>
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className={clsx(
+        'mt-2 ml-[34px] rounded-md border px-3 py-2',
+        check.verdict === 'not_accepted' ? 'border-bad/40 bg-[color-mix(in_srgb,var(--bad)_7%,transparent)]' : 'border-warn/40 bg-[color-mix(in_srgb,var(--warn)_7%,transparent)]',
+      )}
+    >
+      <p className="text-[13px] font-semibold">
+        {check.verdict === 'not_accepted' ? 'This will not be accepted as it stands' : 'Accepted, with something worth fixing'}
+      </p>
+      <ul className="mt-1.5 space-y-1.5">
+        {failed.map((c, i) => (
+          <li key={i} className="text-[12.5px]">
+            <span className="font-medium">{c.found}</span>
+            <span className="text-muted"> — expected {c.expected}. </span>
+            <span className="text-muted">{c.because}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 text-[11.5px] text-muted">
+        Checked against {check.authority}. If you think the rule is wrong, say so and a consultant will look.
+      </p>
+    </div>
   );
 }

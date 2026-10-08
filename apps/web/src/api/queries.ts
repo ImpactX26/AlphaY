@@ -30,6 +30,8 @@ export const qk = {
   groups: (id: string) => ['applicant', id, 'groups'] as const,
   staffGroups: ['staff', 'groups'] as const,
   watch: ['staff', 'watch'] as const,
+  standards: ['staff', 'standards'] as const,
+  failingDocs: ['staff', 'standards', 'failing'] as const,
   employers: ['staff', 'employers'] as const,
   reports: ['staff', 'reports'] as const,
   community: () => ['community'] as const,
@@ -233,6 +235,31 @@ export function useRespondToGroup(id: Id) {
 }
 
 export const useStaffGroups = () => useQuery({ queryKey: qk.staffGroups, queryFn: () => api.staffGroups() });
+
+// ---------- document standards ----------
+
+export const useDocStandards = () => useQuery({ queryKey: qk.standards, queryFn: () => api.docStandards() });
+export const useFailingDocuments = () => useQuery({ queryKey: qk.failingDocs, queryFn: () => api.failingDocuments() });
+
+export function useUpdateStandard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: { id: string; authority?: string; active?: boolean }) => api.updateStandard(id, input),
+    onSuccess: (list) => qc.setQueryData(qk.standards, list),
+  });
+}
+
+/** Re-run the current standards over everything already on a file. */
+export function useRecheckDocuments(id: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.recheckDocuments(id ?? ''),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.files(id ?? '') });
+      void qc.invalidateQueries({ queryKey: qk.failingDocs });
+    },
+  });
+}
 
 // ---------- watched sources ----------
 

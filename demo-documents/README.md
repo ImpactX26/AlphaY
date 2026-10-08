@@ -22,6 +22,20 @@ Upload all four. CGPA 8.2 on a 10 scale, which is 1.9 on the German scale; the t
 every semester's SGPA before the cumulative figure, so check the agent reports 8.2 and not 7.6.
 IELTS 7.0 is claimed on the CV with no Test Report Form attached, and APS has not been started.
 
+## standards-check/ — what a document is checked against
+
+Three papers that make the same point from both sides. Upload them and open the document in the
+applicant's Papers section, or Command centre -> Document standards.
+
+| File | Verdict | Why |
+|---|---|---|
+| `ACCEPTED-Goethe-Zertifikat-B1.pdf` | Accepted | Recognised issuer, level stated, recent, name matches. |
+| `NOT-ACCEPTED-Deutsch-Akademie-Level-A2.pdf` | Not accepted | A private academy is not an issuer any Anerkennung office accepts; it is three years old; and the name carries a middle name the passport does not. |
+| `NOT-ACCEPTED-Experience-Letter-unsigned.pdf` | Not accepted | No start date and no signature or seal. |
+
+Nothing on the rejected certificate is false. That is the point: none of the three reasons is
+visible to somebody reading it for the first time in a second language.
+
 ## intro scripts
 
 `*-intro-script.txt` is what to read aloud if you want to record the intro video live. About 60-90

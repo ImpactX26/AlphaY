@@ -85,6 +85,9 @@ export const toFileDTO = (f: typeof schema.files.$inferSelect): FileDTO => ({
   status: f.status,
   confidence: f.confidence,
   createdAt: f.createdAt.toISOString(),
+  // What it was measured against. The applicant sees their own verdict on their own document,
+  // because "not accepted" with no reasons is the thing every consulate already does to them.
+  check: (f.checkResult as FileDTO['check']) ?? null,
 });
 
 export const toShortlistDTO = (s: typeof schema.shortlist.$inferSelect): ShortlistDTO => ({

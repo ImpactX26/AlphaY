@@ -1,4 +1,6 @@
 import type {
+  DocStandardDTO,
+  FailingDocDTO,
   WatchCheckDTO,
   WatchedSourceDTO,
   CohortGroupDTO,
@@ -110,6 +112,10 @@ export interface Api {
   requestGroup(id: string, groupId: string): Promise<CohortGroupDTO>;
   leaveGroup(id: string, groupId: string): Promise<{ ok: true }>;
   staffGroups(): Promise<StaffGroupDTO[]>;
+  docStandards(): Promise<DocStandardDTO[]>;
+  updateStandard(id: string, input: { authority?: string; active?: boolean }): Promise<DocStandardDTO[]>;
+  failingDocuments(): Promise<FailingDocDTO[]>;
+  recheckDocuments(id: string): Promise<{ rechecked: number }>;
   watchedSources(): Promise<WatchedSourceDTO[]>;
   addSource(input: { kind?: WatchedSourceDTO['kind']; label: string; url: string; route?: string; intervalMinutes?: number }): Promise<WatchedSourceDTO[]>;
   removeSource(id: string): Promise<WatchedSourceDTO[]>;
