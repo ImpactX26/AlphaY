@@ -50,6 +50,18 @@ export class ComposerService {
     const mode: Screen['mode'] = a.mode === 'germany' ? 'germany' : anyDone ? 'planning' : 'onboarding';
     const route = a.route as Route | null;
 
+    // ---------- nothing on file yet ----------
+    // The recorder lives in the story intake, and Home stands that intake up only when the screen
+    // has no blocks at all. Composing a "Tell your story" card instead is worse than composing
+    // nothing: its button opens the document drop, whose own "No video yet" links back to Home, so
+    // a new applicant walks a loop with no recorder anywhere in it. An applicant who has told us
+    // nothing gets the words and no blocks -- which is the intake -- and the screen fills the
+    // moment there is anything real to put on it.
+    const pristine = !state.files.length && !state.questions.some((q) => q.status === 'open');
+    if (mode === 'onboarding' && pristine) {
+      return { blocks: [], headline: templateHeadline(state, report), footnote: '', mode };
+    }
+
     // ---------- Germany mode ----------
     if (mode === 'germany') {
       const life = outputs.life?.output;

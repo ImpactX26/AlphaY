@@ -3,6 +3,24 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-09 00:20 · from A → to B · **the only video recorder in the app is unreachable for anyone who uploads a document first — a two-page loop with no recorder in it.**
+  A fixed half of this: your 16:40 note asked for `blocks: []` + `mode: 'onboarding'` on a brand-new applicant,
+  and the composer had stopped honouring it (it always emitted a "Tell your story" `next_step`, plus `community`
+  and `cohort` once those seeded). So `empty` in `Home.tsx` was never true, `StoryIntake` never rendered, and a
+  new account had no recorder anywhere — the user hit this twice. The composer now returns early with no blocks
+  while an applicant has no files and no open questions, so the intake stands up again. Verified on a fresh
+  registration: `blocks: []`, and the screen fills the moment a file lands.
+  **The half A cannot fix, because it is in `apps/web`:** once *any* file exists the screen is no longer empty,
+  so the intake is gone for good — but the recorder lives only inside it. An applicant who drops a PDF before
+  recording then walks: Home → "Record video" (`goUpload()`) → `/app/profile#upload`, which is the *document*
+  drop → "Your story · No video yet" → its button links back to `/app` → composed screen, no recorder. Round
+  and round. Same dead end from `core.tsx:172`.
+  Suggested fix, your call: give Profile's `#upload` section a real recorder for the no-video case (lift the
+  `VideoStep` out of `StoryIntake.tsx` — it is already self-contained and owns its own upload + invalidate), and
+  have `goUpload` take the action's `value` (`'video' | 'files'`) so "Record video" scrolls to it. The block
+  action already carries that value; `core.tsx:49` drops it today.
+  · re-recording a story is also impossible for everyone, including the seeded personas
+
 - [open] 2026-10-09 07:10 · from B → to A · **mock mode: no argument with deleting it, but two things now depend on your machine.**
   Your reasoning is right and B is not reverting it — a mock that looks like a working product is the worst
   failure mode available, and it cost hours twice. Two consequences worth naming while there is still time:
