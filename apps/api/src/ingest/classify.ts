@@ -12,7 +12,12 @@ const RULES: { kind: DocKind; text: [RegExp, number][]; name?: RegExp }[] = [
     name: /ielts|goethe|osd|ösd|telc|toefl|german|language/i,
   },
   { kind: 'aps_certificate', text: [[/akademische prüfstelle/i, 6], [/academic evaluation cent(re|er)/i, 6], [/\bAPS\b.*certificate/i, 4]], name: /\baps\b/i },
-  { kind: 'registration_certificate', text: [[/nursing council/i, 4], [/registered (nurse|midwife)/i, 3], [/registration (no|number)/i, 2]], name: /registration|council|rn\b/i },
+  {
+    kind: 'registration_certificate',
+    // A council registration quotes the qualification too, so it has to outscore the diploma rules.
+    text: [[/certificate of registration/i, 6], [/nursing council/i, 4], [/registered (nurse|midwife)/i, 4], [/registration (no|number)/i, 3], [/entered in the register/i, 4], [/valid up to/i, 2]],
+    name: /registration|council|rn\b/i,
+  },
   {
     kind: 'experience_letter',
     text: [[/to whom it may concern/i, 3], [/experience (certificate|letter)/i, 4], [/has been (working|employed)|was (working|employed)|worked with us/i, 4], [/relieving|service certificate/i, 3]],

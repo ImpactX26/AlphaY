@@ -166,7 +166,10 @@ export function analyseTruth(facts: FactRow[], route: string | null): TruthAnaly
     if (doc && cv) {
       const endGap = endDiffMonths(d(cv).end, d(doc).end);
       const startGap = endDiffMonths(d(cv).start, d(doc).start);
-      if ((endGap ?? 0) >= 6 || (startGap ?? 0) >= 6) {
+      // Two months is the line. One month is rounding between "I joined in March" and a letter
+      // dated 1 April; more than that changes the total months, which feed the Chancenkarte points
+      // and an employer's own count, and the embassy compares the two documents side by side.
+      if ((endGap ?? 0) >= 2 || (startGap ?? 0) >= 2) {
         status = 'conflict';
         const cvEnd = parseMonth(d(cv).end);
         const docEnd = parseMonth(d(doc).end);

@@ -158,7 +158,12 @@ export class IngestService implements OnModuleInit {
   private async video(file: FileRow, runId: string) {
     const abs = this.storage.abs(file.storagePath);
     const started = Date.now();
-    const tr = await this.media.transcribe(abs);
+    // A seeded persona arrives with its transcript already attached, so a demo does not depend on
+    // anyone recording a clip first. Everything after this line is identical either way.
+    const seeded = (file.extracted as any)?.seeded && file.text;
+    const tr = seeded
+      ? { text: file.text as string, provider: 'seed', duration: 0, segments: ((file.extracted as any)?.segments ?? []) as { start: number; end: number; text: string }[] }
+      : await this.media.transcribe(abs);
     await this.trace.record(
       'tool',
       'transcribe_media',

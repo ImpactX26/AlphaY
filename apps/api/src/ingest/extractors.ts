@@ -54,14 +54,20 @@ export function docUserPrompt(text: string, fileName: string, guess: DocKind): s
 /** Zero-cost fallback. Works well on clean text PDFs, which is what the seeded demo files are. */
 export function extractDocByRules(kind: DocKind, text: string): DocExtraction {
   const t = text.replace(/\r/g, '');
+  // A PDF wraps mid-sentence, so "employed with Amrita Institute of Medical\nSciences" has a
+  // newline inside the employer name. Sentence-level fields are matched against a flattened copy.
+  const flat = t.replace(/\s*\n\s*/g, ' ');
   const grab = (re: RegExp) => t.match(re)?.[1]?.trim() ?? null;
+  const grabFlat = (re: RegExp) => flat.match(re)?.[1]?.replace(/\s+/g, ' ').trim() ?? null;
   const name =
     grab(/(?:name of (?:the )?(?:candidate|student|holder|employee)|given name\(s\)|name)\s*[:\-]\s*([A-Za-z .]+?)\s*(?:\n|$)/i) ??
     grab(/certify that\s+(?:mr\.?|ms\.?|mrs\.?)?\s*([A-Z][A-Za-z .]+?)\s+(?:has|was|is|d\/o|s\/o)/);
   const surname = grab(/surname\s*[:\-]\s*([A-Za-z ]+)/i);
   const given = grab(/given name\(?s?\)?\s*[:\-]\s*([A-Za-z ]+)/i);
   const holderName = kind === 'passport' && given ? `${given} ${surname ?? ''}`.trim() : name;
-  const period = t.match(/from\s+([A-Za-z]{3,9}\.?\s+\d{4}|\d{1,2}[./-]\d{1,2}[./-]\d{4}|\d{2}[./]\d{4})\s+(?:to|till|until|-)\s+([A-Za-z]{3,9}\.?\s+\d{4}|\d{1,2}[./-]\d{1,2}[./-]\d{4}|\d{2}[./]\d{4}|present|date)/i);
+  // Indian letters write dates every which way: "June 2021", "14 June 2021", "14/06/2021", "06/2021".
+  const DATE = String.raw`\d{1,2}\s+[A-Za-z]{3,9},?\s+\d{4}|[A-Za-z]{3,9}\.?\s+\d{4}|\d{1,2}[./-]\d{1,2}[./-]\d{4}|\d{2}[./]\d{4}`;
+  const period = flat.match(new RegExp(String.raw`from\s+(${DATE})\s+(?:to|till|until|upto|up to|-|–)\s+(${DATE}|present|date|till date)`, 'i'));
   const iso = (s: string | null) => {
     const p = parseMonth(s);
     return p ? `${p.y}-${String(p.m ?? 1).padStart(2, '0')}` : null;
@@ -87,8 +93,10 @@ export function extractDocByRules(kind: DocKind, text: string): DocExtraction {
     grade: grab(/((?:CGPA|CPI|GPA)\s*[:\-]?\s*\d{1,2}\.\d{1,2}(?:\s*\/\s*10)?)/i) ?? grab(/(\d{2}(?:\.\d+)?\s*%)/),
     gradeScaleMax: null,
     gradePassMin: null,
-    employer: grab(/(?:employer|organisation|organization|hospital)\s*[:\-]\s*(.+)/i) ?? grab(/worked (?:with|at)\s+([A-Z][A-Za-z ,]+?)\s+(?:as|from)/),
-    role: grab(/(?:designation|position|role)\s*[:\-]\s*(.+)/i) ?? grab(/\bas (?:a |an )?([A-Z][A-Za-z ]+?)\s+from/),
+    employer:
+      grab(/(?:employer|organisation|organization|hospital)\s*[:\-]\s*(.+)/i) ??
+      grabFlat(/(?:worked|working|employed)\s+(?:with|at|by|in)\s+([A-Z][A-Za-z.&\s]+?)(?=\s*,|\s+as\b|\s+from\b)/),
+    role: grab(/(?:designation|position|role)\s*[:\-]\s*(.+)/i) ?? grabFlat(/\bas (?:a |an |the )?([A-Z][A-Za-z\s]+?)\s+from\b/),
     startDate: iso(period?.[1] ?? null),
     endDate: period?.[2] && /present|date/i.test(period[2]) ? 'present' : iso(period?.[2] ?? null),
     language: kind === 'language_certificate' ? (isGerman ? 'german' : 'english') : null,
@@ -129,18 +137,51 @@ export function extractCvByRules(text: string): CvExtraction {
   const email = t.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0] ?? null;
   const phone = t.match(/(\+?91[\s-]?)?[6-9]\d{4}\s?\d{5}/)?.[0] ?? null;
   const name = lines.find((l) => /^[A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z.]+){1,3}$/.test(l) && !/curriculum|resume/i.test(l)) ?? null;
-  const experience: CvExtraction['experience'] = [];
-  const expRe = /^(.+?)\s*[,|–-]\s*(.+?)\s*[,|(]\s*((?:[A-Za-z]{3,9}\s+)?\d{4})\s*(?:–|-|to)\s*((?:[A-Za-z]{3,9}\s+)?\d{4}|present)\)?/i;
-  for (const l of lines) {
-    const m = l.match(expRe);
-    if (m && !/school|college|university|board|institute/i.test(m[1])) {
-      experience.push({ role: m[1].trim(), employer: m[2].trim(), start: m[3], end: m[4], city: null });
+  // Read by section. A CV's education block also carries an institution and a year range, so
+  // parsing the whole file line by line reads "GNM, Lourdes College, 2018 - 2021" as a job.
+  const HEADINGS = /^(professional |work |employment )?(summary|objective|profile|education|academics?|qualifications?|experience|employment history|work history|projects?|skills|languages?|certifications?|interests|achievements|registration|tests? and languages?)\b/i;
+  const section = (match: RegExp): string[] => {
+    const start = lines.findIndex((l) => l.length < 60 && match.test(l));
+    if (start < 0) return [];
+    const out: string[] = [];
+    for (const l of lines.slice(start + 1)) {
+      if (l.length < 60 && HEADINGS.test(l) && !match.test(l)) break;
+      out.push(l);
     }
+    return out;
+  };
+
+  const DATE = String.raw`(?:[A-Za-z]{3,9}\.?\s+)?\d{4}`;
+  const RANGE = new RegExp(String.raw`(${DATE})\s*(?:–|—|-|to|until|till)\s*(${DATE}|present|current|date)`, 'i');
+  const experience: CvExtraction['experience'] = [];
+  const expLines = section(/^(professional |work |employment )?(experience|employment history|work history)/i);
+  for (const l of expLines) {
+    const r = l.match(RANGE);
+    if (!r) continue;
+    // Everything before the dates is "role, employer, city" in some order.
+    const head = l.slice(0, r.index).replace(/[\s,|–—-]+$/, '');
+    const parts = head.split(/\s*[,|]\s*/).filter(Boolean);
+    if (!parts.length) continue;
+    const role = parts[0].trim();
+    const employer = (parts[1] ?? parts[0]).trim();
+    if (/^(ward|duties|responsibilit|tools|tech|environment)/i.test(role)) continue;
+    experience.push({ role, employer, start: r[1], end: r[2], city: parts[2]?.trim() ?? null });
   }
+
   const education: CvExtraction['education'] = [];
-  for (const l of lines) {
-    const m = l.match(/((?:B\.?\s?Tech|B\.?\s?E|B\.?\s?Sc|M\.?\s?Sc|GNM|Diploma|Bachelor|Master)[^,|]*)[,|]\s*([^,|]+)[,|]?\s*(\d{4})?/i);
-    if (m) education.push({ qualification: m[1].trim(), field: null, institution: m[2].trim(), year: m[3] ?? null, grade: l.match(/(CGPA\s*\d\.\d+|\d{2}%)/i)?.[1] ?? null });
+  const eduLines = section(/^(education|academics?|qualifications?)/i);
+  for (const l of eduLines.length ? eduLines : lines) {
+    const m = l.match(/((?:B\.?\s?Tech|B\.?\s?E|B\.?\s?Sc|M\.?\s?Sc|M\.?\s?Tech|GNM|Diploma|Bachelor|Master|Higher Secondary|Class\s*X)[^,|]*)[,|]\s*([^,|]+)[,|]?\s*(\d{4})?/i);
+    if (m) {
+      const years = l.match(RANGE);
+      education.push({
+        qualification: m[1].trim(),
+        field: null,
+        institution: m[2].trim(),
+        year: years?.[2] ?? m[3] ?? l.match(/\b(19|20)\d{2}\b/)?.[0] ?? null,
+        grade: l.match(/(CGPA\s*\d\.\d+(?:\s*\/\s*10)?|\d{2}(?:\.\d+)?%)/i)?.[1] ?? null,
+      });
+    }
   }
   const languages: CvExtraction['languages'] = [];
   const g = t.match(/german[^\n]*?\b([ABC][12])\b/i);
