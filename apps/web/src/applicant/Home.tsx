@@ -41,7 +41,7 @@ export function Home() {
           onError: (err) => toast(errorText(err), 'error'),
         }),
       openApproval: (approvalId) => navigate(`/app/approvals/${approvalId}`),
-      goUpload: () => navigate('/app/profile#upload'),
+      goUpload: (target) => navigate(target === 'video' ? '/app/profile#video' : '/app/profile#upload'),
       setRoute: (route: Route) => setRoute.mutate(route, { onError: (err) => toast(errorText(err), 'error') }),
     }),
     [applicantId, answer, chat, shortlist, navigate, setRoute],

@@ -11,7 +11,7 @@ import { BlockFrame } from '../BlockFrame';
 import { useRunAction, useScreenActions } from '../context';
 
 export function NextStepCard({ block }: { block: NextStepBlock }) {
-  const { readOnly, goUpload } = useScreenActions();
+  const { readOnly } = useScreenActions();
   const run = useRunAction();
   return (
     <BlockFrame
@@ -46,7 +46,7 @@ export function NextStepCard({ block }: { block: NextStepBlock }) {
               </a>
             )
           ) : (
-            <button key={action.label} type="button" className="qr" disabled={readOnly} onClick={() => (action.kind === 'upload' ? goUpload() : run(action))}>
+            <button key={action.label} type="button" className="qr" disabled={readOnly} onClick={() => run(action)}>
               {action.kind === 'upload' ? <Upload size={14} aria-hidden /> : null}
               {action.label}
             </button>
@@ -160,6 +160,11 @@ export function DocumentsCard({ block }: { block: DocumentsBlock }) {
   const { goUpload, readOnly } = useScreenActions();
   const reading = block.items.filter((i) => i.status === 'reading' || i.status === 'queued').length;
   const unclear = block.items.filter((i) => i.status === 'unclear');
+  // `kind` is the agent's own label ("Intro video", "CV"), so match on it and on the file name for
+  // an upload the classifier never got far enough to label.
+  const isVideo = (i: { kind: string; name: string }) => /video|audio|voice/i.test(i.kind) || /\.(webm|mp4|mov|m4a|mp3|wav|ogg)$/i.test(i.name);
+  const unclearVideos = unclear.filter(isVideo);
+  const unclearDocs = unclear.filter((i) => !isVideo(i));
   return (
     <BlockFrame
       kicker={block.title ?? 'Your documents'}
@@ -178,7 +183,7 @@ export function DocumentsCard({ block }: { block: DocumentsBlock }) {
       }
       footer={
         !readOnly ? (
-          <button type="button" className="inline-flex items-center gap-1.5 font-semibold text-ink" onClick={goUpload}>
+          <button type="button" className="inline-flex items-center gap-1.5 font-semibold text-ink" onClick={() => goUpload('files')}>
             <Upload size={14} aria-hidden />
             Add more files
           </button>
@@ -206,10 +211,20 @@ export function DocumentsCard({ block }: { block: DocumentsBlock }) {
           );
         })}
       </ul>
-      {unclear.length ? (
+      {/* A video that could not be transcribed and a photo that is too dark are both `unclear`,
+          but the advice is opposite. Telling someone to retake their video "in daylight, flat on a
+          table, all four corners in the frame" is nonsense, and it blames them for what is usually
+          a transcription problem on our side. */}
+      {unclearVideos.length ? (
         <p className="mt-3 rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] px-3 py-2 text-[13px]">
-          {unclear.length === 1 ? 'One photo is' : `${unclear.length} photos are`} hard to read. Retake in daylight, flat on a table, all four corners in the frame. The agent will not guess
-          what it says.
+          {unclearVideos.length === 1 ? 'Your video was uploaded but could not be transcribed' : `${unclearVideos.length} videos were uploaded but could not be transcribed`}. Nothing is
+          lost — it is saved. You can type what you wanted to say in the chat, or ask Educaro to look at it.
+        </p>
+      ) : null}
+      {unclearDocs.length ? (
+        <p className="mt-3 rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] px-3 py-2 text-[13px]">
+          {unclearDocs.length === 1 ? 'One photo is' : `${unclearDocs.length} photos are`} hard to read. Retake in daylight, flat on a table, all four corners in the frame. The agent will
+          not guess what it says.
         </p>
       ) : null}
     </BlockFrame>

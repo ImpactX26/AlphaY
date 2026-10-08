@@ -6,11 +6,13 @@ import { links } from '../api/client';
 import { useApplicant, useFacts, useFiles, useTranscript, useTruthMap } from '../api/queries';
 import { useApplicantId } from '../auth/auth';
 import { formatDuration, hostOf } from '../lib/format';
+import { useHashScroll } from '../lib/useHashScroll';
 import { TruthTable } from '../screen/blocks/core';
 import { Button } from '../ui/Button';
 import { EmptyState, ExternalLink, PageHeader, SectionTitle, Skeleton } from '../ui/misc';
 import { FieldTag, Tag } from '../ui/Tag';
 import { DocumentList, DropZone } from './DocumentDrop';
+import { VideoRecorder } from './VideoRecorder';
 
 export default function Profile() {
   const applicantId = useApplicantId();
@@ -23,6 +25,9 @@ export default function Profile() {
   const video = files?.find((f) => f.kind === 'video');
   const documents = files?.filter((f) => f.kind !== 'video') ?? [];
   const videoUrl = video ? links.file(video.id) : null;
+  // #upload and #video arrive from the agent's own block actions, and both sections render only once
+  // the file list has loaded.
+  useHashScroll([filesLoading]);
 
   return (
     <div className="max-w-[1120px]">
@@ -102,7 +107,7 @@ export default function Profile() {
         {filesLoading ? <Skeleton className="mt-3 h-24 w-full" /> : <DocumentList files={documents} className="mt-3" />}
       </section>
 
-      <section className="mb-8">
+      <section className="mb-8" id="video">
         <SectionTitle>Your story</SectionTitle>
         {video ? (
           <div className="grid gap-4 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
@@ -149,10 +154,16 @@ export default function Profile() {
             </div>
           </div>
         ) : (
-          <EmptyState title="No video yet" icon={Video} action={<a href="/app" className="btn btn-primary no-underline">Record your story</a>}>
-            A minute or two of you talking replaces both forms, and it is how the agent learns why you want to go.
-          </EmptyState>
+          <VideoRecorder title="No video yet — record one now" />
         )}
+        {video ? (
+          <details className="mt-4">
+            <summary className="cursor-pointer text-[13px] font-semibold text-muted">Record a new story</summary>
+            <div className="mt-3">
+              <VideoRecorder title="Record a new story" />
+            </div>
+          </details>
+        ) : null}
       </section>
     </div>
   );

@@ -11,7 +11,8 @@ export interface ScreenActions {
   shortlist: (input: { programmeId?: string; openingId?: string; url?: string }) => void;
   shortlistingId: string | null;
   openApproval: (approvalId: string) => void;
-  goUpload: () => void;
+  /** The composer sends `value: 'video' | 'files'` on an upload action; 'files' is the safe default. */
+  goUpload: (target?: 'video' | 'files') => void;
   setRoute: (route: Route) => void;
 }
 
@@ -55,7 +56,7 @@ export function useRunAction(): (action: BlockAction) => void {
         if (action.value) a.sendChat(action.value);
         break;
       case 'upload':
-        a.goUpload();
+        a.goUpload(action.value === 'video' ? 'video' : 'files');
         break;
       case 'shortlist':
         if (action.value) a.shortlist({ programmeId: action.value });
