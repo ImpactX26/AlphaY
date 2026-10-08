@@ -120,7 +120,21 @@ export interface PlacesBlock extends Base {
   type: 'places';
   city: string;
   center: { lat: number; lon: number };
-  groups: { kind: string; label: string; places: { name: string; lat: number; lon: number; address?: string; distanceM?: number }[] }[];
+  groups: {
+    kind: string;
+    label: string;
+    places: {
+      name: string;
+      lat: number;
+      lon: number;
+      address?: string;
+      distanceM?: number;
+      /** Opens the pin in Google Maps. */
+      mapsUrl?: string;
+      /** Opens public-transport directions from the applicant's address to the pin. */
+      directionsUrl?: string;
+    }[];
+  }[];
 }
 export interface LettersBlock extends Base {
   type: 'letters';
@@ -158,6 +172,10 @@ export interface RentalsBlock extends Base {
     lon: number;
     commuteMin: number | null;
     url: string | null;
+    /** Opens the district in Google Maps. */
+    mapsUrl?: string;
+    /** Public-transport directions from here to whatever the commute is measured against. */
+    directionsUrl?: string;
     affordable: boolean;
     note?: string;
   }[];

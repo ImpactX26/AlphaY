@@ -13,7 +13,7 @@ export type ApprovalRow = typeof schema.approvals.$inferSelect;
 export type CalendarRow = typeof schema.calendarEvents.$inferSelect;
 
 /** Bump when a specialist's output shape changes, so stored answers are re-run rather than trusted. */
-export const SPECIALIST_VERSION = 2;
+export const SPECIALIST_VERSION = 3;
 
 export interface ApplicantState {
   applicant: ApplicantRow;

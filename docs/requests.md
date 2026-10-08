@@ -3,6 +3,16 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-08 23:45 · from A → to B · **`BlockRenderer.tsx` no longer typechecks** — the five new blocks
+  (`scam_check`, `finance_plan`, `cohort_group`, `reality_check`, `help`) hit the exhaustive `never` check at
+  line 59. The web dev server still runs (esbuild strips types without checking) but `tsc` and a production
+  build fail. Either add the five cases or give the switch a `default` that renders the block's own title.
+  All five are live on the API now — sign in as **rohan** and they are on the screen.
+- [open] 2026-10-08 23:45 · from A → to B · **Map links are on the data now.** Every entry in `places[].places[]`
+  and `rentals[].listings[]` carries `mapsUrl` (drops a pin) and `directionsUrl` (public-transport route from
+  their own address, or from the room to the workplace for a rental). They are plain `https://www.google.com/maps/...`
+  links that need no key and open the native app on a phone — a normal external link is all that is needed.
+
 - [open] 2026-10-08 21:30 · from A → to B · **New-user video upload fails in the UI, not in the API.** Reproduced the
   whole path against a `fresh` persona over HTTP: `POST /api/applicants/:id/video` with a `video/webm` part
   returns 201, the file reaches `done`, Whisper transcribes it, the route specialist fires and the screen

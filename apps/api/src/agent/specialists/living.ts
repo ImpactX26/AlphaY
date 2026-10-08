@@ -3,6 +3,7 @@ import { monthlyBudget, netPay } from '../../knowledge/money';
 import { OFFICIAL } from '../../knowledge/official';
 import { seededPlaces } from '../../knowledge/places';
 import { commuteMinutes, listingsFor } from '../../knowledge/rentals';
+import { directionsUrl, mapsUrl } from '../../knowledge/maps';
 import { bestFact, type ApplicantState } from '../state.service';
 import { cite, type Kit, type SpecialistResult } from './kit';
 
@@ -86,6 +87,9 @@ export async function housingSpecialist(kit: Kit): Promise<SpecialistResult> {
     ...l,
     commuteMin: anchor ? commuteMinutes(l, anchor) : null,
     affordable: ceiling === null ? true : l.warmRentEur <= ceiling,
+    mapsUrl: mapsUrl({ name: `${l.district}, ${city.name}`, lat: l.lat, lon: l.lon }),
+    // Directions run room -> work, which is the journey they will actually make every morning.
+    directionsUrl: anchor ? directionsUrl(anchor, l) : null,
   }));
 
   return {
@@ -149,7 +153,17 @@ export async function lifeSpecialist(kit: Kit): Promise<SpecialistResult> {
     // "there is nothing here for you" in the exact moment this is meant to say the opposite, so a
     // short hand-checked list stands in — and the source line below says which one you are seeing.
     if (!places.length) places = seededPlaces(city.name, g.kind, center, radius);
-    groups.push({ kind: g.kind, label: g.label, places: places.slice(0, 6) });
+    groups.push({
+      kind: g.kind,
+      label: g.label,
+      // Hand over a link into the map app they already have, rather than an address they cannot
+      // yet spell. Directions start from their own front door when we know it.
+      places: places.slice(0, 6).map((pl) => ({
+        ...pl,
+        mapsUrl: mapsUrl(pl),
+        directionsUrl: directionsUrl(pl, addr ? `${addr}, ${city.name}` : center),
+      })),
+    });
   }
   const winter = ['Winter jacket rated below 0 °C', 'Waterproof shoes', 'Thermal layers', 'Gloves and a hat'];
   const arrival = [

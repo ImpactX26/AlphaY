@@ -328,6 +328,8 @@ function rentalsBlock(housing: any): Block {
       lon: l.lon,
       commuteMin: l.commuteMin ?? null,
       url: l.url ?? null,
+      mapsUrl: l.mapsUrl,
+      directionsUrl: l.directionsUrl ?? undefined,
       affordable: l.affordable !== false,
       note: l.note,
     })),
