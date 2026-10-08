@@ -52,7 +52,7 @@
 
 ## Claude B: frontend (`apps/web`)
 
-- ⏳ Shell, routing, auth + demo logins, mock layer, socket hook, design tokens
+- 🔨 Shell, routing, auth + demo logins, mock layer, socket hook, design tokens
 - ⏳ Block renderer (all 18 block types)
 - ⏳ Story: record/upload video + document drop with live status
 - ⏳ Composed screen + chat + question cards (live)
@@ -67,3 +67,4 @@
 ## Log
 
 - 12:16 · A · Scaffold pushed. Frontend agent (Claude B) launched in this workspace.
+- 12:24 · B · Read the spec and contract. Starting the web shell (Vite, tokens, router, auth, mock layer).
