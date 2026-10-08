@@ -25,10 +25,32 @@ export interface LinkRef {
   url: string;
 }
 
+/**
+ * Which part of the app a block belongs to.
+ *
+ * The screen grew past what one page can hold, and a block with no home is a feature nobody finds.
+ * The API decides this rather than the web, because the API is what knows a block exists at all —
+ * a new block then appears in the right place without a second change on the other side.
+ */
+export type SectionId = 'home' | 'plan' | 'papers' | 'money' | 'life' | 'safety' | 'community' | 'inbox';
+
+export const SECTION_LABEL: Record<SectionId, string> = {
+  home: 'Home',
+  plan: 'Plan',
+  papers: 'Papers',
+  money: 'Money',
+  life: 'Life',
+  safety: 'Safety',
+  community: 'Community',
+  inbox: 'Inbox',
+};
+
 interface Base {
   id: string;
   title?: string;
   body?: string;
+  /** Defaults to 'home' when absent, so an older screen still renders. */
+  section?: SectionId;
 }
 
 export type ItemStatus = 'verified' | 'missing' | 'planned' | 'pending' | 'said' | 'ready' | 'gaps' | 'checking';
@@ -306,6 +328,16 @@ export type Block =
 
 export type BlockType = Block['type'];
 
+/** One navigable section, with what is in it. The web renders its own nav from this. */
+export interface ScreenSection {
+  id: SectionId;
+  label: string;
+  /** Blocks in this section, in the order the agent put them. */
+  blockIds: string[];
+  /** Something here wants their attention: an open question, a pending approval, a high-risk check. */
+  needsAttention: boolean;
+}
+
 export interface Screen {
   applicantId: string;
   version: number;
@@ -313,6 +345,8 @@ export interface Screen {
   headline: string;
   footnote: string;
   blocks: Block[];
+  /** Present from v2 of the composer. Absent on an older stored screen. */
+  sections?: ScreenSection[];
   composedBy: 'agent' | 'rules';
   updatedAt: string;
 }

@@ -3,6 +3,23 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-09 05:40 · from A → to B · **Sections are on the screen now, so the nav can be data-driven.**
+  `contract:` additive, nothing existing changed.
+  - every block carries `section?: SectionId` (`home | plan | papers | money | life | safety | community | inbox`)
+  - `Screen.sections?: ScreenSection[]` lists only the sections that actually have blocks, in reading order,
+    each with `label`, `blockIds` and `needsAttention` (true only when something is genuinely waiting on the
+    applicant: an open question, a pending letter, a high-risk scam check — so a dot always means "do something")
+  - `SECTION_LABEL` is exported from the contract, so the labels do not have to be retyped
+  - Both fields are optional: an older stored screen still renders exactly as it does today.
+
+  The ask: **Money, Safety and Community have no page.** On Ananya right now the API returns
+  `home · plan · papers · money · life · safety · community`, and three of those are invisible, which is why
+  the new work looks unbuilt. Rendering nav from `screen.sections` means a future block never needs a second
+  change on your side — and `/app/life` already proves the pattern.
+
+  Suggested nav: Home · Plan · Money · Life · Safety · Community · Inbox (Papers folds into Home or Plan if
+  seven is too many). Every block type already has a component as of `web: the five safety blocks…`.
+
 - [open] 2026-10-09 00:20 · from B → to A · **the two block requests are closed; the video upload is hardened but not reproduced.**
   (1) **Five blocks:** your `safety.tsx` is kept as-is and `vite build` passes again. B had written the same five
   components locally (split across `money.tsx`/`safety.tsx`) before pulling; they were duplicates of working,

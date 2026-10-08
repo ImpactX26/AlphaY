@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import type { Block, Screen, ItemStatus, Route } from '@educaro/shared';
-import { ROUTE_LABEL } from '@educaro/shared';
+import type { Block, ScreenSection, SectionId, Screen, ItemStatus, Route } from '@educaro/shared';
+import { ROUTE_LABEL, SECTION_LABEL } from '@educaro/shared';
 import { db, schema } from '../db/db';
 import { LlmService } from '../llm/llm.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
@@ -296,7 +296,8 @@ export class ComposerService {
 
   private async save(applicantId: string, s: Omit<Screen, 'applicantId' | 'version' | 'updatedAt'>, runId: string): Promise<Screen> {
     const last = await db.query.screens.findFirst({ where: eq(schema.screens.applicantId, applicantId) });
-    const screen: Screen = { ...s, applicantId, version: (last?.version ?? 0) + 1, updatedAt: new Date().toISOString() };
+    const blocks = s.blocks.map((b) => ({ ...b, section: b.section ?? sectionFor(b) }));
+    const screen: Screen = { ...s, blocks, sections: sectionsOf(blocks), applicantId, version: (last?.version ?? 0) + 1, updatedAt: new Date().toISOString() };
     await db
       .insert(schema.screens)
       .values({ applicantId, version: screen.version, data: screen as unknown as Record<string, unknown> })
@@ -565,3 +566,75 @@ function applyComposition(blocks: Block[], comp: Composition, headline: string, 
 }
 
 export { daysUntil };
+
+
+/**
+ * Where each block lives.
+ *
+ * One page stopped being able to hold this a while ago, and a block with no home is a feature
+ * nobody finds — which is the same as not having built it. The API decides, because the API is what
+ * knows a block exists at all: add a block type here and it appears in the right place without a
+ * matching change on the web side.
+ */
+function sectionFor(b: Block): SectionId {
+  switch (b.type) {
+    // What to do next, and what is in the way of it.
+    case 'next_step':
+    case 'question':
+    case 'readiness':
+    case 'note':
+      return 'home';
+    case 'route':
+    case 'gap_plan':
+    case 'checklist':
+    case 'timeline':
+    case 'opportunities':
+    case 'shortlist':
+    case 'requirement_matrix':
+    case 'reality_check':
+      return 'plan';
+    case 'documents':
+    case 'truth_map':
+      return 'papers';
+    case 'budget':
+    case 'finance_plan':
+      return 'money';
+    case 'places':
+    case 'rentals':
+    case 'arrival':
+    case 'services':
+      return 'life';
+    case 'scam_check':
+    case 'help':
+      return 'safety';
+    case 'community':
+    case 'cohort':
+    case 'cohort_group':
+      return 'community';
+    case 'letters':
+      return 'inbox';
+    default:
+      return 'home';
+  }
+}
+
+/** The sections that actually have something in them, in a fixed reading order. */
+const SECTION_ORDER: SectionId[] = ['home', 'plan', 'papers', 'money', 'life', 'safety', 'community', 'inbox'];
+
+function sectionsOf(blocks: Block[]): ScreenSection[] {
+  return SECTION_ORDER.map((id) => {
+    const mine = blocks.filter((b) => (b.section ?? 'home') === id);
+    return {
+      id,
+      label: SECTION_LABEL[id],
+      blockIds: mine.map((b) => b.id),
+      // Only things that are genuinely waiting on the person, so a dot always means "do something".
+      needsAttention: mine.some(
+        (b) =>
+          b.type === 'question' ||
+          (b.type === 'scam_check' && b.verdict === 'high_risk') ||
+          (b.type === 'letters' && b.drafts.some((d) => d.status === 'pending')),
+      ),
+    };
+  }).filter((sec) => sec.blockIds.length > 0);
+}
