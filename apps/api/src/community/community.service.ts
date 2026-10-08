@@ -7,6 +7,8 @@ import { LlmService } from '../llm/llm.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { TraceService } from '../trace/trace.service';
 import { classifyIntent } from '../agent/intent';
+import { parseShareIntent } from './share-intent';
+import { GroupsService } from './groups.service';
 import { QueueService } from '../queue/queue.service';
 import { WebService } from '../web/web.service';
 
@@ -46,6 +48,7 @@ export class CommunityService {
     private readonly trace: TraceService,
     private readonly q: QueueService,
     private readonly web: WebService,
+    private readonly groups: GroupsService,
   ) {
     this.startWorker();
   }
@@ -109,7 +112,13 @@ export class CommunityService {
     }
     await this.trace.record('event', 'community_post', { author: row.author, viaDiscord: row.viaDiscord }, { applicantId: row.applicantId });
 
-    if (row.authorKind === 'applicant') await this.scheduleAnswer(row).catch((e) => this.log.warn(`schedule answer: ${e.message}`));
+    if (row.authorKind === 'applicant') {
+      // Posted here rather than in Discord: the same sentence has to do the same thing in both
+      // places. The Discord bridge handles its own (it replies in-channel), so this only runs for
+      // posts that originated in the app — otherwise a mirrored message would fire it twice.
+      if (!row.viaDiscord && row.applicantId) await this.maybeShare(row).catch((e) => this.log.warn(`share intent: ${e.message}`));
+      await this.scheduleAnswer(row).catch((e) => this.log.warn(`schedule answer: ${e.message}`));
+    }
     return this.dto(row);
   }
 
@@ -119,6 +128,48 @@ export class CommunityService {
     const child = await this.post({ ...input, channel: parent.channel });
     await db.update(schema.communityPosts).set({ parentId }).where(eq(schema.communityPosts.id, child.id));
     return { ...child, replies: [] };
+  }
+
+  /**
+   * "I'd like to stay with Rohan and split the rent evenly", typed in the app.
+   *
+   * The parse lives in `share-intent.ts` and is deliberately narrow: it ends in a message to a
+   * named third party about where they are going to live, so anything less than a clear reading
+   * asks a question instead of acting. The agent answers in the thread, because the person who
+   * asked is reading the thread.
+   */
+  private async maybeShare(row: Row) {
+    const intent = parseShareIntent(row.text);
+    if (!intent) return;
+
+    const say = async (text: string) => {
+      const [reply] = await db
+        .insert(schema.communityPosts)
+        .values({ channel: row.channel, parentId: row.id, author: 'Educaro agent', authorKind: 'agent', text })
+        .returning();
+      this.bus.emit('community_post', { id: reply.id, channel: reply.channel, author: reply.author, text: reply.text });
+      this.rt.toStaff({ type: 'refresh', applicantId: '', what: ['community'] });
+    };
+
+    if (!intent.confident) {
+      await say(
+        intent.who
+          ? `I think you want to ${intent.kind === 'travel' ? 'travel' : 'share a flat'} with ${intent.who}. Say it as "I would like to ${intent.kind === 'travel' ? 'fly' : 'stay'} with ${intent.who}" and I will ask them — nobody is added to anything without agreeing.`
+          : `Happy to set that up — who with? Name them and I will ask. Nothing about you is shared unless they say yes.`,
+      );
+      return;
+    }
+
+    try {
+      const { group, invited } = await this.groups.proposeShare(row.applicantId!, intent.who!, { kind: intent.kind });
+      await say(
+        intent.kind === 'travel'
+          ? `Asked ${invited.label} whether they want to fly to ${group.city} with you around ${group.month}. I will tell you the moment they answer.`
+          : `Asked ${invited.label} about sharing a flat in ${group.city} from ${group.month}${group.district ? ` around ${group.district}` : ''}.${group.shareEachEur ? ` Split evenly that is about EUR ${group.shareEachEur} each a month.` : ''} They decide, and nothing about you is shared until they do.`,
+      );
+    } catch (e: any) {
+      await say(e?.message ?? 'I could not work out who you meant. Try their first name as it appears in the cohort.');
+    }
   }
 
   /**

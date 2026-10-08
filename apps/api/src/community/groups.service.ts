@@ -390,11 +390,32 @@ Split evenly that is about **EUR ${each} each a month**${g.budgetEachEur ? ` —
 
     const asker = all.find((a) => a.id === askerId);
     const needle = raw.toLowerCase().replace(/^@/, '');
-    const candidates = all.filter((a) => a.id !== askerId && (a.name.toLowerCase() === needle || a.name.toLowerCase().split(' ')[0] === needle || a.name.toLowerCase().startsWith(needle)));
+    const candidates = all.filter(
+      (a) => a.id !== askerId && (a.name.toLowerCase() === needle || a.name.toLowerCase().split(' ')[0] === needle || a.name.toLowerCase().startsWith(needle)),
+    );
     if (!candidates.length) return null;
-    // Two Ananyas in the cohort is a real possibility; the one going where you are going is the one
-    // you mean.
-    return candidates.find((c) => asker?.targetCity && c.targetCity === asker.targetCity) ?? candidates[0];
+    if (candidates.length === 1) return candidates[0];
+
+    /**
+     * Two people with the same first name is normal in this cohort, and picking one arbitrarily is
+     * how an invitation goes to a stranger. This happened: a proposal to "Ananya" landed on a
+     * duplicate file with no contact details, so the real Ananya was never asked and nothing said
+     * so. Rank by how likely each is to be the one meant, and refuse when it is genuinely a toss-up.
+     */
+    const score = async (a: (typeof all)[number]) => {
+      const u = a.userId ? await db.query.users.findFirst({ where: eq(schema.users.id, a.userId) }) : null;
+      return (
+        (asker?.targetCity && a.targetCity === asker.targetCity ? 4 : 0) +
+        (u?.discordUserId ? 2 : 0) +
+        (a.targetCity ? 1 : 0) +
+        (a.name.toLowerCase() === needle ? 1 : 0)
+      );
+    };
+    const ranked = await Promise.all(candidates.map(async (c) => ({ c, score: await score(c) })));
+    ranked.sort((x, y) => y.score - x.score);
+    // A clear winner, or nobody. Guessing between two equal matches is the failure mode itself.
+    if (ranked.length > 1 && ranked[0].score === ranked[1].score) return null;
+    return ranked[0].c;
   }
 
   /**

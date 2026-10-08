@@ -301,21 +301,47 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** The invitation itself: two buttons, because an invitation you have to go elsewhere to answer expires. */
+  /**
+   * The invitation itself: two buttons, because an invitation you have to go elsewhere to answer
+   * expires unanswered.
+   *
+   * Every failure here is logged. The first version swallowed them, so an invitation that never
+   * left looked exactly like one that arrived and was ignored — and the person who sent it was told
+   * it had gone. For a message that asks somebody to live with you, that is the worst possible
+   * silence.
+   */
   private async sendInvite(applicantId: string, groupId: string, title: string, text: string) {
     if (!this.client) return;
     const a = await db.query.applicants.findFirst({ where: eq(schema.applicants.id, applicantId) });
-    if (!a?.userId) return;
+    if (!a?.userId) {
+      this.log.warn(`invite not delivered: applicant ${applicantId} has no user account`);
+      return;
+    }
     const u = await db.query.users.findFirst({ where: eq(schema.users.id, a.userId) });
-    if (!u?.discordUserId) return;
-    const user = await this.client.users.fetch(u.discordUserId).catch(() => null);
+    if (!u?.discordUserId) {
+      // Not an error: most applicants never link Discord, and they get the same invitation in the
+      // app and by email. Logged at debug level so a real delivery failure stays visible.
+      this.log.debug(`${a.name} has not linked Discord; the invitation is in the app only`);
+      return;
+    }
+    const user = await this.client.users.fetch(u.discordUserId).catch((e) => {
+      this.log.warn(`invite not delivered: cannot fetch Discord user ${u.discordUserId}: ${e?.message}`);
+      return null;
+    });
     if (!user) return;
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId(`grp:yes:${groupId}`).setLabel('Yes, count me in').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId(`grp:no:${groupId}`).setLabel('No thanks').setStyle(ButtonStyle.Secondary),
     );
-    await user.send({ content: `**${title}**\n${text}`.slice(0, 1900), components: [row] }).catch(() => undefined);
+    const sent = await user
+      .send({ content: `**${title}**\n${text}`.slice(0, 1900), components: [row] })
+      .catch((e) => {
+        // Closed DMs are the usual cause and are the user's own setting, not a bug.
+        this.log.warn(`invite not delivered to ${a.name}: ${e?.message}`);
+        return null;
+      });
+    if (sent) this.log.log(`invitation sent to ${a.name} on Discord`);
   }
 
   /**
