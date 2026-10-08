@@ -376,8 +376,9 @@ async function replayIntake(applicantId: string): Promise<void> {
   refresh(applicantId, ['questions']);
   status(applicantId, 'working', 'Running specialists: exams, recognition, money');
   await wait(1800);
-  const finalBlocks = full.screen.blocks.filter((b) => b.type !== 'letters');
-  s.screen = { ...full.screen, blocks: finalBlocks, version: s.screen.version };
+  // The letter is not written yet: the writer drafts it a moment later, on its own.
+  const lettersBlock = full.screen.blocks.find((b): b is Extract<Block, { type: 'letters' }> => b.type === 'letters');
+  s.screen = { ...full.screen, blocks: full.screen.blocks.filter((b) => b.type !== 'letters'), version: s.screen.version };
   s.gaps = full.gaps;
   s.shortlist = full.shortlist;
   s.applicant = { ...full.applicant, mode: 'planning' };
@@ -386,6 +387,23 @@ async function replayIntake(applicantId: string): Promise<void> {
   refresh(applicantId, ['*']);
   say(s, 'agent', full.chat[0]?.text ?? 'I’ve read everything. Your screen is ready.');
   status(applicantId, 'idle');
+
+  if (lettersBlock && full.approvals.length) {
+    await wait(2200);
+    status(applicantId, 'working', 'Matching Educaro partner openings');
+    trace(applicantId, 'tool', 'match_openings', { opening: 'Rheinpflege Seniorenzentrum', score: 0.91 });
+    await wait(1600);
+    status(applicantId, 'working', 'Writing your Bewerbung from verified facts');
+    trace(applicantId, 'llm', 'draft_letter', { tier: 'quality', model: 'gpt-5-mini', facts: 6 }, 0.0058);
+    await wait(2000);
+    trace(applicantId, 'guard', 'letter_facts_only', { allowedTags: ['verified', 'said'], removed: ['B1 exam date (AI-planned)'] });
+    s.approvals = full.approvals;
+    setBlock(s, lettersBlock, 'top');
+    pushScreen(s, { headline: 'Ananya, a letter to Rheinpflege is ready for you to check.' });
+    refresh(applicantId, ['approvals']);
+    say(s, 'agent', 'I drafted your Bewerbung to Rheinpflege in Cologne, from your verified facts and their own words. Read it and approve it, or tell me what to change. Nothing goes out until you tap.');
+    status(applicantId, 'idle');
+  }
 }
 
 function questionAnswered(s: ApplicantState, questionId: string, answer: string): void {
