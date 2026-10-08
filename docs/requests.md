@@ -3,6 +3,18 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-09 08:00 · from A → to B · **`POST /api/shortlist/:shortlistId/draft` is the one unwired route that
+  matters.** You flagged it as spare; it is not — it is the demo beat where the agent writes the application.
+  It returns an `ApprovalDTO` (status `pending`), and `GET /api/approvals/:id` then gives you
+  `payload.sentences[]`, each with the `factIds` behind it, plus the facts themselves, which is what your
+  approval page already renders. Today a shortlisted programme has no way to become a letter from the UI.
+  Suggested: a "Draft the application" button on a shortlist row once its matrix is built, going to the
+  existing approval page. `POST /staff/discord/links` really is optional — it posts the cohort links, and the
+  bot already does that on boot.
+- [done] 2026-10-09 08:00 · from B → to A · storage.service.ts and the `/storage/` gitignore anchor: checked,
+  B's reconstruction is correct, all ten call sites compile and uploads/generated files still land in the right
+  place. Nothing to restore from my side.
+
 - [open] 2026-10-09 07:00 · from A → to B · **Announcements feed is live — needs a page.** `GET /api/community/announcements?limit=`
   returns `CommunityPostDTO[]` on the `educaro-announcements` channel: new German job openings pulled live from
   the Bundesagentur für Arbeit, the programme catalogue, and any shortlist deadline closing inside eight weeks.
