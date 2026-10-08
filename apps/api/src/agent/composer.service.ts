@@ -296,7 +296,7 @@ export class ComposerService {
 
   private async save(applicantId: string, s: Omit<Screen, 'applicantId' | 'version' | 'updatedAt'>, runId: string): Promise<Screen> {
     const last = await db.query.screens.findFirst({ where: eq(schema.screens.applicantId, applicantId) });
-    const blocks = s.blocks.map((b) => ({ ...b, section: b.section ?? sectionFor(b) }));
+    const blocks = rankForReading(s.blocks.map((b) => ({ ...b, section: b.section ?? sectionFor(b) })));
     const screen: Screen = { ...s, blocks, sections: sectionsOf(blocks), applicantId, version: (last?.version ?? 0) + 1, updatedAt: new Date().toISOString() };
     await db
       .insert(schema.screens)
@@ -637,4 +637,45 @@ function sectionsOf(blocks: Block[]): ScreenSection[] {
       ),
     };
   }).filter((sec) => sec.blockIds.length > 0);
+}
+
+
+/**
+ * The reading order, enforced in code after the agent has had its say.
+ *
+ * The agent is good at deciding what matters today and bad at knowing when it has asked for too
+ * much at once. Four things demanding a decision — a next step, two questions and a letter to
+ * approve — is a screen somebody acts on. Six is a screen somebody closes, and the jury's note
+ * about the interface was exactly this.
+ *
+ * So the model still chooses the order; the cap is not negotiable. Anything past the fourth
+ * demanding block drops below the calm ones rather than being removed, because the agent asked for
+ * it for a reason and hiding it would be a different kind of dishonest.
+ */
+const DEMANDING = new Set<Block['type']>(['next_step', 'question', 'letters', 'note']);
+const MAX_DEMANDING_ABOVE_FOLD = 4;
+
+/** Low-urgency by nature: worth having, never worth interrupting for. */
+const CALM = new Set<Block['type']>(['rentals', 'cohort', 'cohort_group', 'community', 'services', 'reality_check']);
+
+function rankForReading(blocks: Block[]): Block[] {
+  const demanding: Block[] = [];
+  const normal: Block[] = [];
+  const calm: Block[] = [];
+  const overflow: Block[] = [];
+
+  for (const b of blocks) {
+    if (DEMANDING.has(b.type)) {
+      (demanding.length < MAX_DEMANDING_ABOVE_FOLD ? demanding : overflow).push(b);
+    } else if (CALM.has(b.type)) {
+      calm.push(b);
+    } else {
+      normal.push(b);
+    }
+  }
+  // Readiness is the summary everything else explains, so the calm blocks sit after it.
+  const readinessAt = normal.findIndex((b) => b.type === 'readiness');
+  const beforeCalm = readinessAt >= 0 ? normal.slice(0, readinessAt + 1) : normal;
+  const afterReadiness = readinessAt >= 0 ? normal.slice(readinessAt + 1) : [];
+  return [...demanding, ...beforeCalm, ...afterReadiness, ...calm, ...overflow];
 }

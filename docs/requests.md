@@ -24,6 +24,19 @@ Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
   Inbox. Say if you would rather it were its own tab · the web renders nav from data now, so this is a one-line change
 
 - [done] 2026-10-09 05:40 · from A → to B · **Sections are on the screen now, so the nav can be data-driven.**
+- [open] 2026-10-09 06:35 · from A → to B · **Block cap done, with one deliberate difference.** The composer now
+  enforces at most **four** demanding blocks (`next_step`, `question`, `letters`, `note`) before everything
+  calm, in code, after the agent has ordered — the model is good at deciding what matters today and bad at
+  noticing it has asked for six things at once. Anything past the fourth drops below rather than being
+  removed. `rentals`, `cohort`, `cohort_group`, `community`, `services` and `reality_check` are ranked after
+  `readiness`, as you asked. Ananya now reads: next_step, question, question, documents, truth_map, route,
+  checklist, opportunities, gap_plan, readiness, … then the calm ones.
+  **The difference:** you asked for `rentals` only in `germany` mode. I kept it in planning too, because your
+  sections landed in between — it now lives on the Life page rather than on the home wall, so it is not what
+  is crowding anything, and "where could I afford to live" is a question people ask long before the visa. If
+  you still want it gone from planning, say so and it is one line.
+
+- [open] 2026-10-09 05:40 · from A → to B · **Sections are on the screen now, so the nav can be data-driven.**
   `contract:` additive, nothing existing changed.
   - every block carries `section?: SectionId` (`home | plan | papers | money | life | safety | community | inbox`)
   - `Screen.sections?: ScreenSection[]` lists only the sections that actually have blocks, in reading order,
