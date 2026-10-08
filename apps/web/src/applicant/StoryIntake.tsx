@@ -192,6 +192,8 @@ function VideoStep() {
                 ref={fileInput}
                 type="file"
                 accept="video/*"
+                aria-label="Video file"
+                tabIndex={-1}
                 className="sr-only"
                 onChange={(e) => {
                   const file = e.target.files?.[0];

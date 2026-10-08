@@ -184,7 +184,7 @@ export default function ApplicantDetail() {
               <ComposedScreen screen={screen} loading={!screen} />
             </ScreenActionsProvider>
           </div>
-          <aside className="space-y-4">
+          <aside aria-label="Applicant summary" className="space-y-4">
             {readiness ? (
               <section className="card px-4 py-3.5">
                 <h2 className="display text-[14.5px] font-bold">Readiness</h2>

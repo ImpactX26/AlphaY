@@ -30,7 +30,7 @@ export default function PlannerPage() {
         </div>
 
         {/* Stacked columns: each month is one bar, split by level. */}
-        <div className="flex items-end gap-2 overflow-x-auto pb-1" style={{ height: 230 }} role="img" aria-label="Applicants needing each German level, by month">
+        <div tabIndex={0} className="flex items-end gap-2 overflow-x-auto pb-1" style={{ height: 230 }} role="img" aria-label="Applicants needing each German level, by month">
           {plan.months.map((month) => {
             const total = month.A2 + month.B1 + month.B2;
             return (
@@ -55,7 +55,7 @@ export default function PlannerPage() {
         </div>
       </div>
 
-      <div className="tbl-wrap mt-5">
+      <div tabIndex={0} className="tbl-wrap mt-5">
         <table className="tbl">
           <thead>
             <tr>

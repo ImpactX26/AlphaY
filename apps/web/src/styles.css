@@ -219,7 +219,7 @@
     white-space: nowrap;
   }
   .chip.tone {
-    color: var(--cc);
+    color: color-mix(in srgb, var(--cc) 82%, var(--ink));
     border-color: color-mix(in srgb, var(--cc) 45%, transparent);
     background: color-mix(in srgb, var(--cc) 9%, transparent);
   }

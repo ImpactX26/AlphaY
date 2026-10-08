@@ -78,7 +78,7 @@ export default function CopilotPage() {
               <p className="mt-1.5 text-[14.5px]">{result.interpretation}</p>
             </div>
             {result.rows.length ? (
-              <div className="tbl-wrap">
+              <div tabIndex={0} className="tbl-wrap">
                 <table className="tbl">
                   <thead>
                     <tr>

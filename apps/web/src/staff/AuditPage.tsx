@@ -43,7 +43,7 @@ export default function AuditPage() {
       {stats?.costPerApplicant.length ? (
         <section className="mb-7">
           <SectionTitle>Cost per applicant</SectionTitle>
-          <div className="tbl-wrap">
+          <div tabIndex={0} className="tbl-wrap">
             <table className="tbl">
               <thead>
                 <tr>

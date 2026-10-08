@@ -172,7 +172,7 @@ export function StaffShell() {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-ink focus:px-3 focus:py-2 focus:text-bg">
         Skip to content
       </a>
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-6 border-r border-line px-3 py-4 lg:flex">
+      <aside aria-label="Sidebar" className="sticky top-0 hidden h-dvh flex-col gap-6 border-r border-line px-3 py-4 lg:flex">
         <div className="px-2">
           <Logo to="/staff" />
           <p className="mt-1.5 pl-[36px] text-[12.5px] font-semibold text-staff">Command centre</p>

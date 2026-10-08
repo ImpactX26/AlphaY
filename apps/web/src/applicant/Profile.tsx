@@ -57,7 +57,7 @@ export default function Profile() {
         </SectionTitle>
         {showFacts ? (
           facts?.length ? (
-            <div className="tbl-wrap">
+            <div tabIndex={0} className="tbl-wrap">
               <table className="tbl">
                 <thead>
                   <tr>
@@ -126,7 +126,7 @@ export default function Profile() {
               </p>
               {transcript ? (
                 <>
-                  <p className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-surface px-3.5 py-3 text-[14px] leading-relaxed">{transcript.text}</p>
+                  <p tabIndex={0} aria-label="Transcript" className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-surface px-3.5 py-3 text-[14px] leading-relaxed">{transcript.text}</p>
                   {transcript.segments.length ? (
                     <details className="mt-2">
                       <summary className="cursor-pointer text-[13px] font-semibold text-muted">With timestamps</summary>

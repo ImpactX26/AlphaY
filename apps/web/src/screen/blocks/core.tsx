@@ -283,7 +283,7 @@ export function TruthTable({ rows }: { rows: TruthMapBlock['rows'] }) {
           </li>
         ))}
       </ul>
-      <div className="tbl-wrap hidden md:block">
+      <div tabIndex={0} className="tbl-wrap hidden md:block">
         <table className="tbl">
           <thead>
             <tr>
