@@ -38,7 +38,7 @@ export function Avatar({ name, tone = 'applicant', size = 32 }: { name: string; 
     <span
       aria-hidden
       data-initials={initials(name)}
-      className="avatar grid flex-none place-items-center rounded-full font-display font-extrabold text-surface"
+      className="avatar grid flex-none place-items-center rounded-full font-display font-black text-surface"
       style={{ width: size, height: size, background: bg, fontSize: Math.round(size * 0.38) }}
     />
   );
@@ -65,7 +65,7 @@ export function Countdown({ date, label, days: given }: { date: string | null; l
   const tone = days < 0 ? 'text-muted' : days <= 14 ? 'text-bad' : days <= 45 ? 'text-warn' : 'text-ink';
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2">
-      <span className={clsx('display num text-[26px] font-extrabold leading-none', tone)}>{days < 0 ? 'Passed' : days}</span>
+      <span className={clsx('display num text-[26px] font-black leading-none', tone)}>{days < 0 ? 'Passed' : days}</span>
       {days >= 0 ? <span className="text-[13px] text-muted">{days === 1 ? 'day left' : 'days left'}</span> : null}
       {date ? <span className="text-[13px] text-muted">· {formatDate(date)}</span> : null}
     </span>
@@ -85,7 +85,7 @@ export function PageHeader({ title, children, actions }: { title: string; childr
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0 max-w-2xl">
-        <h1 className="display text-[28px] font-extrabold leading-[1.1] sm:text-[32px]">{title}</h1>
+        <h1 className="display text-[28px] font-black leading-[1.1] sm:text-[32px]">{title}</h1>
         {children ? <p className="mt-2 text-[15px] text-muted">{children}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

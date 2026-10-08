@@ -139,7 +139,7 @@ export default function ApprovalPage() {
       <header className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <RoleLabel role="agent">The writer drafted this</RoleLabel>
-          <h1 className="display mt-2 text-[26px] font-extrabold leading-tight sm:text-[30px]">{approval.title}</h1>
+          <h1 className="display mt-2 text-[26px] font-black leading-tight sm:text-[30px]">{approval.title}</h1>
           <p className="mt-2 max-w-prose text-[14px] text-muted">
             Built from your Verified and You-said facts only, in the words they use themselves
             {letter?.targetUrl ? (

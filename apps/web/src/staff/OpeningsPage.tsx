@@ -88,7 +88,7 @@ function MatchRow({ match, onChanged }: { match: MatchDTO; onChanged: () => void
           </ul>
         </div>
         <div className="flex flex-none flex-col items-end gap-1">
-          <span className="display num text-[20px] font-extrabold">{Math.round(match.score * 100)}</span>
+          <span className="display num text-[20px] font-black">{Math.round(match.score * 100)}</span>
           <span className="text-[11px] uppercase tracking-wider text-muted">fit</span>
         </div>
       </div>

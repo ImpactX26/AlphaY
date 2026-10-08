@@ -24,16 +24,16 @@ export default function AuditPage() {
       <div className="mb-6 grid gap-3 sm:grid-cols-4">
         <div className="card px-4 py-3">
           <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-muted">Spent so far</p>
-          <p className="display num mt-1 text-[24px] font-extrabold">{formatUsd(totalCost)}</p>
+          <p className="display num mt-1 text-[24px] font-black">{formatUsd(totalCost)}</p>
         </div>
         <div className="card px-4 py-3">
           <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-muted">Model calls</p>
-          <p className="display num mt-1 text-[24px] font-extrabold">{totalCalls}</p>
+          <p className="display num mt-1 text-[24px] font-black">{totalCalls}</p>
           <p className="text-[12px] text-muted">{cached} served from cache</p>
         </div>
         <div className="card px-4 py-3">
           <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-muted">Applicants</p>
-          <p className="display num mt-1 text-[24px] font-extrabold">{stats?.applicants ?? '—'}</p>
+          <p className="display num mt-1 text-[24px] font-black">{stats?.applicants ?? '—'}</p>
         </div>
         <div className="card px-4 py-3">
           <LlmBudget />

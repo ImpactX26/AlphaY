@@ -17,7 +17,7 @@ export function Logo({ to, sub }: { to: string; sub?: string }) {
         <path d="M8 8h14v3.6h-9.7v2.7h8.4v3.4h-8.4v2.7H22V24H8z" fill="var(--bg)" />
         <rect x="23" y="14.3" width="3.4" height="3.4" rx=".8" fill="var(--applicant)" />
       </svg>
-      <span className="display text-[19px] font-extrabold tracking-[-0.01em]">Educaro</span>
+      <span className="display text-[19px] font-black tracking-[-0.01em]">Educaro</span>
       {sub ? <span className="hidden border-l border-line pl-2.5 text-[13px] font-semibold text-staff sm:inline">{sub}</span> : null}
     </Link>
   );

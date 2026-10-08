@@ -15,7 +15,7 @@ export function ReadinessCard({ block }: { block: ReadinessBlock }) {
     <BlockFrame kicker={block.title ?? 'How ready you are'} body={block.body} headerExtra={<Tag s={outcome} className="flex-none" />}>
       {/* The one number the whole page is about: how close she is. It carries the page. */}
       <div className="flex items-baseline gap-2.5">
-        <span className="display num text-[clamp(56px,13vw,76px)] font-extrabold leading-[0.85] tracking-[-0.03em]">
+        <span className="display num text-[clamp(56px,13vw,76px)] font-black leading-[0.85] tracking-[-0.03em]">
           {Math.round(block.overall)}%
         </span>
         <span className="text-[15px] text-muted">ready</span>
@@ -63,7 +63,7 @@ export function BudgetCard({ block, bare }: { block: BudgetBlock; bare?: boolean
       </ul>
       <div className="mt-2.5 flex items-baseline justify-between gap-3 border-t-2 border-ink pt-2.5">
         <span className="display text-[15px] font-bold">{outgoings ? 'Net in your account' : 'Every month'}</span>
-        <span className="display num text-[22px] font-extrabold">{formatMoney(block.total)}</span>
+        <span className="display num text-[22px] font-black">{formatMoney(block.total)}</span>
       </div>
       {block.compare.length ? (
         <div className="mt-3">

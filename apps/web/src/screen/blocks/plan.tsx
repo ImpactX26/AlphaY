@@ -45,7 +45,7 @@ export function RouteCard({ block }: { block: RouteBlock }) {
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-[13px] font-semibold">Opportunity Card (Chancenkarte) points</p>
             <p className="num text-[13px]">
-              <span className={clsx('display text-[20px] font-extrabold', ck.total >= ck.needed ? 'text-ok' : 'text-warn')}>{ck.total}</span>
+              <span className={clsx('display text-[20px] font-black', ck.total >= ck.needed ? 'text-ok' : 'text-warn')}>{ck.total}</span>
               <span className="text-muted"> of {ck.needed} needed</span>
             </p>
           </div>

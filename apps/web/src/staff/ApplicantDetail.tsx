@@ -94,7 +94,7 @@ export default function ApplicantDetail() {
       <header className="mb-5 flex flex-wrap items-start gap-x-5 gap-y-3">
         <Avatar name={applicant.name} size={46} tone={applicant.route === 'study' ? 'agent' : 'applicant'} />
         <div className="min-w-0 flex-1">
-          <h1 className="display text-[26px] font-extrabold leading-tight">{applicant.name}</h1>
+          <h1 className="display text-[26px] font-black leading-tight">{applicant.name}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13.5px] text-muted">
             {applicant.subtitle ? <span>{applicant.subtitle}</span> : null}
             {applicant.route ? <Chip tone="applicant">{ROUTE_LABEL[applicant.route]}</Chip> : <Chip>Route not set</Chip>}
@@ -105,7 +105,7 @@ export default function ApplicantDetail() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <AgentPill applicantId={applicantId} />
-          {readiness ? <p className="num display text-[22px] font-extrabold">{readiness.overall}% ready</p> : null}
+          {readiness ? <p className="num display text-[22px] font-black">{readiness.overall}% ready</p> : null}
         </div>
       </header>
 

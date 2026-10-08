@@ -61,7 +61,7 @@ export function Login() {
             <path d="M8 8h14v3.6h-9.7v2.7h8.4v3.4h-8.4v2.7H22V24H8z" fill="var(--bg)" />
             <rect x="23" y="14.3" width="3.4" height="3.4" rx=".8" fill="var(--applicant)" />
           </svg>
-          <span className="display text-[19px] font-extrabold">Educaro</span>
+          <span className="display text-[19px] font-black">Educaro</span>
         </span>
         <span className="flex items-center gap-2">
           {isMock ? (
@@ -74,7 +74,7 @@ export function Login() {
       </div>
 
       <section className="card w-full max-w-[420px] px-6 py-7">
-          <h2 className="display text-[26px] font-extrabold leading-tight">{mode === 'register' ? 'Create your account' : 'Sign in'}</h2>
+          <h2 className="display text-[26px] font-black leading-tight">{mode === 'register' ? 'Create your account' : 'Sign in'}</h2>
           <p className="mt-1.5 text-[14px] text-muted">
             {mode === 'demo' ? 'Pick a seeded persona, or use your own account.' : mode === 'register' ? 'Email and password. Your profile stays yours.' : 'With the email and password you signed up with.'}
           </p>

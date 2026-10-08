@@ -76,7 +76,7 @@ export default function PlanPage() {
               <div>
                 {outcome ? <Tag s={outcome} /> : null}
                 <p className="mt-2 flex items-baseline gap-2">
-                  <span className="display num text-[46px] font-extrabold leading-none">{Math.round(readiness.overall)}%</span>
+                  <span className="display num text-[46px] font-black leading-none">{Math.round(readiness.overall)}%</span>
                   <span className="text-[13.5px] text-muted">ready</span>
                 </p>
                 <p className="mt-2 text-[13px] text-muted">
