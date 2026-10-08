@@ -263,13 +263,31 @@ export interface ScamCheckBlock extends Base {
 export interface FinancePlanBlock extends Base {
   type: 'finance_plan';
   currency: 'EUR';
+  /** Kept for compatibility; `rates` is the live table and is what should be shown. */
   inrPerEur: number;
   oneOff: { label: string; amountEur: number; whenMonth: string; paid: boolean; note?: string }[];
   monthlyEur: number;
   needBeforeTravelEur: number;
   haveEur: number | null;
   fundingGapEur: number | null;
-  options: { label: string; detail: string }[];
+  options: {
+    label: string;
+    detail: string;
+    kind?: 'loan' | 'scholarship' | 'guarantee' | 'employer' | 'family';
+    coversEur?: number | null;
+    /** Whether this removes the blocked-account requirement or merely pays for it. */
+    replacesBlockedAccount?: boolean;
+    eligibility?: string;
+    startBy?: string;
+    url?: string | null;
+    /** What a loan of this size costs a month — the figure a family actually weighs. */
+    monthlyRepaymentEur?: number | null;
+  }[];
+  /** Live ECB reference rates, so the plan can be read in the currency they think in. */
+  rates?: { date: string; live: boolean; source: string; perEur: Record<string, number> };
+  currencies?: { code: string; label: string; symbol: string }[];
+  /** What a flat-share they have actually joined takes off the plan. */
+  sharing?: { shareEachEur: number; others: number } | null;
 }
 
 /** People going to the same city at the same time, so nobody arrives alone. */

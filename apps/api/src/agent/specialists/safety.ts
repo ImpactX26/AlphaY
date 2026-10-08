@@ -4,6 +4,8 @@ import { checkContract, contractKind, HELP_CONTACTS, looksLikeContract, missingF
 import { realityFor } from '../../knowledge/reality';
 import { monthLabel, parseMonth } from '../../knowledge/normalize';
 import { bestFact } from '../state.service';
+import { fetchRates, CURRENCIES } from '../../web/fx';
+import { fundingFor, monthlyRepayment } from '../../knowledge/funding';
 import { targetCity } from './living';
 import type { Kit, SpecialistResult } from './kit';
 
@@ -68,7 +70,7 @@ export async function safetySpecialist(kit: Kit): Promise<SpecialistResult> {
       contacts: HELP_CONTACTS,
       reality,
       group,
-      finance: financePlan(kit),
+      finance: await financePlan(kit, group),
     },
   };
 }
@@ -101,7 +103,24 @@ async function cohortGroup(kit: Kit) {
   if (!members.length) return null;
 
   const rent = (st.outputs.housing?.output as any)?.listings?.[0]?.warmRentEur ?? city.wgRoom;
+
+  // A group they have actually joined, as opposed to one suggested to them. Only this feeds the
+  // money plan: a budget built on a flat nobody agreed to share is a budget that breaks on arrival.
+  const mine = await db
+    .select()
+    .from(schema.cohortMembers)
+    .where(and(eq(schema.cohortMembers.applicantId, st.applicant.id), eq(schema.cohortMembers.status, 'joined')));
+  let joinedShare: { shareEachEur: number; others: number; title: string } | null = null;
+  for (const m of mine) {
+    const g = await db.query.cohortGroups.findFirst({ where: eq(schema.cohortGroups.id, m.groupId) });
+    if (!g || g.kind !== 'flat_share' || !g.budgetEachEur) continue;
+    const all = await db.select().from(schema.cohortMembers).where(and(eq(schema.cohortMembers.groupId, g.id), eq(schema.cohortMembers.status, 'joined')));
+    joinedShare = { shareEachEur: g.budgetEachEur, others: Math.max(0, all.length - 1), title: g.title };
+    break;
+  }
+
   return {
+    joinedShare,
     city: city.name,
     month: monthLabel(when),
     members,
@@ -118,12 +137,16 @@ async function cohortGroup(kit: Kit) {
  * stops people, which is "how much do I need before I can even go, and when". Those are one-off
  * sums landing in a particular order, and the blocked account is most of it.
  */
-export function financePlan(kit: Kit) {
+export async function financePlan(kit: Kit, group?: { joinedShare?: { shareEachEur: number; others: number } | null } | null) {
   const st = kit.state;
   const city = targetCity(st);
   const route = st.applicant.route;
   const monthly = (st.outputs.money?.output as any)?.total ?? Math.round(city.wgRoom + 450);
-  const inrPerEur = 92; // indicative; shown as such
+
+  // Live ECB rates rather than a constant. The hardcoded 92 this replaced was wrong by about 17%
+  // against the real rate — roughly two lakh rupees on the blocked account alone, and the blocked
+  // account is the number somebody takes to a bank manager.
+  const rates = await fetchRates();
 
   const start = parseMonth(st.applicant.startDate) ?? { y: new Date().getFullYear() + 1, m: 9 };
   const monthBefore = (n: number) => {
@@ -139,8 +162,9 @@ export function financePlan(kit: Kit) {
   const oneOff: { label: string; amountEur: number; whenMonth: string; paid: boolean; note?: string }[] = [];
   const have = bestFact(st, 'money.savings');
 
+  const needsBlockedAccount = route === 'study' || route === 'chancenkarte';
   if (route === 'study') {
-    oneOff.push({ label: 'APS certificate', amountEur: 196, whenMonth: monthBefore(9), paid: false, note: 'INR 18,000. Takes 4–6 weeks, so it gates everything after it.' });
+    oneOff.push({ label: 'APS certificate', amountEur: 196, whenMonth: monthBefore(9), paid: false, note: 'Takes 4–6 weeks, so it gates everything after it.' });
     oneOff.push({ label: 'uni-assist, first application', amountEur: 75, whenMonth: monthBefore(6), paid: false, note: 'EUR 30 for each further application in the same semester.' });
     oneOff.push({ label: 'Blocked account', amountEur: 11904, whenMonth: monthBefore(3), paid: false, note: 'The whole year up front. You may withdraw EUR 992 a month once you arrive.' });
   } else {
@@ -150,26 +174,71 @@ export function financePlan(kit: Kit) {
   oneOff.push({ label: 'German courses to B1', amountEur: 660, whenMonth: monthBefore(8), paid: false, note: 'Three levels at EUR 220, plus EUR 90 per exam.' });
   oneOff.push({ label: 'Visa fee', amountEur: 75, whenMonth: monthBefore(2), paid: false });
   oneOff.push({ label: 'Flight', amountEur: 520, whenMonth: monthBefore(0), paid: false, note: 'One way, booked early.' });
-  oneOff.push({ label: 'First month before the first salary', amountEur: monthly + Math.round(city.wgRoom * 2), whenMonth: monthLabel(start), paid: false, note: 'Rent, deposit of up to three months cold rent, and living until payday. The most commonly forgotten number.' });
+
+  // What the first month costs before the first salary, which is the most commonly forgotten
+  // number — and the first place a flat-share changes the arithmetic rather than the advice.
+  const share = flatShareSaving(group ?? null, city);
+  const firstMonthRent = share ? share.shareEachEur : city.wgRoom;
+  const deposit = firstMonthRent * (share ? 3 : 3);
+  oneOff.push({
+    label: 'First month before the first salary',
+    amountEur: monthly + deposit,
+    whenMonth: monthLabel(start),
+    paid: false,
+    note: share
+      ? `Rent, the deposit (capped at three months cold rent by law) and living until payday. Sharing with ${share.others} other${share.others === 1 ? '' : 's'} brings your room to about EUR ${share.shareEachEur} instead of EUR ${city.wgRoom}.`
+      : 'Rent, a deposit of up to three months cold rent, and living until payday. The most commonly forgotten number.',
+  });
 
   const needBeforeTravel = oneOff.reduce((sum, o) => sum + o.amountEur, 0);
   const haveEur = have ? Number(String(have.value).replace(/[^\d.]/g, '')) || null : null;
+  const options = fundingFor(route, { needBlockedAccount: needsBlockedAccount });
 
   return {
     currency: 'EUR' as const,
-    inrPerEur,
+    // Kept for the existing block contract; the live table below is what the screen should use.
+    inrPerEur: Math.round((rates.rates.INR ?? 108) * 100) / 100,
+    rates: { date: rates.date, live: rates.live, source: rates.source, perEur: rates.rates },
+    currencies: CURRENCIES,
     oneOff,
-    monthlyEur: monthly,
+    monthlyEur: share ? monthly - (city.wgRoom - share.shareEachEur) : monthly,
     needBeforeTravelEur: needBeforeTravel,
     haveEur,
     fundingGapEur: haveEur === null ? null : Math.max(0, needBeforeTravel - haveEur),
-    options: [
-      { label: 'Education loan', detail: 'Indian banks lend against an admission letter or a signed contract. Public-sector rates are typically 9–11%; the blocked account is accepted as a purpose.' },
-      { label: 'Verpflichtungserklärung instead of a blocked account', detail: 'A relative living in Germany can sign a formal obligation at their foreigners authority, which replaces the EUR 11,904 entirely.' },
-      { label: 'Employer-funded routes', detail: 'On the Nursing Program the hospital pays recognition, the B2 course and the first room, which removes most of the list above.' },
-      { label: 'Scholarships', detail: 'DAAD and university scholarships exist but are decided late. Never plan the visa around one.' },
-    ],
+    /** What sharing a flat takes off the plan, when they have actually joined one. */
+    sharing: share,
+    /** Every option with what it covers, what it costs and whether it removes the blocked account. */
+    options: options.map((o) => ({
+      label: o.label,
+      detail: `${o.what} ${o.cost} Start it ${o.startBy}`,
+      kind: o.kind,
+      coversEur: o.coversEur,
+      replacesBlockedAccount: o.replacesBlockedAccount,
+      eligibility: o.eligibility,
+      startBy: o.startBy,
+      url: o.url,
+      /** What an education loan of this size costs a month, so the figure is one a family can weigh. */
+      monthlyRepaymentEur:
+        o.kind === 'loan' && o.coversEur ? Math.round(monthlyRepayment(Math.min(o.coversEur, needBeforeTravel), 10, 7)) : null,
+    })),
   };
+}
+
+/**
+ * What a flat-share actually takes off the plan.
+ *
+ * Only counts a group they have joined, not one that was suggested to them. A budget built on a
+ * flat somebody has not agreed to share is a budget that breaks on arrival, and this figure feeds
+ * the deposit and the first month — the two numbers people are shortest on.
+ */
+function flatShareSaving(group: { joinedShare?: { shareEachEur: number; others: number } | null } | null, city: { wgRoom: number }): { shareEachEur: number; others: number } | null {
+  // Taken as an argument rather than read back out of `state.outputs.safety`: this runs *inside*
+  // the safety specialist, so that output is the previous run's and a group joined a minute ago
+  // never appeared. The money plan was silently a room-of-your-own plan for anyone sharing.
+  const joined = group?.joinedShare;
+  if (!joined?.shareEachEur || !joined.others) return null;
+  if (joined.shareEachEur >= city.wgRoom) return null;
+  return { shareEachEur: Math.round(joined.shareEachEur), others: joined.others };
 }
 
 /**

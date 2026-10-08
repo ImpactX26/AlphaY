@@ -454,6 +454,9 @@ function financeBlock(plan: any): Block {
     haveEur: plan.haveEur ?? null,
     fundingGapEur: plan.fundingGapEur ?? null,
     options: plan.options ?? [],
+    rates: plan.rates,
+    currencies: plan.currencies,
+    sharing: plan.sharing ?? null,
   };
 }
 

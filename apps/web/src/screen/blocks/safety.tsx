@@ -1,4 +1,4 @@
-import type { CohortGroupBlock, FinancePlanBlock, HelpBlock, RealityCheckBlock, ScamCheckBlock } from '@educaro/shared';
+import type { CohortGroupBlock, HelpBlock, RealityCheckBlock, ScamCheckBlock } from '@educaro/shared';
 import clsx from 'clsx';
 import { AlertTriangle, CheckCircle2, CircleAlert, ExternalLink, Scale, ShieldCheck, Users } from 'lucide-react';
 import { BlockFrame } from '../BlockFrame';
@@ -136,73 +136,8 @@ export function ScamCheckCard({ block, bare }: { block: ScamCheckBlock; bare?: b
   );
 }
 
-/* ------------------------------------------------------------------ finance plan */
-
-/**
- * Money over time.
- *
- * The one-off costs are in the order they land, not sorted by size, because the question this
- * answers is "when do I need it" — and the blocked account arriving three months before departure
- * is the thing that decides whether a plan is real.
- */
-export function FinancePlanCard({ block, bare }: { block: FinancePlanBlock; bare?: boolean }) {
-  const inr = (eur: number) => `₹${Math.round((eur * block.inrPerEur) / 1000)}k`;
-
-  return (
-    <BlockFrame
-      bare={bare}
-      kicker={block.title ?? 'What you need, and when'}
-      body={block.body}
-      headerExtra={
-        <span className="flex-none text-[12.5px] text-muted">
-          <span className="num font-semibold text-ink">{euro(block.needBeforeTravelEur)}</span> before you fly
-        </span>
-      }
-      footer={`Converted at about ₹${block.inrPerEur} to the euro — indicative only.`}
-    >
-      <ul className="divide-y divide-line">
-        {block.oneOff.map((o, i) => (
-          <li key={i} className="flex items-baseline gap-3 py-2">
-            <span className="w-[72px] flex-none text-[12.5px] text-muted">{o.whenMonth}</span>
-            <span className="min-w-0 flex-1">
-              <span className="text-[13.5px] font-medium">{o.label}</span>
-              {o.note ? <span className="block text-[12.5px] text-muted">{o.note}</span> : null}
-            </span>
-            <span className="flex-none text-right">
-              <span className="num text-[13.5px] font-semibold">{euro(o.amountEur)}</span>
-              <span className="block text-[11.5px] text-muted">{inr(o.amountEur)}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-3 flex items-baseline justify-between border-t-2 border-ink pt-2">
-        <span className="text-[14px] font-semibold">Before you fly</span>
-        <span className="num text-[16px] font-bold">{euro(block.needBeforeTravelEur)}</span>
-      </div>
-      <p className="mt-1 text-[12.5px] text-muted">Then about {euro(block.monthlyEur)} a month once you are there.</p>
-
-      {block.fundingGapEur !== null && block.fundingGapEur > 0 ? (
-        <p className="mt-2 rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] px-3 py-2 text-[13px]">
-          Still to find: <span className="num font-semibold">{euro(block.fundingGapEur)}</span>
-        </p>
-      ) : null}
-
-      {block.options.length ? (
-        <details className="mt-3 text-[13px]">
-          <summary className="cursor-pointer font-medium">Ways people cover it</summary>
-          <ul className="mt-2 space-y-1.5 text-muted">
-            {block.options.map((o, i) => (
-              <li key={i}>
-                <span className="font-medium text-ink">{o.label}.</span> {o.detail}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </BlockFrame>
-  );
-}
+/* ----- finance plan: its own file, because the currency switcher gave it local state ----- */
+export { FinancePlanCard } from './FinancePlanCard';
 
 /* ------------------------------------------------------------------ reality check */
 
