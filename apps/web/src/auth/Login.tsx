@@ -1,9 +1,10 @@
 import type { DemoPersona } from '@educaro/shared';
 import clsx from 'clsx';
-import { ArrowRight, FlaskConical, GraduationCap, Headset, Sparkles, Stethoscope } from 'lucide-react';
+import { ArrowRight, FlaskConical, GraduationCap, Headset, Sparkles, Stethoscope, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { api, errorText, isMock, setMockMode } from '../api/client';
+import { useSystemStatus } from '../api/queries';
 import { ThemeToggle } from '../app/chrome';
 import { Button } from '../ui/Button';
 import { FullPageSpinner } from '../ui/Spinner';
@@ -27,9 +28,13 @@ export function Login() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const status = useSystemStatus();
 
   if (!ready) return <FullPageSpinner label="Loading" />;
   if (me) return <Navigate to={(location.state as { from?: string } | null)?.from ?? homeFor(me.role)} replace />;
+
+  // Demo insurance: a dead API should never be a dead screen.
+  const apiDown = !isMock && status.isError;
 
   const run = async (label: string, call: () => Promise<Parameters<typeof signIn>[0]>) => {
     setBusy(label);
@@ -105,6 +110,19 @@ export function Login() {
           <p className="mt-1.5 text-[14px] text-muted">
             {mode === 'demo' ? 'Pick a seeded persona, or use your own account.' : mode === 'register' ? 'Email and password. Your profile stays yours.' : 'With the email and password you signed up with.'}
           </p>
+
+          {apiDown ? (
+            <div role="alert" className="mt-4 rounded-lg border border-warn/45 bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] px-3.5 py-3">
+              <p className="flex items-center gap-2 text-[13.5px] font-semibold">
+                <TriangleAlert size={15} className="flex-none text-warn" aria-hidden />
+                The Educaro server is not answering
+              </p>
+              <p className="mt-1 text-[13px] text-muted">Start it with <span className="kbd">npm run dev:api</span>, or carry on with demo data in the browser.</p>
+              <Button size="sm" variant="primary" className="mt-2.5" icon={FlaskConical} onClick={() => setMockMode(true)}>
+                Use demo data
+              </Button>
+            </div>
+          ) : null}
 
           {error ? (
             <p role="alert" className="mt-4 rounded-md border border-bad/40 bg-[color-mix(in_srgb,var(--bad)_8%,transparent)] px-3 py-2 text-[13.5px] text-bad">

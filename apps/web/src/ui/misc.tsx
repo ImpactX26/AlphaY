@@ -27,16 +27,20 @@ export function EmptyState({ icon: Icon, title, children, action, className }: {
   );
 }
 
+/**
+ * Decorative: the person's name is always next to it, or in the control's label.
+ * The initials are drawn with CSS so they never reach the accessibility tree and
+ * never compete with the real label of a button wrapping this.
+ */
 export function Avatar({ name, tone = 'applicant', size = 32 }: { name: string; tone?: 'applicant' | 'agent' | 'staff' | 'outside'; size?: number }) {
   const bg = { applicant: 'var(--applicant)', agent: 'var(--agent)', staff: 'var(--staff)', outside: 'var(--outside)' }[tone];
   return (
     <span
       aria-hidden
-      className="grid flex-none place-items-center rounded-full font-display font-extrabold text-surface"
+      data-initials={initials(name)}
+      className="avatar grid flex-none place-items-center rounded-full font-display font-extrabold text-surface"
       style={{ width: size, height: size, background: bg, fontSize: Math.round(size * 0.38) }}
-    >
-      {initials(name)}
-    </span>
+    />
   );
 }
 

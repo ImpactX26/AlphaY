@@ -453,6 +453,11 @@
     overflow-x: auto;
   }
 
+  /* Initials come from the attribute, so they are not text in the accessibility tree. */
+  .avatar::after {
+    content: attr(data-initials);
+  }
+
   .kbd {
     font: 500 11.5px/1 var(--f-mono);
     padding: 3px 5px;
