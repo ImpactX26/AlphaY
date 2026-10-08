@@ -36,7 +36,7 @@ export class McpService implements OnModuleInit {
   }
 
   /** A fresh server per request: cheap to build, and nothing leaks between callers. */
-  private build(): McpServer {
+  buildServer(): McpServer {
     const server = new McpServer({ name: 'educaro', version: '0.1.0' }, { capabilities: { tools: {} } });
     // The SDK's schema types are written against zod v3 and this workspace is on v4. The shapes
     // work at runtime; only the signature cannot express them, so the registration is loosened
@@ -64,7 +64,7 @@ export class McpService implements OnModuleInit {
   }
 
   async handle(req: Request, res: Response) {
-    const server = this.build();
+    const server = this.buildServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on('close', () => {
       void transport.close();

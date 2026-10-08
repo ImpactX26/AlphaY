@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { LlmService } from '../../llm/llm.service';
 import { FactsService } from '../../profile/facts.service';
 import { QueueService } from '../../queue/queue.service';
+import { McpClientService } from '../../mcp/mcp-client.service';
 import { TraceService } from '../../trace/trace.service';
 import { WebService } from '../../web/web.service';
 import type { SpecialistName } from '../../knowledge/routes';
@@ -50,6 +51,7 @@ export class SpecialistsService implements OnModuleInit {
     private readonly llm: LlmService,
     private readonly facts: FactsService,
     private readonly trace: TraceService,
+    private readonly mcp: McpClientService,
   ) {}
 
   onModuleInit() {
@@ -74,6 +76,7 @@ export class SpecialistsService implements OnModuleInit {
       facts: this.facts,
       trace: this.trace,
       personal: personalStrings(st),
+      mcp: this.mcp,
     };
     const started = Date.now();
     const res = await fn(kit);

@@ -24,7 +24,15 @@ export interface McpTool {
   run: (args: any, deps: ToolDeps) => Promise<unknown>;
 }
 
-const ctx = (applicantId?: string) => ({ runId: `mcp_${Date.now().toString(36)}`, applicantId: applicantId ?? null });
+/**
+ * A tool call belongs to whatever run asked for it.
+ *
+ * The source guard only accepts a Web fact when the page was opened *in the same run*, so a
+ * fetch_page that invented its own run id could never satisfy a save_fact from the caller's —
+ * every citation would have been refused, correctly and uselessly. Clients that have a run pass it;
+ * anything else gets its own.
+ */
+const ctx = (applicantId?: string, runId?: string) => ({ runId: runId || `mcp_${Date.now().toString(36)}`, applicantId: applicantId ?? null });
 
 /**
  * The agent's tools, as MCP.
@@ -42,9 +50,9 @@ export const MCP_TOOLS: McpTool[] = [
     name: 'fetch_page',
     title: 'Open a page',
     description: 'Fetches a URL, returns readable text, and records it as a source for this run so a fact may cite it.',
-    input: { url: z.string().url(), applicantId: z.string().uuid().optional() },
-    run: async ({ url, applicantId }, d) => {
-      const page = await d.web.fetchPage(url, ctx(applicantId));
+    input: { url: z.string().url(), applicantId: z.string().uuid().optional(), runId: z.string().optional() },
+    run: async ({ url, applicantId, runId }, d) => {
+      const page = await d.web.fetchPage(url, ctx(applicantId, runId));
       return page ? { url, title: page.title, text: page.text.slice(0, 12_000) } : { url, error: 'could not be opened' };
     },
   },
@@ -52,12 +60,12 @@ export const MCP_TOOLS: McpTool[] = [
     name: 'search',
     title: 'Search the web',
     description: 'Searches the web. Rejects any query containing personal data (a name, a passport number, a phone number).',
-    input: { query: z.string().min(2), applicantId: z.string().uuid().optional() },
-    run: async ({ query, applicantId }, d) => {
+    input: { query: z.string().min(2), applicantId: z.string().uuid().optional(), runId: z.string().optional() },
+    run: async ({ query, applicantId, runId }, d) => {
       // Load the applicant's own identifiers so the guard has something to compare against. An
       // MCP client does not know what counts as personal here, and should not have to.
       const personal = applicantId ? personalStrings(await d.state.load(applicantId)) : [];
-      return { query, results: await d.web.search(query, ctx(applicantId), personal) };
+      return { query, results: await d.web.search(query, ctx(applicantId, runId), personal) };
     },
   },
   {

@@ -319,12 +319,21 @@ async function main() {
 
   // ---------------------------------------------------------------- their own documents
   section('Their own papers');
-  await api(`/applicants/${A}/chat`, { token: aT, method: 'POST', body: { text: 'what is my nursing council registration number?' } });
-  const answered = await until('an answer from the documents', async () => {
-    const msgs = (await api(`/applicants/${A}/chat`, { token: aT })).body ?? [];
-    const last = msgs[msgs.length - 1];
-    return last?.author === 'agent' ? last : undefined;
-  }, 60_000);
+  // This suite fires a lot of model calls in a couple of minutes, and the free tier caps tokens per
+  // minute — so the test can cause the very failure it then reports. Ask twice before believing it.
+  let answered;
+  for (let attempt = 0; attempt < 2 && !/KNMC\/2021\/48217/.test(answered?.text ?? ''); attempt++) {
+    await api(`/applicants/${A}/chat`, { token: aT, method: 'POST', body: { text: 'what is my nursing council registration number?' } });
+    answered = await until(
+      'an answer from the documents',
+      async () => {
+        const msgs = (await api(`/applicants/${A}/chat`, { token: aT })).body ?? [];
+        const last = msgs[msgs.length - 1];
+        return last?.author === 'agent' && /KNMC/.test(last.text) ? last : undefined;
+      },
+      45_000,
+    );
+  }
   check('a question is answered from the uploaded page', /KNMC\/2021\/48217/.test(answered?.text ?? ''), (answered?.text ?? '').slice(0, 90));
 
   // ---------------------------------------------------------------- guards

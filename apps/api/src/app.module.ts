@@ -47,6 +47,7 @@ import { DiscordService } from './discord/discord.service';
 import { CallController } from './http/call.controller';
 import { McpController } from './mcp/mcp.controller';
 import { McpService } from './mcp/mcp.service';
+import { McpClientService } from './mcp/mcp-client.service';
 import { CommunityController } from './community/community.controller';
 import { CommunityService } from './community/community.service';
 import { InsightController } from './community/insight.controller';
@@ -98,6 +99,7 @@ import { SafetyService } from './safety/safety.service';
 
     StaffService,
     McpService,
+    McpClientService,
     CommunityService,
     SafetyService,
     DiscordService,
