@@ -62,6 +62,22 @@ async function main() {
   }
   log.log(`${OPENINGS.length} employer openings`);
 
+  // Every "fresh" demo login leaves a throwaway applicant behind, and they pile up in the staff
+  // pipeline where they are the first thing anyone sees. Clear out the empty ones.
+  const throwaway = await db.select().from(schema.users);
+  let removed = 0;
+  for (const u of throwaway.filter((x) => /^ananya\.[a-z0-9]+@demo\.educaro\.local$/.test(x.email))) {
+    const a = await db.query.applicants.findFirst({ where: eq(schema.applicants.userId, u.id) });
+    if (a) {
+      const facts = await db.select().from(schema.facts).where(eq(schema.facts.applicantId, a.id));
+      if (facts.length) continue; // somebody actually used this one: leave it
+      await db.delete(schema.applicants).where(eq(schema.applicants.id, a.id));
+    }
+    await db.delete(schema.users).where(eq(schema.users.id, u.id));
+    removed += 1;
+  }
+  if (removed) log.log(`removed ${removed} empty throwaway applicant(s)`);
+
   // ---------------- staff ----------------
   await user(DEMO_EMAILS.staff, 'Meera Pillai', 'staff');
   log.log('staff login ready: staff@demo.educaro.local');

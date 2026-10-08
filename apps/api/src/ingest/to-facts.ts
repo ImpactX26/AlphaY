@@ -1,6 +1,6 @@
 import type { DocKind } from '@educaro/shared';
 import { parseCefr } from '../knowledge/cefr';
-import { monthLabel, parseMonth } from '../knowledge/normalize';
+import { monthLabel, parseMonth, tidyCase } from '../knowledge/normalize';
 import { convertIndianGrade } from '../knowledge/grades';
 import type { FactInput } from '../profile/facts.service';
 import type { CvExtraction, DocExtraction, TranscriptClaims } from './extractors';
@@ -34,7 +34,7 @@ export function docFacts(e: DocExtraction, fileId: string, expKey: ExpKey): Fact
   const base = { tag: 'verified' as const, sourceKind: 'document' as const, sourceRef: fileId };
   const out: FactInput[] = [];
   const kind = e.kind as DocKind;
-  if (e.holderName) out.push({ ...base, key: 'identity.name', label: 'Name', value: e.holderName, data: { docKind: kind } });
+  if (e.holderName) out.push({ ...base, key: 'identity.name', label: 'Name', value: tidyCase(e.holderName), data: { docKind: kind, asPrinted: e.holderName } });
   switch (kind) {
     case 'passport':
       if (e.dateOfBirth) out.push({ ...base, key: 'identity.dob', label: 'Date of birth', value: e.dateOfBirth });
@@ -48,7 +48,7 @@ export function docFacts(e: DocExtraction, fileId: string, expKey: ExpKey): Fact
       break;
     case 'degree_certificate':
     case 'diploma_certificate': {
-      const q = [e.qualification, e.field && !e.qualification?.toLowerCase().includes(e.field.toLowerCase()) ? e.field : null].filter(Boolean).join(', ');
+      const q = tidyCase([e.qualification, e.field && !e.qualification?.toLowerCase().includes(e.field.toLowerCase()) ? e.field : null].filter(Boolean).join(', '));
       if (q) {
         out.push({
           ...base,

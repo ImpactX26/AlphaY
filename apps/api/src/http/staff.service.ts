@@ -318,12 +318,19 @@ export class StaffService {
     return toOpeningDTO(o);
   }
 
-  private matchDTO(m: MatchRow, name: string): MatchDTO {
+  /**
+   * `rank` gives the anonymous label. Using the person's own initial leaked the thing the
+   * anonymisation exists to hide — "Candidate A." next to a Cologne nursing role narrows it a long
+   * way — and it collided as soon as two candidates shared a first letter. The position in the list
+   * carries no information about them at all.
+   */
+  private matchDTO(m: MatchRow, name: string, rank = 0): MatchDTO {
+    const letter = String.fromCharCode(65 + (rank % 26));
     return {
       id: m.id,
       openingId: m.openingId,
       applicantId: m.applicantId,
-      displayName: m.consent ? name : `Candidate ${name.slice(0, 1).toUpperCase()}.`,
+      displayName: m.consent ? name : `Candidate ${letter}`,
       score: Math.round(m.score),
       reasons: m.reasons,
       consent: m.consent,
@@ -367,7 +374,7 @@ export class StaffService {
         const rec = st.facts.find((f) => f.key.startsWith('registration.') || f.key === 'recognition.status');
         if (rec) {
           score += 10;
-          reasons.push(`Recognition path started: ${rec.value}.`);
+          reasons.push(`Already registered at home: ${rec.label.toLowerCase()} on file, so the Anerkennung file can be opened immediately.`);
         } else reasons.push('Anerkennung not started yet — Educaro would file it.');
       }
       if (a.targetCity && a.targetCity.toLowerCase() === o.city.toLowerCase()) {
@@ -390,7 +397,7 @@ export class StaffService {
     const out: MatchDTO[] = [];
     for (const s of scored.slice(0, 10)) {
       const [m] = await db.insert(schema.matches).values({ openingId, applicantId: s.applicantId, score: s.score, reasons: s.reasons }).returning();
-      out.push(this.matchDTO(m, names.get(s.applicantId) ?? 'Applicant'));
+      out.push(this.matchDTO(m, names.get(s.applicantId) ?? 'Applicant', out.length));
     }
     await this.trace.record('tool', 'employer_match', { openingId, candidates: out.length });
     return out;
@@ -401,7 +408,7 @@ export class StaffService {
     if (!rows.length) return [];
     const applicants = await db.select().from(schema.applicants).where(inArray(schema.applicants.id, rows.map((r) => r.applicantId)));
     const names = new Map(applicants.map((a) => [a.id, a.name]));
-    return rows.map((m) => this.matchDTO(m, names.get(m.applicantId) ?? 'Applicant'));
+    return rows.map((m, i) => this.matchDTO(m, names.get(m.applicantId) ?? 'Applicant', i));
   }
 
   /** A one-page German profile, anonymised until the applicant consents. Facts only, no invention. */

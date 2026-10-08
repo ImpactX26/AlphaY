@@ -102,3 +102,34 @@ export function midSentence(title: string): string {
   if (KEEP_CASE.test(title)) return title;
   return title.charAt(0).toLowerCase() + title.slice(1);
 }
+
+/**
+ * Indian certificates are printed in capitals, and the value is carried straight onto a German CV.
+ *
+ * "GENERAL NURSING AND MIDWIFERY" on a Lebenslauf reads as shouting to the person hiring, or as a
+ * bad scan — either way it costs the applicant something, for a reason that has nothing to do with
+ * them. Only strings that are almost entirely uppercase are touched, and the abbreviations that
+ * must stay uppercase are left alone, so "B.Sc" and "GNM" survive.
+ */
+const KEEP_UPPER = new Set(['GNM', 'ANM', 'BSC', 'B.SC', 'MSC', 'M.SC', 'BTECH', 'B.TECH', 'MTECH', 'M.TECH', 'BE', 'ME', 'MBA', 'BA', 'MA', 'PHD', 'APS', 'IELTS', 'TOEFL', 'CGPA', 'SGPA', 'ICU', 'ECG', 'IV', 'BLS', 'ACLS', 'OT', 'ER', 'ID', 'EU', 'NRW', 'II', 'III', 'IV', 'XII', 'X']);
+const SMALL = new Set(['and', 'of', 'in', 'the', 'for', 'at', 'to', 'with', 'on']);
+
+export function tidyCase(value: string | null | undefined): string {
+  const s = (value ?? '').trim();
+  if (!s) return s;
+  const letters = s.replace(/[^A-Za-z]/g, '');
+  if (letters.length < 4) return s;
+  const upperRatio = (s.match(/[A-Z]/g) ?? []).length / letters.length;
+  if (upperRatio < 0.8) return s; // already mixed case: leave the author's choice alone
+  return s
+    .toLowerCase()
+    .split(/(\s+|[,;/()])/)
+    .map((word, i) => {
+      if (!/[a-z]/.test(word)) return word;
+      const bare = word.replace(/[^a-z.]/gi, '');
+      if (KEEP_UPPER.has(bare.toUpperCase())) return word.toUpperCase();
+      if (i > 0 && SMALL.has(bare)) return word;
+      return word.replace(/^([a-z])/, (c) => c.toUpperCase());
+    })
+    .join('');
+}
