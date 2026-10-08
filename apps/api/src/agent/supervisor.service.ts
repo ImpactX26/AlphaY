@@ -9,6 +9,7 @@ import type { QuestionCandidate } from '../profile/truth-map';
 import type { ApplicantState } from './state.service';
 import { ROUTES, SPECIALIST_LABEL, type SpecialistName } from '../knowledge/routes';
 import { MAX_OPEN_QUESTIONS } from './guards.service';
+import { midSentence } from '../knowledge/normalize';
 
 const LOOP_NAMES = ['route', 'exams', 'scout', 'jobs', 'recognition', 'visa', 'money', 'housing', 'life', 'factcheck'] as const;
 
@@ -74,7 +75,7 @@ export class SupervisorService {
       const top = report.gaps[0];
       if (/why/.test(text) && top) reply = `${top.title}: ${top.what} It comes first because the other steps depend on it.`;
       else if (/cost|money|budget|rent|€|euro/.test(text) && state.outputs.money) reply = `In ${state.outputs.money.output.city} plan for about €${state.outputs.money.output.total} a month. The full budget is on your screen.`;
-      else if (top) reply = `Thanks, noted. Your next step is still: ${top.title.toLowerCase()}. I've updated your screen.`;
+      else if (top) reply = `Thanks, noted. Your next step is still: ${midSentence(top.title)}. I've updated your screen.`;
       else reply = 'Thanks, noted. I have updated your screen.';
     }
     const routeOut = state.outputs.route?.output;

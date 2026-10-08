@@ -27,7 +27,7 @@ import { ActionsService } from '../agent/actions.service';
 import { MailService } from '../outbound/mail.service';
 import { ChatService } from '../profile/chat.service';
 import { cefrGap, cefrIndex, parseCefr, WEEKS_PER_LEVEL } from '../knowledge/cefr';
-import { monthLabel, monthsBetween, slug } from '../knowledge/normalize';
+import { monthLabel, monthsBetween, slug, midSentence } from '../knowledge/normalize';
 import { SPECIALIST_LABEL, type SpecialistName } from '../knowledge/routes';
 
 type ApplicantRow = typeof schema.applicants.$inferSelect;
@@ -542,7 +542,7 @@ export class StaffService {
       const gap = report.gaps[0];
       const lang = germanLevels(st);
       const personal = [
-        gap ? `your next step is ${gap.title.toLowerCase()} (${gap.howLong})` : 'your file is complete',
+        gap ? `your next step is ${midSentence(gap.title)} (${gap.howLong})` : 'your file is complete',
         `German: ${lang.proven ?? lang.claimed ?? 'not started'}`,
         a.route ? ROUTE_LABEL[a.route as Route] : 'route not decided',
       ].join('; ');

@@ -22,6 +22,7 @@ import { toApprovalDTO } from '../outbound/approvals.service';
 import { toApplicantDTO } from './applicant.controller';
 import { StaffService } from './staff.service';
 import { DiscordService } from '../discord/discord.service';
+import { TimersService } from '../agent/timers.service';
 
 @Roles('staff')
 @Controller('staff')
@@ -30,6 +31,7 @@ export class StaffController {
     private readonly staff: StaffService,
     private readonly mail: MailService,
     private readonly discord: DiscordService,
+    private readonly timers: TimersService,
   ) {}
 
   @Get('pipeline')
@@ -148,6 +150,16 @@ export class StaffController {
     const posted = await this.discord.postCohortLinks();
     if (b?.announce) await this.discord.announce(b.announce);
     return { ok: true as const, posted, connected: this.discord.ready };
+  }
+
+  /**
+   * Runs a scheduled job now. These normally fire on their own (deadline pings daily, the
+   * fact-check weekly), which is impossible to show in a three-minute demo.
+   */
+  @Post('timers/:kind')
+  async timer(@Param('kind') kind: 'deadlines' | 'recheck' | 'stalled') {
+    await this.timers.runNow(kind);
+    return { ok: true as const, ran: kind };
   }
 
   /** Demo helper: pretend the employer or university answered. */

@@ -9,7 +9,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { TraceService } from '../trace/trace.service';
 import { ROUTES } from '../knowledge/routes';
 import { service, servicesForRoute } from '../knowledge/services';
-import { daysUntil } from '../knowledge/normalize';
+import { daysUntil, midSentence } from '../knowledge/normalize';
 import { convertIndianGrade } from '../knowledge/grades';
 import { bestFact, factData, type ApplicantState } from './state.service';
 import type { CheckReport } from './checks';
@@ -329,7 +329,7 @@ function templateHeadline(state: ApplicantState, report: CheckReport): string {
     return `${first}, ${conv ? `your ${raw.match(/\d+(\.\d+)?/)?.[0]} ${/%/.test(raw) ? 'percent' : 'CGPA'} is ${conv.german.toFixed(1)} on the German scale. ` : ''}${aps ? 'Start APS verification this week. Every application waits for it.' : report.gaps[0] ? `${report.gaps[0].title}.` : 'You are ready to apply.'}`;
   }
   const top = report.gaps[0];
-  return `${first}, ${ROUTE_LABEL[route]} fits you best.${top ? ` Next: ${top.title.toLowerCase()}.` : ''}`;
+  return `${first}, ${ROUTE_LABEL[route]} fits you best.${top ? ` Next: ${midSentence(top.title)}.` : ''}`;
 }
 
 function templateFootnote(state: ApplicantState): string {

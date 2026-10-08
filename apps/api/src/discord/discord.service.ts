@@ -211,9 +211,24 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     await user?.send(text.slice(0, 1900)).catch(() => undefined);
   }
 
+  /**
+   * Discord gives you three seconds to acknowledge an interaction or it tells the user "the
+   * application did not respond" — even when the work afterwards succeeds. Redis, Postgres and a
+   * model call are all on the other side of that budget, so every command defers first and edits
+   * the reply when it has an answer. Anything that throws still gets a sentence back.
+   */
   private async onCommand(i: ChatInputCommandInteraction) {
+    await i.deferReply({ ephemeral: i.commandName !== 'ask' }).catch(() => undefined);
+    try {
+      await this.handle(i);
+    } catch (e: any) {
+      this.log.error(`/${i.commandName} failed: ${e?.message}`, e?.stack);
+      await i.editReply('Something went wrong on my side. Try again in a moment.').catch(() => undefined);
+    }
+  }
+
+  private async handle(i: ChatInputCommandInteraction) {
     if (i.commandName === 'links') {
-      await i.deferReply();
       const n = await this.postCohortLinks();
       await i.editReply(n ? `Posted ${n} links in #${COHORT}.` : `The links are already up in #${COHORT}.`);
       return;
@@ -222,23 +237,22 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
       const code = i.options.getString('code', true).trim().toUpperCase();
       const applicantId = await this.q.redis.get(`discord:link:${code}`);
       if (!applicantId) {
-        await i.reply({ content: 'That code has expired. Open Educaro and tap "Connect Discord" for a new one.', ephemeral: true });
+        await i.editReply('That code has expired, or it was already used. Open Educaro and tap "Connect Discord" for a new one.');
         return;
       }
       const a = await db.query.applicants.findFirst({ where: eq(schema.applicants.id, applicantId) });
       if (a?.userId) await db.update(schema.users).set({ discordUserId: i.user.id }).where(eq(schema.users.id, a.userId));
       await this.q.redis.del(`discord:link:${code}`);
       await this.trace.record('tool', 'discord_link', { discordUserId: i.user.id }, { applicantId });
-      await i.reply({ content: `Linked to ${a?.name}'s file. Try \`/next\`, or just DM me a question.`, ephemeral: true });
+      await i.editReply(`Linked to ${a?.name}'s file. Try \`/next\`, or just DM me a question.`);
       return;
     }
 
     const a = await this.applicantFor(i.user.id);
     if (!a) {
-      await i.reply({ content: 'I do not know whose file this is yet. Open Educaro, tap "Connect Discord" and run `/link <code>`.', ephemeral: true });
+      await i.editReply('I do not know whose file this is yet. Open Educaro, tap "Connect Discord" and run `/link <code>`.');
       return;
     }
-    await i.deferReply({ ephemeral: i.commandName !== 'ask' });
 
     if (i.commandName === 'status') {
       const st = await this.state.load(a.id);

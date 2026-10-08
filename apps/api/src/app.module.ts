@@ -29,6 +29,7 @@ import { AgentEventsService } from './agent/events.service';
 import { ActionsService } from './agent/actions.service';
 import { AgentLoopService } from './agent/loop.service';
 import { InterviewService } from './agent/interview.service';
+import { TimersService } from './agent/timers.service';
 
 import { MailService } from './outbound/mail.service';
 import { CalendarService } from './outbound/calendar.service';
@@ -78,6 +79,7 @@ import { CallController } from './http/call.controller';
     ActionsService,
     AgentLoopService,
     InterviewService,
+    TimersService,
 
     MailService,
     CalendarService,

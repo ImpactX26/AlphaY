@@ -88,3 +88,17 @@ export function daysUntil(date: string | Date | null | undefined): number | null
   if (Number.isNaN(d.getTime())) return null;
   return Math.ceil((d.getTime() - Date.now()) / 86_400_000);
 }
+
+/**
+ * Lowercases a title for use mid-sentence without destroying the terms inside it.
+ *
+ * Plain `.toLowerCase()` turned "German B1 needed, then B2" into "german b1 needed, then b2", which
+ * reads as a typo in the one message an applicant is most likely to forward to someone. Only the
+ * first word is touched, and only when it is not already a term that has to keep its case.
+ */
+const KEEP_CASE = /^(German|English|APS|IELTS|TOEFL|CGPA|B\.?Sc|B\.?Tech|GNM|Anerkennung|Ausbildung|Chancenkarte|ÖSD|TestDaF|telc|Goethe|Lebenslauf|EU|NRW)\b/;
+export function midSentence(title: string): string {
+  if (!title) return title;
+  if (KEEP_CASE.test(title)) return title;
+  return title.charAt(0).toLowerCase() + title.slice(1);
+}
