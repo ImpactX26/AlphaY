@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
+import { Gloss } from '../ui/Gloss';
 
 /**
  * The outside of a block.
@@ -62,7 +63,14 @@ export function BlockFrame({
         </div>
       ) : null}
 
-      {body ? <p className={clsx('max-w-[62ch] text-[14.5px] leading-relaxed text-muted', pad, hasHeader ? 'mt-1' : framed && 'pt-3')}>{body}</p> : null}
+      {/* The German terms in the agent's own prose explain themselves in place. The product keeps
+          the German word for a German thing on purpose — the letter from the Ausländerbehörde says
+          "Ausländerbehörde" — so the meaning has to travel with it rather than replace it. */}
+      {body ? (
+        <p className={clsx('max-w-[62ch] text-[14.5px] leading-relaxed text-muted', pad, hasHeader ? 'mt-1' : framed && 'pt-3')}>
+          <Gloss>{body}</Gloss>
+        </p>
+      ) : null}
 
       {children ? <div className={clsx(pad, hasHeader || body ? 'mt-3' : framed && 'pt-4')}>{children}</div> : null}
 

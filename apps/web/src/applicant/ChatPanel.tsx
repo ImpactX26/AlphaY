@@ -6,6 +6,7 @@ import { errorText } from '../api/client';
 import { useChat, useSendChat, useSendVoiceNote } from '../api/queries';
 import { formatDuration, formatTime } from '../lib/format';
 import { useAgentActivity } from '../realtime/agentStatus';
+import { Gloss } from '../ui/Gloss';
 import { Button, IconButton } from '../ui/Button';
 import { Avatar, Skeleton } from '../ui/misc';
 import { Spinner } from '../ui/Spinner';
@@ -34,7 +35,9 @@ function Bubble({ message }: { message: ChatMessageDTO }) {
         >
           {message.channel === 'discord' && !system ? <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-outside">On Discord</span> : null}
           {message.channel === 'email' && !system ? <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-outside">By email</span> : null}
-          <span className="whitespace-pre-wrap">{message.text}</span>
+          <span className="whitespace-pre-wrap">
+            <Gloss>{message.text}</Gloss>
+          </span>
         </div>
         <p className="mt-0.5 px-1 text-[11.5px] text-muted">
           <span className="sr-only">{AUTHOR_LABEL[message.author]}, </span>
