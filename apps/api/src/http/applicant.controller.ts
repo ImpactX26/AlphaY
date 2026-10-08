@@ -277,7 +277,11 @@ export class ApplicantController {
     const rel = await this.storage.save(id, file.originalname || 'voice.webm', file.buffer);
     const tr = await this.media.transcribe(this.storage.abs(rel));
     await this.trace.record('tool', 'transcribe_media', { kind: 'voice-note', provider: tr.provider, chars: tr.text.length }, { applicantId: id });
-    return toChatDTO(await this.chat.applicantSays(id, tr.text || '(voice note could not be transcribed)', 'web'));
+    // A failed transcription used to be posted as the applicant's own words, so the agent read
+    // "(voice note could not be transcribed)" as something they said and planned around it. It is
+    // the system speaking, and it must not wake the agent — nothing was actually said.
+    if (!tr.text) return toChatDTO(await this.chat.system(id, 'That voice note came through as silence. Try again somewhere quieter, or type it instead.'));
+    return toChatDTO(await this.chat.applicantSays(id, tr.text, 'web'));
   }
 
   @Post('applicants/:id/route')

@@ -27,7 +27,7 @@ export const config = {
 
   localWhisperPython: env('LOCAL_WHISPER_PYTHON', path.resolve(process.cwd(), '../../tools/whisper/.venv/Scripts/python.exe')),
   localWhisperScript: path.resolve(process.cwd(), '../../tools/whisper/transcribe.py'),
-  localWhisperModel: env('LOCAL_WHISPER_MODEL', 'base.en'),
+  localWhisperModel: env('LOCAL_WHISPER_MODEL', 'small.en'),
 
   searchProvider: env('SEARCH_PROVIDER', 'duckduckgo') as 'duckduckgo' | 'tavily',
   tavilyKey: env('TAVILY_API_KEY'),
