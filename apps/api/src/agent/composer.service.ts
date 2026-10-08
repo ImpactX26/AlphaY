@@ -403,6 +403,12 @@ function scamBlock(safety: any): Block {
     signals: safety.scam.signals ?? [],
     contractFlags: safety.contractFlags ?? [],
     neverDo: safety.scam.neverDo ?? [],
+    contractKind: safety.contractKind ?? 'unknown',
+    missing: safety.missing ?? [],
+    registers: safety.scam.registers ?? [],
+    pageOpened: safety.scam.pageOpened ?? false,
+    checkedAt: safety.scam.checkedAt ?? undefined,
+    history: safety.history ?? [],
   };
 }
 

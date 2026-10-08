@@ -1,6 +1,6 @@
-import { and, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, ne } from 'drizzle-orm';
 import { db, schema } from '../../db/db';
-import { checkContract, HELP_CONTACTS, REGISTERS, scamCheck, WORK_RIGHTS } from '../../knowledge/safety';
+import { checkContract, contractKind, HELP_CONTACTS, looksLikeContract, missingFromContract, REGISTERS, scamCheck, WORK_RIGHTS } from '../../knowledge/safety';
 import { realityFor } from '../../knowledge/reality';
 import { monthLabel, parseMonth } from '../../knowledge/normalize';
 import { bestFact } from '../state.service';
@@ -22,10 +22,10 @@ export async function safetySpecialist(kit: Kit): Promise<SpecialistResult> {
   const target = st.shortlist[0];
   const lastInbound = st.approvals.find((a) => a.kind === 'email');
   const subjectName = target?.title ?? (lastInbound?.payload as any)?.to ?? 'your current target';
-  const kind: Parameters<typeof scamCheck>[0]['kind'] = target?.kind === 'opening' ? 'employer' : target ? 'university' : 'agent';
+  const subjectKind: Parameters<typeof scamCheck>[0]['kind'] = target?.kind === 'opening' ? 'employer' : target ? 'university' : 'agent';
 
   const check = scamCheck({
-    kind,
+    kind: subjectKind,
     name: subjectName,
     url: target?.url ?? null,
     email: (lastInbound?.payload as any)?.to ?? null,
@@ -35,22 +35,35 @@ export async function safetySpecialist(kit: Kit): Promise<SpecialistResult> {
     feeRequested: false,
   });
 
-  // Any contract text we hold — an offer letter the applicant uploaded, or the body of an offer.
-  const contractText = st.files
-    .filter((f) => /contract|offer|arbeitsvertrag|anstellung/i.test(f.originalName) && f.text)
-    .map((f) => f.text)
-    .join('\n')
-    .slice(0, 20_000);
-  const contractFlags = contractText ? checkContract(contractText) : [];
+  // Any contract text we hold, found by reading the file rather than by trusting its name. The
+  // filename test this replaced missed every contract photographed on a phone, which is most of
+  // them: the paper gets handed over in a meeting and leaves the room as IMG_0423.jpg.
+  const contractFile = st.files.find((f) => f.text && looksLikeContract(f.text));
+  const contractText = (contractFile?.text ?? '').slice(0, 20_000);
+  const kind = contractText ? contractKind(contractText) : 'unknown';
+  const contractFlags = contractText ? checkContract(contractText, kind) : [];
+  const missing = contractText ? missingFromContract(contractText, kind) : [];
 
   const reality = realityFor(route);
   const group = await cohortGroup(kit);
 
+  // An illegal clause outranks a clean-looking sender. A real hospital can send a loaded contract,
+  // and "the employer checks out" is the wrong headline to put above eight void clauses.
+  const illegal = contractFlags.filter((f) => f.severity === 'illegal').length;
+  const verdict = illegal >= 3 ? 'high_risk' : illegal >= 1 && check.verdict === 'looks_legitimate' ? 'be_careful' : check.verdict;
+
+  // What they asked us to check themselves outranks what we checked on their behalf: they went
+  // looking for it, which means it is the thing they are deciding about today.
+  const asked = await latestCheck(st.applicant.id);
+
   return {
-    summary: `Safety: ${subjectName} ${check.verdict.replace(/_/g, ' ')} (${check.score}/100)${contractFlags.length ? `, ${contractFlags.length} contract flag(s)` : ''}${group ? `, ${group.members.length} going to ${group.city}` : ''}`,
+    summary: `Safety: ${asked?.subject?.name ?? subjectName} ${(asked?.verdict ?? verdict).replace(/_/g, ' ')} (${asked?.score ?? check.score}/100)${contractFlags.length ? `, ${contractFlags.length} contract flag(s)` : ''}${group ? `, ${group.members.length} going to ${group.city}` : ''}`,
     output: {
-      scam: { subject: { kind, name: subjectName }, ...check, registers: Object.values(REGISTERS) },
-      contractFlags,
+      scam: asked ?? { subject: { kind: subjectKind, name: subjectName }, ...check, verdict, registers: Object.values(REGISTERS) },
+      contractFlags: asked?.contractFlags ?? contractFlags,
+      contractKind: asked?.contractKind ?? kind,
+      missing: asked?.missing ?? missing,
+      history: await checkHistory(st.applicant.id),
       rights: WORK_RIGHTS,
       contacts: HELP_CONTACTS,
       reality,
@@ -157,4 +170,45 @@ export function financePlan(kit: Kit) {
       { label: 'Scholarships', detail: 'DAAD and university scholarships exist but are decided late. Never plan the visa around one.' },
     ],
   };
+}
+
+/**
+ * The last check this applicant ran themselves.
+ *
+ * The specialist runs its own check on whatever is top of the shortlist, which is nearly always a
+ * real university and so nearly always says "looks legitimate" — true, and useless. The moment
+ * somebody pastes a letter in and asks, that is the thing on their mind, and it is what the block
+ * should be showing them.
+ */
+async function latestCheck(applicantId: string) {
+  const [row] = await db
+    .select()
+    .from(schema.safetyChecks)
+    .where(eq(schema.safetyChecks.applicantId, applicantId))
+    .orderBy(desc(schema.safetyChecks.createdAt))
+    .limit(1);
+  if (!row) return null;
+  return {
+    subject: { kind: row.kind as 'university' | 'employer' | 'landlord' | 'agent' | 'offer', name: row.subject },
+    verdict: row.verdict as 'looks_legitimate' | 'be_careful' | 'high_risk',
+    score: row.score,
+    signals: row.signals as unknown as { label: string; status: 'good' | 'warn' | 'bad'; detail: string }[],
+    contractFlags: row.contractFlags as unknown as { clause: string; why: string; lawSays: string; severity: 'unfair' | 'illegal' | 'watch' }[],
+    contractKind: (row.contractKind ?? 'unknown') as 'work' | 'rental' | 'unknown',
+    missing: row.missing as unknown as { id: string; label: string }[],
+    neverDo: scamCheck({ kind: 'offer', name: row.subject }).neverDo,
+    registers: Object.values(REGISTERS),
+    checkedAt: row.createdAt.toISOString(),
+  };
+}
+
+/** Everything they have asked about, so the pattern is visible to them and not only to staff. */
+async function checkHistory(applicantId: string) {
+  const rows = await db
+    .select()
+    .from(schema.safetyChecks)
+    .where(eq(schema.safetyChecks.applicantId, applicantId))
+    .orderBy(desc(schema.safetyChecks.createdAt))
+    .limit(8);
+  return rows.map((r) => ({ id: r.id, kind: r.kind, subject: r.subject, verdict: r.verdict, score: r.score, createdAt: r.createdAt.toISOString() }));
 }

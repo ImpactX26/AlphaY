@@ -10,17 +10,17 @@
  * None of this is clever. It is the boring list, run before the money leaves.
  */
 
+import { checkContract, contractKind, looksLikeContract, missingFromContract, type ContractFlag, type ContractKind } from './contracts';
+
+// The contract check moved to its own file when it grew German rules: it is now the larger half of
+// the shield and has nothing to do with scoring a sender. Re-exported so call sites do not care.
+export { checkContract, contractKind, looksLikeContract, missingFromContract };
+export type { ContractFlag, ContractKind };
+
 export interface Signal {
   label: string;
   status: 'good' | 'warn' | 'bad';
   detail: string;
-}
-
-export interface ContractFlag {
-  clause: string;
-  why: string;
-  lawSays: string;
-  severity: 'unfair' | 'illegal' | 'watch';
 }
 
 /** Public registers that settle the question, rather than opinions that do not. */
@@ -163,93 +163,6 @@ export function scamCheck(input: ScamInput): { verdict: 'looks_legitimate' | 'be
       'An employer pays the recruiter. If a "job" costs you money up front, it is not a job.',
     ],
   };
-}
-
-/**
- * The clauses that turn up in contracts offered to people who cannot yet read them.
- * Each one carries what German law actually says, because "my employer wrote it" is what makes
- * people accept terms that are not enforceable in the first place.
- */
-const CLAUSE_RULES: { re: RegExp; flag: ContractFlag }[] = [
-  {
-    re: /\b(passport|reisepass)\b[^.]{0,60}\b(retain|keep|hold|deposit|surrender)\b|\b(retain|keep|hold)\b[^.]{0,40}\bpassport\b/i,
-    flag: {
-      clause: 'The employer keeps your passport',
-      why: 'Your passport is yours. An employer holding it is how people are stopped from leaving a job.',
-      lawSays: 'No German employer may hold your passport. It is your property and you can demand it back at any time; keeping it can be a criminal matter.',
-      severity: 'illegal',
-    },
-  },
-  {
-    re: /\b(repay|reimburse|refund|pay back)\b[^.]{0,80}\b(training|recruitment|relocation|visa|flight|German course)\b/i,
-    flag: {
-      clause: 'You repay training, recruitment or flight costs if you leave',
-      why: 'A repayment clause can make it impossible to leave a job that turns out to be bad.',
-      lawSays: 'Repayment clauses are only enforceable if the training genuinely benefits you elsewhere, the amount is proportionate, and the tie-in is short — courts regularly strike down clauses longer than 1–2 years or without a sliding scale.',
-      severity: 'unfair',
-    },
-  },
-  {
-    re: /\b(\d{2,3})\s*(hours?)\b[^.]{0,30}\b(per|a)\s*week\b/i,
-    flag: {
-      clause: 'Weekly hours above the legal maximum',
-      why: 'Long weeks are how a decent hourly rate becomes a bad one.',
-      lawSays: 'The Arbeitszeitgesetz caps the working day at 8 hours, extendable to 10 only if the average over 6 months stays at 8 — about 48 hours a week absolute maximum.',
-      severity: 'illegal',
-    },
-  },
-  {
-    re: /\b(no|without)\b[^.]{0,30}\b(overtime|üb erstunden|overtime pay)\b|\bovertime\b[^.]{0,40}\b(not paid|unpaid|included in)\b/i,
-    flag: {
-      clause: 'Overtime is unpaid or "included in the salary"',
-      why: 'This is the most common way a salary quietly shrinks.',
-      lawSays: 'A blanket "all overtime is covered" clause is generally invalid. For employees on ordinary pay, overtime must be paid or compensated with time off.',
-      severity: 'unfair',
-    },
-  },
-  {
-    re: /\b(probation|probezeit)\b[^.]{0,40}\b(12|twelve|9|nine|8|eight)\s*months?\b/i,
-    flag: {
-      clause: 'A probation period longer than six months',
-      why: 'During probation you can be dismissed with two weeks notice.',
-      lawSays: 'Probation (Probezeit) may not exceed six months. Beyond that, normal dismissal protection applies whatever the contract says.',
-      severity: 'illegal',
-    },
-  },
-  {
-    re: /\b(accommodation|housing|unterkunft)\b[^.]{0,60}\b(deduct|deducted|withheld|from (your )?salary)\b/i,
-    flag: {
-      clause: 'Accommodation deducted from your wages',
-      why: 'Tied housing with an unclear rent is how pay disappears and how leaving becomes impossible.',
-      lawSays: 'A deduction must be stated as a specific amount, must leave you above the attachment-free minimum, and tying it to the job does not let the employer charge above the local rent.',
-      severity: 'watch',
-    },
-  },
-  {
-    re: /\b(notice|kündigung)\b[^.]{0,60}\b(6|six|12|twelve)\s*months?\b[^.]{0,40}\b(employee|you)\b/i,
-    flag: {
-      clause: 'A much longer notice period for you than for them',
-      why: 'An asymmetric notice period means you cannot leave but they can let you go.',
-      lawSays: 'A notice period for the employee may never be longer than the one that applies to the employer.',
-      severity: 'illegal',
-    },
-  },
-  {
-    re: /\b(no|not entitled to|forfeits?)\b[^.]{0,40}\b(holiday|vacation|urlaub|leave)\b/i,
-    flag: {
-      clause: 'No, or very little, paid holiday',
-      why: 'Holiday is not a favour a German employer grants.',
-      lawSays: 'The statutory minimum is 24 working days a year on a six-day week, which is 20 days on a five-day week. It cannot be contracted away.',
-      severity: 'illegal',
-    },
-  },
-];
-
-export function checkContract(text: string): ContractFlag[] {
-  const t = (text ?? '').replace(/\s+/g, ' ');
-  const found: ContractFlag[] = [];
-  for (const rule of CLAUSE_RULES) if (rule.re.test(t)) found.push(rule.flag);
-  return found;
 }
 
 /** What applies whatever the contract says, and who to call when it is being ignored. */

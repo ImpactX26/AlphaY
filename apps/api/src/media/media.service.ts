@@ -1,14 +1,36 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
+import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import OpenAI from 'openai';
 import { config } from '../config';
 
 const run = promisify(execFile);
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ffmpegPath: string = require('ffmpeg-static');
+/**
+ * ffmpeg, from whichever of three places actually has a working binary.
+ *
+ * `ffmpeg-static` resolves a binary per platform and npm got it wrong on this machine -- the
+ * package installed with no executable in it at all. That is silent until someone records a long
+ * video: a 140 MB phone clip is over Whisper's 25 MB limit, so it has to be stripped to audio
+ * first, and with no ffmpeg the original went to the API and was refused. Check the file is there
+ * rather than trusting the resolver, and let FFMPEG_PATH override when a real one is installed.
+ */
+function resolveFfmpeg(): string {
+  const candidates: (string | undefined)[] = [process.env.FFMPEG_PATH];
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    candidates.push(require('ffmpeg-static'));
+  } catch {
+    /* not installed at all */
+  }
+  for (const c of candidates) {
+    if (c && existsSync(c)) return c;
+  }
+  return 'ffmpeg'; // on PATH, or the spawn fails and we fall back to the original file
+}
+const ffmpegPath: string = resolveFfmpeg();
 
 export interface Transcript {
   text: string;

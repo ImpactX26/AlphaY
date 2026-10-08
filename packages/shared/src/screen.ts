@@ -235,8 +235,28 @@ export interface ScamCheckBlock extends Base {
   score: number;
   signals: { label: string; status: 'good' | 'warn' | 'bad'; detail: string }[];
   /** Unfair terms found in a contract, in plain words, with what the law actually says. */
-  contractFlags: { clause: string; why: string; lawSays: string; severity: 'unfair' | 'illegal' | 'watch' }[];
+  contractFlags: {
+    clause: string;
+    why: string;
+    lawSays: string;
+    severity: 'unfair' | 'illegal' | 'watch';
+    /** The provision, so a consultant can go straight to it. */
+    cite?: string;
+    /** The sentence in their own contract that triggered this, so the finding is checkable. */
+    quote?: string;
+  }[];
   neverDo: string[];
+  /** Which kind of contract was read, when one was. */
+  contractKind?: 'work' | 'rental' | 'unknown';
+  /** Clauses a fair contract has and this one does not. Silence about hours is its own warning. */
+  missing?: { id: string; label: string }[];
+  /** The public registers that settle the question, rather than opinions that do not. */
+  registers?: { label: string; url: string }[];
+  /** Did the agent actually open their page during this check? */
+  pageOpened?: boolean;
+  checkedAt?: string;
+  /** Everything else they have asked us to check, so a pattern is visible to them too. */
+  history?: { id: string; kind: string; subject: string; verdict: string; score: number; createdAt: string }[];
 }
 
 /** Money over time, not money this month: what they need, when, and what is still missing. */

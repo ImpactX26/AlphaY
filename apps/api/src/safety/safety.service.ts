@@ -5,7 +5,7 @@ import { WebService } from '../web/web.service';
 import { TraceService } from '../trace/trace.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { ChatService } from '../profile/chat.service';
-import { checkContract, REGISTERS, scamCheck, type ScamInput } from '../knowledge/safety';
+import { checkContract, contractKind, missingFromContract, REGISTERS, scamCheck, type ScamInput } from '../knowledge/safety';
 
 export interface CheckRequest {
   kind: ScamInput['kind'];
@@ -65,8 +65,11 @@ export class SafetyService {
       feeRequested: /\b(registration fee|processing fee|placement fee|security deposit|advance payment)\b/i.test(haystack),
     });
 
-    // The contract check reads what they were sent, not the website.
-    const contractFlags = req.text ? checkContract(req.text) : [];
+    // The contract check reads what they were sent, not the website. A company's own careers page
+    // is not a contract, and running the clause rules over it would invent findings.
+    const kind = req.text ? contractKind(req.text) : 'unknown';
+    const contractFlags = req.text ? checkContract(req.text, kind) : [];
+    const missing = req.text ? missingFromContract(req.text, kind) : [];
 
     const [row] = await db
       .insert(schema.safetyChecks)
@@ -79,30 +82,41 @@ export class SafetyService {
         score: result.score,
         signals: result.signals as unknown as Record<string, unknown>[],
         contractFlags: contractFlags as unknown as Record<string, unknown>[],
+        contractKind: kind,
+        missing: missing as unknown as Record<string, unknown>[],
+        excerpt: req.text ? req.text.slice(0, 2_000) : null,
       })
       .returning();
 
+    // An illegal clause outranks a clean-looking sender. A real hospital can send a loaded contract,
+    // and "the employer checks out" is exactly the wrong headline to put above eight void clauses.
+    const illegal = contractFlags.filter((f) => f.severity === 'illegal').length;
+    const verdict: typeof result.verdict = illegal >= 3 ? 'high_risk' : illegal >= 1 && result.verdict === 'looks_legitimate' ? 'be_careful' : result.verdict;
+
     await this.trace.record('guard', 'safety_check', { kind: req.kind, verdict: result.verdict, score: result.score, flags: contractFlags.length }, ctx);
 
-    if (applicantId && (result.verdict === 'high_risk' || contractFlags.some((f) => f.severity === 'illegal'))) {
+    if (applicantId && (verdict === 'high_risk' || illegal > 0)) {
       await this.chat.agentSays(
         applicantId,
         result.verdict === 'high_risk'
           ? `I would not send anything to ${row.subject} yet. ${result.signals.find((s) => s.status === 'bad')?.detail ?? ''} Let's go through it with a consultant before any money or documents leave.`
-          : `I read that contract. ${contractFlags.filter((f) => f.severity === 'illegal').length} clause(s) in it are not enforceable in Germany, whatever it says — the details are on your screen. Do not sign it today.`,
+          : `I read that contract. ${illegal} clause${illegal === 1 ? '' : 's'} in it ${illegal === 1 ? 'is' : 'are'} not enforceable in Germany, whatever it says — the details are on your screen, each with the law behind it. Please do not sign it today.`,
       );
     }
 
     return {
       id: row.id,
       subject: { kind: req.kind, name: row.subject },
-      verdict: result.verdict,
+      verdict,
       score: result.score,
       signals: result.signals,
       contractFlags,
+      contractKind: kind,
+      missing,
       neverDo: result.neverDo,
       registers: Object.values(REGISTERS),
       pageOpened,
+      checkedAt: row.createdAt.toISOString(),
     };
   }
 

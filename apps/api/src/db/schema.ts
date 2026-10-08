@@ -397,5 +397,11 @@ export const safetyChecks = pgTable('safety_checks', {
   score: integer('score').notNull(),
   signals: jsonb('signals').$type<Record<string, unknown>[]>().notNull().default([]),
   contractFlags: jsonb('contract_flags').$type<Record<string, unknown>[]>().notNull().default([]),
+  /** 'work' or 'rental' when a contract was read, so the clause rules can be scoped to it. */
+  contractKind: text('contract_kind'),
+  /** Clauses a fair contract of this kind has and this one did not. */
+  missing: jsonb('missing').$type<Record<string, unknown>[]>().notNull().default([]),
+  /** The opening of what they pasted. Staff see the same fake letter arrive in six inboxes. */
+  excerpt: text('excerpt'),
   createdAt: createdAt(),
 });
