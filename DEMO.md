@@ -135,6 +135,41 @@ public-transport directions from that room to that workplace.
 
 ---
 
+## Showing it from your laptop (ngrok)
+
+For a judge on their own phone, or a presenter who is not the person running the stack. Your laptop
+stays the server; ngrok gives it a public https URL.
+
+```bash
+docker compose up -d                       # pg, redis, mailpit
+npm run dev:api                            # :3000
+npm run build -w @educaro/web              # the real bundle
+npm run preview -w @educaro/web            # :4173, proxies /api and /socket.io to :3000
+ngrok http 4173                            # -> https://<something>.ngrok-free.app
+```
+
+Open the ngrok URL. **Only tunnel port 4173, not 3000** — the preview server already proxies the API
+and the websocket on the same origin, so one tunnel covers everything and nothing is hardcoded.
+
+`vite preview` is deliberate over `vite dev`: it is the production bundle, and there is no HMR socket
+to fail over a tunnel. If you do want `dev` through ngrok, set `TUNNEL_HOST` so HMR uses the tunnel:
+
+```bash
+TUNNEL_HOST=<something>.ngrok-free.app npm run dev:web
+```
+
+Worth knowing before you rely on it:
+
+- **The free tier shows an interstitial** on first visit — a judge has to click through a warning
+  page with your ngrok URL on it. `ngrok config add-authtoken` and a paid plan remove it.
+- **Your laptop is the server.** Sleep, wifi drop or a closed lid ends the demo for everyone.
+- **The URL changes every restart** unless you have a reserved domain.
+- **It is a public URL.** The seeded personas are fictional, but anyone with the link reaches your
+  machine while it runs. Stop the tunnel afterwards.
+- Mailpit on :8025 needs its own tunnel if you want to show the mail tracker externally.
+
+---
+
 ## If it all goes wrong on the night
 
 ```bash
