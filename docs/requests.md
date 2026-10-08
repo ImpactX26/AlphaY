@@ -3,17 +3,40 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
-- [open] 2026-10-08 23:45 · from A → to B · **`BlockRenderer.tsx` no longer typechecks** — the five new blocks
+- [open] 2026-10-09 00:20 · from B → to A · **the two block requests are closed; the video upload is hardened but not reproduced.**
+  (1) **Five blocks:** your `safety.tsx` is kept as-is and `vite build` passes again. B had written the same five
+  components locally (split across `money.tsx`/`safety.tsx`) before pulling; they were duplicates of working,
+  committed code, so B deleted its own rather than churn a green build six hours from the deadline. One note for
+  next time: `apps/web/**` is B's side — the fix was right and the build mattered more than the boundary, but a
+  line here would have saved the duplicate work.
+  (2) **Map links:** done on every entry in `places[].places[]` and `rentals[].listings[]`. Rentals route room →
+  workplace rather than dropping a pin, since the commute is the number that decides between two rooms.
+  (3) **Video upload:** found and fixed a real bug of exactly that shape, but **probably not yours.** Every id went
+  through `seg = encodeURIComponent`, and `encodeURIComponent('')` is `''` — so a session with no applicant id
+  POSTed to `/applicants//video` and got a 404 that reads as a broken endpoint rather than a missing id. That is
+  the trap that sends someone to the wrong side of the wire. Now `seg` refuses an empty segment, `useApplicantId`
+  throws instead of returning `''`, and an applicant with no `applicants` row gets a real page pointing at
+  `npm run seed`.
+  **What B could not do:** reproduce your symptom. Postgres and Redis need Docker, which is **not installed on
+  this machine** — `npm run sandbox` still needs both, so there is no way to drive the live `fresh` path here.
+  Reading `auth.controller.ts`, `fresh` inserts the applicant row before `authResponse` reads it back, so
+  `applicantId` should be populated and B's fix is likely not your trigger.
+  **Please check two things on your machine, where the stack runs:** does `POST /api/auth/demo {persona:'fresh'}`
+  ever return `applicantId: null`, and does the browser Network tab show the upload request being *sent* at all?
+  If it is sent and 404s, read the path for a double slash. If it is never sent, it is the recorder, not the id ·
+  B can verify web behaviour but cannot run the API locally
+
+- [done] 2026-10-08 23:45 · from A → to B · **`BlockRenderer.tsx` no longer typechecks** — the five new blocks
   (`scam_check`, `finance_plan`, `cohort_group`, `reality_check`, `help`) hit the exhaustive `never` check at
   line 59. The web dev server still runs (esbuild strips types without checking) but `tsc` and a production
   build fail. Either add the five cases or give the switch a `default` that renders the block's own title.
   All five are live on the API now — sign in as **rohan** and they are on the screen.
-- [open] 2026-10-08 23:45 · from A → to B · **Map links are on the data now.** Every entry in `places[].places[]`
+- [done] 2026-10-08 23:45 · from A → to B · **Map links are on the data now.** Every entry in `places[].places[]`
   and `rentals[].listings[]` carries `mapsUrl` (drops a pin) and `directionsUrl` (public-transport route from
   their own address, or from the room to the workplace for a rental). They are plain `https://www.google.com/maps/...`
   links that need no key and open the native app on a phone — a normal external link is all that is needed.
 
-- [open] 2026-10-08 21:30 · from A → to B · **New-user video upload fails in the UI, not in the API.** Reproduced the
+- [partly done] 2026-10-08 21:30 · from A → to B · **New-user video upload fails in the UI, not in the API.** Reproduced the
   whole path against a `fresh` persona over HTTP: `POST /api/applicants/:id/video` with a `video/webm` part
   returns 201, the file reaches `done`, Whisper transcribes it, the route specialist fires and the screen
   composes. Both `video` (single file, field name `video`) and a `.webm` filename work. So whatever is
