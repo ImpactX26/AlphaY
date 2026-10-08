@@ -3,12 +3,12 @@
 /* Tokens are the spec's (educaro_applicant_flow_v2.html). Role colours say WHO did something:
    applicant, agent, fixed rules, staff, outside world. Never use them as decoration. */
 :root {
-  --bg: #f3f5f8;
+  --bg: #f1f2f0;
   --surface: #ffffff;
-  --surface-2: #eceff4;
-  --ink: #151a24;
-  --muted: #586174;
-  --line: #d3d9e2;
+  --surface-2: #f5f6f4;
+  --ink: #16191c;
+  --muted: #5b626a;
+  --line: #e4e6e3;
   --wire: #363f51;
   --applicant: #0c7683;
   --agent: #2f42c0;
@@ -22,19 +22,21 @@
   --f-display: 'Archivo Variable', 'Archivo', 'Arial Narrow', Arial, sans-serif;
   --f-body: 'Public Sans Variable', 'Public Sans', 'Segoe UI', Roboto, Arial, sans-serif;
   --f-mono: 'IBM Plex Mono', Consolas, 'Courier New', monospace;
-  --r: 8px;
-  --overlay-shadow: 0 18px 50px -12px rgb(21 26 36 / 0.28), 0 2px 6px rgb(21 26 36 / 0.08);
+  --r: 14px;
+  /* Panels sit ON the ground rather than being cut into it: a soft lift, no hard edge. */
+  --lift: 0 1px 2px rgb(16 20 24 / 0.04), 0 6px 16px -8px rgb(16 20 24 / 0.10);
+  --overlay-shadow: 0 18px 50px -12px rgb(16 20 24 / 0.22), 0 2px 6px rgb(16 20 24 / 0.07);
   --map-filter: none;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0e1117;
-    --surface: #161b24;
-    --surface-2: #1e2430;
-    --ink: #e6e9ef;
-    --muted: #9aa3b4;
-    --line: #2c3341;
+    --bg: #0d0f10;
+    --surface: #17191b;
+    --surface-2: #202325;
+    --ink: #e8eae8;
+    --muted: #969c9f;
+    --line: #2a2d2f;
     --wire: #8a94a7;
     --applicant: #46c1cf;
     --agent: #93a0ff;
@@ -45,18 +47,19 @@
     --ok: #52c48c;
     --warn: #e3a640;
     --bad: #f2786d;
+    --lift: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 16px -8px rgb(0 0 0 / 0.6);
     --overlay-shadow: 0 18px 50px -12px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.4);
     --map-filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88);
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-  --bg: #0e1117;
-  --surface: #161b24;
-  --surface-2: #1e2430;
-  --ink: #e6e9ef;
-  --muted: #9aa3b4;
-  --line: #2c3341;
+  --bg: #0d0f10;
+  --surface: #17191b;
+  --surface-2: #202325;
+  --ink: #e8eae8;
+  --muted: #969c9f;
+  --line: #2a2d2f;
   --wire: #8a94a7;
   --applicant: #46c1cf;
   --agent: #93a0ff;
@@ -67,6 +70,7 @@
   --ok: #52c48c;
   --warn: #e3a640;
   --bad: #f2786d;
+  --lift: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 16px -8px rgb(0 0 0 / 0.6);
   --overlay-shadow: 0 18px 50px -12px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.4);
   --map-filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88);
   color-scheme: dark;
@@ -239,6 +243,7 @@
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--r);
+    box-shadow: var(--lift);
     min-width: 0;
   }
 
@@ -249,8 +254,8 @@
     justify-content: center;
     gap: 8px;
     min-height: 40px;
-    padding: 0 15px;
-    border-radius: 6px;
+    padding: 0 17px;
+    border-radius: 999px;
     border: 1px solid transparent;
     font: 600 14px/1.1 var(--f-body);
     white-space: nowrap;
@@ -369,7 +374,7 @@
     width: 100%;
     min-height: 40px;
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: 10px;
     border: 1px solid var(--line);
     background: var(--surface);
     color: var(--ink);

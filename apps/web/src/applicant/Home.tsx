@@ -56,7 +56,7 @@ export function Home() {
     <ScreenActionsProvider value={actions}>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_352px] lg:items-start lg:gap-6">
         <div className="min-w-0">
-          {empty ? <StoryIntake headline={screen?.headline} footnote={screen?.footnote} /> : <ComposedScreen screen={screen} loading={isLoading} />}
+          {empty ? <StoryIntake headline={screen?.headline} footnote={screen?.footnote} /> : <ComposedScreen screen={screen} loading={isLoading} focus />}
         </div>
 
         {/* Desktop: chat beside the screen. Mobile: a bottom sheet. */}

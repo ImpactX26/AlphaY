@@ -38,12 +38,13 @@ export function BlockFrame({
   const hasHeader = Boolean(!bare && (kicker || title)) || Boolean(headerExtra);
   // Framed blocks need inner padding; open ones sit directly on the page.
   const pad = framed ? 'px-4 sm:px-5' : '';
+  // A framed block is a panel on the ground, so it gets a little more room inside.
 
   return (
     <section
       className={clsx(
         'min-w-0',
-        framed && 'overflow-hidden rounded-lg border',
+        framed && 'overflow-hidden rounded-[var(--r)] border shadow-[var(--lift)]',
         tone === 'accent' && 'border-agent/40 bg-[color-mix(in_srgb,var(--agent)_4%,var(--surface))]',
         tone === 'warn' && 'border-warn/40 bg-[color-mix(in_srgb,var(--warn)_5%,var(--surface))]',
         tone === 'success' && 'border-ok/40 bg-[color-mix(in_srgb,var(--ok)_4%,var(--surface))]',

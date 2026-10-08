@@ -127,7 +127,7 @@ export default function Pipeline() {
                 }}
                 className={clsx(
                   'flex w-[252px] flex-none flex-col rounded-xl border p-2 transition-colors',
-                  overStage === stage ? 'border-agent bg-agent/5' : 'border-line bg-surface-2/40',
+                  overStage === stage ? 'border-agent bg-agent/5' : 'border-line bg-surface-2/70',
                 )}
               >
                 <h2 className="flex items-baseline justify-between gap-2 px-1.5 py-1.5">

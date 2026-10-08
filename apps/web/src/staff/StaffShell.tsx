@@ -173,7 +173,8 @@ export function StaffShell() {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-ink focus:px-3 focus:py-2 focus:text-bg">
         Skip to content
       </a>
-      <aside aria-label="Sidebar" className="sticky top-0 hidden h-dvh flex-col gap-6 border-r border-line px-3 py-4 lg:flex">
+      <aside aria-label="Sidebar" className="sticky top-0 hidden h-dvh flex-col gap-6 p-3 lg:flex">
+        <div className="flex h-full min-h-0 flex-col gap-6 rounded-[var(--r)] border border-line bg-surface px-3 py-4 shadow-[var(--lift)]">
         <div className="px-2">
           <Logo to="/staff" />
           <p className="mt-1.5 pl-[36px] text-[12.5px] font-semibold text-staff">Command centre</p>
@@ -182,10 +183,11 @@ export function StaffShell() {
         <div className="mt-auto space-y-4 px-2">
           <LlmBudget />
         </div>
+        </div>
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur-md">
+        <header className="sticky top-0 z-30 bg-bg/85 backdrop-blur-md">
           <div className="flex h-14 items-center gap-2 px-4 sm:px-6">
             <button type="button" className="icon-btn -ml-2 lg:hidden" aria-label="Open navigation" onClick={() => setNavOpen(true)}>
               <MenuIcon size={20} aria-hidden />

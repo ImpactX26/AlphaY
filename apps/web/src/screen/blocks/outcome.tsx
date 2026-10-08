@@ -168,7 +168,8 @@ export function LettersCard({ block }: { block: LettersBlock }) {
           const pending = draft.status === 'pending';
           return (
             <li key={draft.approvalId} className="flex flex-wrap items-center justify-between gap-2.5 rounded-lg border border-line bg-surface px-3.5 py-3">
-              <span className="min-w-0 flex-1">
+              {/* Basis 100% so a long subject takes its own row instead of colliding with the tag. */}
+              <span className="min-w-0 flex-1 basis-full sm:basis-0">
                 <span className="block text-[14px] font-semibold leading-snug">{draft.title}</span>
                 <span className="block truncate font-mono text-[12px] text-muted">To: {draft.to}</span>
               </span>

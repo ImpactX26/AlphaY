@@ -17,7 +17,7 @@ export interface ScreenActions {
 
 const noop = () => {};
 
-const FALLBACK: ScreenActions = {
+export const READ_ONLY: ScreenActions = {
   applicantId: '',
   readOnly: true,
   answerQuestion: noop,
@@ -30,7 +30,7 @@ const FALLBACK: ScreenActions = {
   setRoute: noop,
 };
 
-const ScreenContext = createContext<ScreenActions>(FALLBACK);
+const ScreenContext = createContext<ScreenActions>(READ_ONLY);
 
 export function ScreenActionsProvider({ value, children }: { value: ScreenActions; children: ReactNode }) {
   return <ScreenContext value={value}>{children}</ScreenContext>;
@@ -42,7 +42,7 @@ export function useScreenActions(): ScreenActions {
 
 /** Read-only screens (the staff view) keep every block but disable its controls. */
 export function useReadOnlyActions(applicantId: string): ScreenActions {
-  return useMemo(() => ({ ...FALLBACK, applicantId }), [applicantId]);
+  return useMemo(() => ({ ...READ_ONLY, applicantId }), [applicantId]);
 }
 
 /** Runs a `BlockAction` the agent put on a block. */

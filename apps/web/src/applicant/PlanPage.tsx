@@ -8,6 +8,7 @@ import { formatDate } from '../lib/format';
 import { OUTCOME } from '../lib/tags';
 import { BudgetCard, ServicesCard, TimelineCard } from '../screen/blocks/outcome';
 import { GapPlanCard } from '../screen/blocks/plan';
+import { BlocksOfType } from '../screen/ComposedScreen';
 import { ScreenActionsProvider, useReadOnlyActions } from '../screen/context';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
@@ -133,6 +134,8 @@ export default function PlanPage() {
           </EmptyState>
         ) : null}
 
+        <BlocksOfType screen={screen} types={['places', 'rentals', 'arrival']} className="mb-10" />
+
         {services.length ? (
           <section className="mb-10">
             <SectionTitle>Next step inside Educaro</SectionTitle>
@@ -143,6 +146,8 @@ export default function PlanPage() {
             </div>
           </section>
         ) : null}
+
+        <BlocksOfType screen={screen} types={['route', 'cohort']} className="mb-10" />
 
         {timelines.length ? (
           <section className="mb-10">

@@ -1,16 +1,18 @@
 import type { EmailDTO } from '@educaro/shared';
 import clsx from 'clsx';
 import { CalendarPlus, Inbox, Mail, MailCheck, MessageCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { api, errorText, links } from '../api/client';
-import { useApplicant, useApprovals, useCalendar, useEmails } from '../api/queries';
+import { useApplicant, useApprovals, useCalendar, useEmails, useScreen } from '../api/queries';
 import { useApplicantId } from '../auth/auth';
 import { formatDate, formatDateTime, formatTime, relativeTime } from '../lib/format';
 import { approvalStatus } from '../lib/tags';
 import { Button } from '../ui/Button';
 import { EmptyState, PageHeader, SectionTitle, Skeleton } from '../ui/misc';
 import { Tag } from '../ui/Tag';
+import { BlocksOfType } from '../screen/ComposedScreen';
+import { READ_ONLY, ScreenActionsProvider } from '../screen/context';
 import { toast } from '../ui/Toast';
 
 const REPLY_LABEL: Record<NonNullable<EmailDTO['classified']>['kind'], { label: string; cls: string }> = {
@@ -24,6 +26,9 @@ const EVENT_TONE = { deadline: 'border-bad', exam: 'border-agent', task: 'border
 
 export default function InboxPage() {
   const applicantId = useApplicantId();
+  const { data: screen } = useScreen(applicantId);
+  // The composer posts for real here; everything else on this page is read-only.
+  const actions = useInboxActions(applicantId);
   const { data: emails, isLoading: emailsLoading } = useEmails(applicantId);
   const { data: calendar } = useCalendar(applicantId);
   const { data: approvals } = useApprovals(applicantId);
@@ -141,6 +146,11 @@ export default function InboxPage() {
         )}
       </section>
 
+      {/* The cohort thread and the Discord link are the same conversation, so they sit together. */}
+      <ScreenActionsProvider value={actions}>
+        <BlocksOfType screen={screen} types={['community']} className="mb-6" />
+      </ScreenActionsProvider>
+
       <section className="card flex flex-wrap items-center justify-between gap-3 px-4 py-4">
         <div className="min-w-0">
           <h2 className="display flex items-center gap-2 text-[15px] font-bold">
@@ -192,4 +202,9 @@ function DiscordLinkButton({ applicantId }: { applicantId: string }) {
       Get my link code
     </Button>
   );
+}
+
+/** The cohort composer needs a live applicantId; the rest of the block's actions are unused here. */
+function useInboxActions(applicantId: string) {
+  return useMemo(() => ({ ...READ_ONLY, applicantId, readOnly: false }), [applicantId]);
 }
