@@ -3,14 +3,14 @@
 > Live board. Open it in VS Code and press **Ctrl+Shift+V** for a preview that refreshes on every save.
 > Both builders update their own section at every checkpoint. Legend: ✅ done · 🔨 in progress · ⏳ next · ⛔ blocked
 
-**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 12:16 IST
+**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 16:40 IST
 
 ## Checkpoints
 
 | When (IST) | Checkpoint | Status |
 |---|---|---|
 | 12:15 | Repo, infra (pgvector, Redis, Mailpit), shared contract, Claude B kickoff | ✅ |
-| 17:30 | **H6**: API spine (upload → truth map → agent loop → screen); web applicant flow in mock mode | 🔨 |
+| 17:30 | **H6**: API spine (upload → truth map → agent loop → screen); web applicant flow in mock mode | 🔨 web ✅ |
 | 21:30 | **H10**: web ↔ API integrated; shortlist + matrix; gap plans to Educaro services | ⏳ |
 | 01:30 | **H14**: the full demo script runs end to end (letter → approve → send → reply → calendar) | ⏳ |
 | 05:30 | **H18**: wow features (Discord, copilot, employer matching, Germany mode) | ⏳ |
@@ -52,18 +52,31 @@
 
 ## Claude B: frontend (`apps/web`)
 
-- ⏳ Shell, routing, auth + demo logins, mock layer, socket hook, design tokens
-- ⏳ Block renderer (all 18 block types)
-- ⏳ Story: record/upload video + document drop with live status
-- ⏳ Composed screen + chat + question cards (live)
-- ⏳ Shortlist + requirement matrix
-- ⏳ Outcome, services, gap plans, final pack, submit
-- ⏳ Letter review + approve
-- ⏳ Staff: pipeline board, applicant detail + trace, approval queue
-- ⏳ Staff: Mail tracker page (Mailpit embed + API list)
-- ⏳ Emails + calendar
-- ⏳ Copilot, employer matching, Germany mode + map, batch planner, broadcasts, interview coach
+- ✅ Shell, routing, auth + demo logins, mock layer, socket hook, design tokens
+- ✅ Block renderer (all 18 block types)
+- ✅ Story: record/upload video + document drop with live status
+- ✅ Composed screen + chat + question cards (live)
+- ✅ Shortlist + requirement matrix
+- ✅ Outcome, services, gap plans, final pack, submit
+- ✅ Letter review + approve
+- ✅ Staff: pipeline board, applicant detail + trace, approval queue
+- ✅ Staff: Mail tracker page (Mailpit embed + API list)
+- ✅ Emails + calendar
+- ✅ Copilot, employer matching, Germany mode + map, batch planner, broadcasts, interview coach
+- ⏳ Swap mock mode for the real API as endpoints land (`npm run dev:web` already proxies to :3000)
+- ⏳ Polish: motion, empty states, a11y pass
+
+**Run the web app on its own, with no backend:**
+```bash
+npm install && npm run build:shared
+echo VITE_MOCK=1 > apps/web/.env.local   # demo data in the browser, no server
+npm run dev:web                          # http://localhost:5173
+```
+Mock mode can also be toggled from the sign-in page, so one build demos either way.
 
 ## Log
 
 - 12:16 · A · Scaffold pushed. Frontend agent (Claude B) launched in this workspace.
+- 16:40 · B · Whole frontend runs end to end in mock mode: both personas, all 18 blocks, letter
+  review, the staff command centre, employer matching and Germany mode with the OSM map. Driven in
+  a real browser with zero console errors; 375px clean. Waiting on API endpoints to integrate.
