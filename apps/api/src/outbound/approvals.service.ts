@@ -8,6 +8,7 @@ import { StateService } from '../agent/state.service';
 import { toFactDTO } from '../profile/facts.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { StorageService } from '../storage/storage.service';
+import { ChatService } from '../profile/chat.service';
 import { TraceService } from '../trace/trace.service';
 import type { AuthUser } from '../auth/jwt';
 import { MailService } from './mail.service';
@@ -40,6 +41,7 @@ export class ApprovalsService {
     private readonly events: AgentEventsService,
     private readonly trace: TraceService,
     private readonly rt: RealtimeGateway,
+    private readonly chat: ChatService,
   ) {}
 
   list(applicantId: string) {
@@ -112,6 +114,33 @@ export class ApprovalsService {
         text: p.body,
         attachments,
       });
+      status = 'sent';
+    } else if (a.kind === 'email' && p.mode === 'portal') {
+      // A university is applied to through a portal, not by email, so there is no recipient to
+      // send to — and approving used to leave the applicant on a screen where nothing happened.
+      // The pack goes to them instead, ready to upload, with the portal link and the deadline.
+      const st = await this.state.load(a.applicantId);
+      const attachments: { filename: string; content: Buffer }[] = [{ filename: 'Lebenslauf.pdf', content: await this.pack.lebenslaufPdf(st) }];
+      for (const att of (p.attachments ?? []) as { name: string; fileId?: string }[]) {
+        if (!att.fileId) continue;
+        const f = st.files.find((x) => x.id === att.fileId);
+        if (f) attachments.push({ filename: f.originalName, content: await this.storage.read(f.storagePath) });
+      }
+      const where = p.targetUrl ? `\n\nUpload it here: ${p.targetUrl}` : '';
+      await this.mail.send({
+        applicantId: a.applicantId,
+        approvalId: a.id,
+        kind: 'application',
+        to: [st.applicant.email ?? ''].filter(Boolean),
+        replyTo: p.replyTo,
+        subject: `Ready to submit: ${p.subject}`,
+        text: `This application is approved and ready. It goes through the portal rather than by email, so everything you need is attached.${where}\n\n---\n\n${p.body}`,
+        attachments,
+      });
+      await this.chat.agentSays(
+        a.applicantId,
+        `Your application for ${p.subject.replace(/^Application for /, '')} is ready. It is a portal application, so I have emailed you the letter and every document as one pack — upload it and you are done.`,
+      );
       status = 'sent';
     } else if (a.kind === 'employer_profile' && p.to) {
       await this.mail.send({ applicantId: a.applicantId, approvalId: a.id, kind: 'employer_profile', to: [p.to], subject: p.subject, text: p.body });
