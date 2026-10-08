@@ -240,6 +240,8 @@ export class ComposerService {
 
     // ---------- the cohort thread ----------
     if (state.community.length) blocks.push(communityBlock(state));
+    // "People like you": how long each step took the people ahead of them on this route.
+    if (state.cohort) blocks.push(cohortBlock(state.cohort));
 
     // ---------- services ----------
     if (route) blocks.push({ id: 'services', type: 'services', services: servicesForRoute(route, state.applicant.id) });
@@ -340,6 +342,25 @@ function rentalsBlock(housing: any): Block {
 
 
 /** The cohort thread, newest first, with replies counted rather than inlined. */
+
+/**
+ * How long each step took the people ahead of them.
+ *
+ * `basis` is on the block, not hidden in a tooltip, because it is the difference between evidence
+ * and an anecdote: three files is not a trend and the person reading has to be able to see that for
+ * themselves.
+ */
+function cohortBlock(c: NonNullable<ApplicantState['cohort']>): Block {
+  return {
+    id: 'cohort',
+    type: 'cohort',
+    route: c.route,
+    basis: c.basis,
+    steps: c.steps,
+    peers: c.peers,
+  };
+}
+
 function communityBlock(state: ApplicantState): Block {
   const roots = state.community.filter((p) => !p.parentId).slice(0, 6);
   return {

@@ -43,7 +43,9 @@ export async function cohortFor(applicantId: string): Promise<CohortDTO> {
   const all = await db.select().from(schema.applicants);
 
   // Peers: same route, not this person, and far enough along to have taken any time at all.
-  const peers = all.filter((a) => a.id !== applicantId && (!route || a.route === route) && rank(a.stage) >= rank('reading'));
+  // Not themselves, and not another file with their own name — every "start from nothing" demo
+  // leaves one behind, and seeing yourself listed as a peer makes the whole block look made up.
+  const peers = all.filter((a) => a.id !== applicantId && a.name !== me?.name && (!route || a.route === route) && rank(a.stage) >= rank('profiling'));
   const basis = peers.length;
   const myRank = rank(me?.stage ?? 'new_story');
 
@@ -71,11 +73,22 @@ export async function cohortFor(applicantId: string): Promise<CohortDTO> {
     route: route ?? 'not decided',
     basis,
     steps,
-    peers: peers.slice(0, 5).map((p) => ({
+    peers: dedupe(peers).slice(0, 5).map((p) => ({
       // First name and initial only. A cohort list that leaks who is going where is worse than none.
       label: `${p.name.split(' ')[0]} ${p.name.split(' ')[1]?.[0] ?? ''}.`.trim(),
       headline: [p.subtitle, p.homeCity && `from ${p.homeCity}`].filter(Boolean).join(' · ') || 'on the same route',
       nowAt: PIPELINE_LABEL[p.stage as PipelineStage] ?? p.stage,
     })),
   };
+}
+
+/** One row per person. Two "Ananya N."s in a list of five reads as a bug, because it is one. */
+function dedupe<T extends { name: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    const key = r.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

@@ -313,6 +313,15 @@ async function main() {
   check('the agent answers the cohort, not just the asker', Boolean(thread), thread?.replies?.[0]?.text?.slice(0, 70));
   check('posts are first names only', !/\s[A-Z][a-z]+\s[A-Z][a-z]+/.test(posted.body?.author ?? ''), posted.body?.author);
 
+  const feed = (await api('/community/announcements?limit=20', { token: aT })).body ?? [];
+  check('the announcements feed has something in it', feed.length > 0, `${feed.length} posts`);
+  check('announcements are one item each, not a wall of links', feed.every((p) => (p.text.match(/https?:\/\//g) ?? []).length <= 1));
+
+  const aBlocks = await blocksOf(A, aT);
+  const cohortBlock = block(aBlocks, 'cohort');
+  check('the cohort timings reach the screen, not just an endpoint', Boolean(cohortBlock?.steps?.length), `basis ${cohortBlock?.basis}`);
+  check('nobody is listed as their own peer', !(cohortBlock?.peers ?? []).some((p) => p.label.startsWith('Ananya')), (cohortBlock?.peers ?? []).map((p) => p.label).join(', '));
+
   const cohort = (await api(`/applicants/${R}/cohort`, { token: rT })).body;
   check('peers and their timings are returned', Array.isArray(cohort?.steps) && cohort.steps.length > 0, `basis ${cohort?.basis}`);
   check('a future step is not called "behind"', (cohort?.steps ?? []).every((st) => st.youAre !== 'behind' || st.medianWeeks > 0));
