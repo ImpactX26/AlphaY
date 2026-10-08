@@ -8,3 +8,4 @@ WhisperFlow/
 .venv/
 __pycache__/
 *.tsbuildinfo
+docker-compose.override.yml

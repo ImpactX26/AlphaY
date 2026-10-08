@@ -213,6 +213,9 @@ export interface InterviewDTO {
 // POST /api/staff/broadcasts                  { topic }          -> BroadcastDTO (draft, one message per person)
 // POST /api/staff/broadcasts/:id/approve      -> BroadcastDTO
 // GET  /api/staff/trace?applicantId=&limit=   -> TraceDTO[]
+// GET  /api/staff/mail-tracker?applicantId=&limit= -> MailTrackerItemDTO[]  (every mail sent or received, mirrored into Mailpit)
+// GET  /api/staff/mail-tracker/:mailpitId     -> MailTrackerDetailDTO
+//      The full Mailpit UI is at SystemStatusDTO.mailpitUrl (embed it in an iframe on the staff "Mail tracker" page).
 // GET  /api/staff/stats                       -> StatsDTO
 // POST /api/staff/simulate-reply              { applicantId, kind: 'interview'|'missing_paper'|'rejection' } -> { ok: true } (demo helper)
 // GET  /api/system/status                     -> SystemStatusDTO (no auth)
@@ -302,6 +305,27 @@ export interface BroadcastDTO {
   status: 'draft' | 'approved' | 'sent';
   messages: { applicantId: string; name: string; text: string }[];
   createdAt: string;
+}
+
+/** One row in the mail tracker. `originalTo` differs from `to` when safe mode redirected a third-party recipient. */
+export interface MailTrackerItemDTO {
+  mailpitId: string;
+  direction: 'out' | 'in';
+  from: string;
+  to: string[];
+  originalTo: string[];
+  subject: string;
+  snippet: string;
+  applicantId: string | null;
+  applicantName: string | null;
+  kind: string | null; // e.g. application, notification, digest, invite, reply
+  safeRedirected: boolean;
+  createdAt: string;
+}
+export interface MailTrackerDetailDTO extends MailTrackerItemDTO {
+  text: string;
+  html: string | null;
+  attachments: { name: string; size: number }[];
 }
 
 export interface StatsDTO {
