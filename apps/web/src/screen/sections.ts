@@ -1,4 +1,5 @@
 import type { ScreenSection, SectionId } from '@educaro/shared';
+import { SECTION_LABEL } from '@educaro/shared';
 
 /**
  * Where each of the API's sections lives in the router.
@@ -28,6 +29,15 @@ export const sectionPath = (id: SectionId): string => PATHS[id] ?? '/app';
 const NAV_SECTIONS: SectionId[] = ['plan', 'money', 'life', 'safety', 'inbox'];
 
 /**
+ * Inbox is always in the nav, blocks or not.
+ *
+ * Every other section is exactly its blocks, so hiding an empty one hides nothing. Inbox is not:
+ * the page also shows mail, the calendar and pending approvals, none of which are blocks. Rohan
+ * has no `letters` block and a full mailbox, so a nav driven purely off blocks lost his mail.
+ */
+const ALWAYS: SectionId[] = ['inbox'];
+
+/**
  * Nav entries from the screen, in the order the API sent them.
  *
  * Only sections that actually hold blocks are returned, so an applicant who has no money plan yet
@@ -46,5 +56,10 @@ export function navSections(sections: ScreenSection[] | undefined): { id: Sectio
     if (existing) existing.needsAttention = existing.needsAttention || s.needsAttention;
     else byPath.set(to, { id, label: id === 'inbox' ? 'Inbox' : s.label, to, needsAttention: s.needsAttention });
   }
-  return [...byPath.values()];
+  for (const id of ALWAYS) {
+    const to = sectionPath(id);
+    if (!byPath.has(to)) byPath.set(to, { id, label: SECTION_LABEL[id], to, needsAttention: false });
+  }
+  // NAV_SECTIONS order, so a section added by `ALWAYS` does not land at the end.
+  return [...byPath.values()].sort((a, b) => NAV_SECTIONS.indexOf(a.id) - NAV_SECTIONS.indexOf(b.id));
 }
