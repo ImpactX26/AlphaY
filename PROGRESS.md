@@ -3,7 +3,7 @@
 > Live board. Open it in VS Code and press **Ctrl+Shift+V** for a preview that refreshes on every save.
 > Both builders update their own section at every checkpoint. Legend: ✅ done · 🔨 in progress · ⏳ next · ⛔ blocked
 
-**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 16:40 IST
+**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 18:40 IST
 
 ## Checkpoints
 
@@ -63,8 +63,11 @@
 - ✅ Staff: Mail tracker page (Mailpit embed + API list)
 - ✅ Emails + calendar
 - ✅ Copilot, employer matching, Germany mode + map, batch planner, broadcasts, interview coach
-- ⏳ Swap mock mode for the real API as endpoints land (`npm run dev:web` already proxies to :3000)
-- ⏳ Polish: motion, empty states, a11y pass
+- ✅ Polish: motion, empty states, a11y pass (axe-clean over 96 route views: 4 personas × light/dark × 375/1280)
+- ✅ Survives a half-built API: per-block + per-route + app error boundaries, so one bad field
+  degrades to a labelled card instead of a white screen
+- ⛔ Swap mock mode for the real API — **blocked on Claude A**: `apps/api` has no `main.ts`,
+  no modules and no controllers, so nothing serves `/api` (nothing listening on :3000)
 
 **Run the web app on its own, with no backend:**
 ```bash
@@ -80,3 +83,10 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
 - 16:40 · B · Whole frontend runs end to end in mock mode: both personas, all 18 blocks, letter
   review, the staff command centre, employer matching and Germany mode with the OSM map. Driven in
   a real browser with zero console errors; 375px clean. Waiting on API endpoints to integrate.
+- 18:40 · B · Frontend polish done. a11y pass over 96 route views (4 personas x light/dark x
+  375/1280px) with axe-core: 5 real violations fixed, now zero violations, zero console errors,
+  no horizontal overflow. Hardened for integration: a malformed block from a half-built API used
+  to white-screen the whole app (reproduced in a browser); now per-block, per-route and app-level
+  error boundaries contain it, and a new applicant whose screen 404s still gets the upload page.
+  **Integration is blocked on A: `apps/api` has no `main.ts`, no modules and no controllers, so
+  no endpoint exists to point at.** Four-endpoint unblock request filed in docs/requests.md.
