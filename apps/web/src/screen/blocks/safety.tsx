@@ -2,6 +2,7 @@ import type { CohortGroupBlock, HelpBlock, RealityCheckBlock, ScamCheckBlock } f
 import clsx from 'clsx';
 import { AlertTriangle, CheckCircle2, CircleAlert, ExternalLink, Scale, ShieldCheck, Users } from 'lucide-react';
 import { BlockFrame } from '../BlockFrame';
+import { ReportButton } from '../../applicant/ReportDialog';
 
 const euro = (n: number) => `€${Math.round(n).toLocaleString('en-GB')}`;
 
@@ -265,7 +266,9 @@ export function HelpCard({ block, bare }: { block: HelpBlock; bare?: boolean }) 
         ))}
       </ul>
 
-      <p className="mt-4 rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px]">{block.reportHint}</p>
+      {/* The block's one action. It used to be this sentence and nothing else, which made the only
+          part of the page meant to be pressed into something to read. */}
+      <ReportButton hint={block.reportHint} />
 
       <ul className="mt-3 space-y-1.5">
         {block.contacts.map((c, i) => (

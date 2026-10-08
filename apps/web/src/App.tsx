@@ -32,6 +32,7 @@ const MailTrackerPage = lazy(() => import('./staff/MailTrackerPage'));
 const AuditPage = lazy(() => import('./staff/AuditPage'));
 const SourcesPage = lazy(() => import('./staff/SourcesPage'));
 const StandardsPage = lazy(() => import('./staff/StandardsPage'));
+const EmployersPage = lazy(() => import('./staff/EmployersPage'));
 
 export function App() {
   return (
@@ -93,6 +94,7 @@ export function App() {
           <Route path="mail" element={<MailTrackerPage />} />
           <Route path="sources" element={<SourcesPage />} />
           <Route path="standards" element={<StandardsPage />} />
+          <Route path="employers" element={<EmployersPage />} />
           <Route path="audit" element={<AuditPage />} />
         </Route>
 
