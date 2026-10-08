@@ -54,15 +54,15 @@ export function Home() {
 
   return (
     <ScreenActionsProvider value={actions}>
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_352px] lg:items-start lg:gap-6">
+      <div className="lg:grid lg:grid-cols-[minmax(0,68fr)_minmax(320px,32fr)] lg:items-start lg:gap-5 xl:gap-6">
         <div className="min-w-0">
           {empty ? <StoryIntake headline={screen?.headline} footnote={screen?.footnote} /> : <ComposedScreen screen={screen} loading={isLoading} focus />}
         </div>
 
         {/* Desktop: chat beside the screen. Mobile: a bottom sheet. */}
-        <aside className="sticky top-[72px] hidden h-[calc(100dvh-104px)] min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-surface lg:flex">
-          <div className="border-b border-line px-4 py-2.5">
-            <h2 className="display text-[15px] font-bold">Chat with your agent</h2>
+        <aside className="sticky top-[68px] hidden h-[calc(100dvh-96px)] min-h-0 flex-col overflow-hidden rounded-[var(--r)] border border-line bg-surface shadow-[var(--lift)] lg:flex">
+          <div className="px-4 pb-2 pt-3">
+            <h2 className="display text-[14.5px] font-bold">Chat with your agent</h2>
             <p className="text-[12.5px] text-muted">It reads your answers and updates your screen.</p>
           </div>
           <ChatPanel applicantId={applicantId} className="min-h-0 flex-1" />

@@ -46,7 +46,7 @@ export default function InboxPage() {
   const upcoming = calendar ?? [];
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-[1120px]">
       <PageHeader title="Inbox and calendar">Every mail sent for you and every reply, plus the dates the agent put in your calendar.</PageHeader>
 
       {pending.length ? (

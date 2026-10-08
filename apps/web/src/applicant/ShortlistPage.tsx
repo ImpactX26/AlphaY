@@ -56,7 +56,7 @@ export default function ShortlistPage() {
 
   return (
     <ScreenActionsProvider value={actions}>
-      <div className="max-w-4xl">
+      <div className="max-w-[1120px]">
         <PageHeader title="Shortlist and requirements">
           Shortlist a programme or an employer and the agent reads their own page, then lists every exam, paper and deadline it asks for.
         </PageHeader>

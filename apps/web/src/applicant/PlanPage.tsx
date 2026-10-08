@@ -49,7 +49,7 @@ export default function PlanPage() {
 
   return (
     <ScreenActionsProvider value={readOnly}>
-      <div className="max-w-4xl">
+      <div className="max-w-[1120px]">
         <PageHeader title="Your plan and outcome">Where you stand, what is still open, and what Educaro can do with you.</PageHeader>
 
         {/* Profile and Shortlist left the tab bar, so this is the way in to both. */}

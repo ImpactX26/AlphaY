@@ -59,7 +59,7 @@ export default function InterviewPage() {
   const suggested = applicant?.route === 'study' ? 'university' : applicant?.route === 'nursing' || applicant?.route === 'skilled_job' ? 'employer' : 'visa';
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-[980px]">
       <Link to="/app/plan" className="mb-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-muted no-underline hover:text-ink">
         <ArrowLeft size={15} aria-hidden />
         Back to your plan

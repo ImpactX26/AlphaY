@@ -37,7 +37,7 @@ export function BlockFrame({
   const framed = tone !== 'default';
   const hasHeader = Boolean(!bare && (kicker || title)) || Boolean(headerExtra);
   // Framed blocks need inner padding; open ones sit directly on the page.
-  const pad = framed ? 'px-4 sm:px-5' : '';
+  const pad = framed ? 'px-4 sm:px-[18px]' : '';
   // A framed block is a panel on the ground, so it gets a little more room inside.
 
   return (
@@ -53,7 +53,7 @@ export function BlockFrame({
       )}
     >
       {hasHeader ? (
-        <div className={clsx('flex items-baseline justify-between gap-3', pad, framed && 'pt-3.5')}>
+        <div className={clsx('flex items-baseline justify-between gap-3', pad, framed && 'pt-3')}>
           <div className="min-w-0">
             {!bare && kicker ? <h2 className="display text-[15px] font-bold leading-snug">{kicker}</h2> : null}
             {!bare && title ? <h2 className="display text-[17px] font-bold leading-snug">{title}</h2> : null}
@@ -62,11 +62,11 @@ export function BlockFrame({
         </div>
       ) : null}
 
-      {body ? <p className={clsx('max-w-[62ch] text-[14.5px] leading-relaxed text-muted', pad, hasHeader ? 'mt-1' : framed && 'pt-3.5')}>{body}</p> : null}
+      {body ? <p className={clsx('max-w-[62ch] text-[14.5px] leading-relaxed text-muted', pad, hasHeader ? 'mt-1' : framed && 'pt-3')}>{body}</p> : null}
 
       {children ? <div className={clsx(pad, hasHeader || body ? 'mt-3' : framed && 'pt-4')}>{children}</div> : null}
 
-      {framed ? <div className={clsx(footer ? 'h-0' : 'h-4')} /> : null}
+      {framed ? <div className={clsx(footer ? 'h-0' : 'h-3.5')} /> : null}
       {footer ? (
         <div className={clsx('mt-4 text-[13px] text-muted', framed ? 'border-t border-line bg-surface-2/40 px-4 py-2.5 sm:px-5' : 'pt-1')}>{footer}</div>
       ) : null}

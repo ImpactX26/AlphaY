@@ -39,7 +39,7 @@ export function ApplicantShell() {
         Skip to content
       </a>
       <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-[1460px] items-center gap-3 px-4 sm:px-6 lg:px-8">
           <Logo to="/app" />
           <nav aria-label="Main" className="ml-6 hidden items-center gap-1 lg:flex">
             {NAV.map((n) => (
@@ -112,7 +112,7 @@ export function ApplicantShell() {
         </div>
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-[1200px] px-4 pb-28 pt-5 sm:px-6 lg:pb-14 lg:pt-8">
+      <main id="main" className="mx-auto w-full max-w-[1460px] px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-14 lg:pt-7">
         <Suspense fallback={<FullPageSpinner label="Loading" />}>
           <RouteBoundary>
             <Outlet />

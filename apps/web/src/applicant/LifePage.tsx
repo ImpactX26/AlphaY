@@ -32,7 +32,7 @@ export default function LifePage() {
   const active = available.includes(tab) ? tab : available[0];
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-[980px]">
       <PageHeader title="Your life there">Where you could live, what a month costs, and what happens in your first weeks.</PageHeader>
 
       {available.length ? (

@@ -151,11 +151,11 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
   return (
     <div className={clsx('min-w-0', className)}>
       {/* The agent's own words: the big line at the top. */}
-      <h1 className="headline max-w-[34ch]">{screen.headline}</h1>
+      <h1 className="headline max-w-[46ch]">{screen.headline}</h1>
 
       {shown.length ? (
         // Open sections are told apart by space, so the gap does the work a border used to.
-        <div className="mt-7 space-y-7">
+        <div className="mt-6 space-y-5">
           {shown.map((block, i) => (
             <div
               key={block.id}
@@ -193,7 +193,7 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
 
 
       {movedOut.length ? (
-        <nav aria-label="The rest of your plan" className="mt-7 flex flex-wrap gap-2">
+        <nav aria-label="The rest of your plan" className="mt-6 flex flex-wrap gap-2">
           {movedOut.map((m) => (
             <Link
               key={m.to}
@@ -223,7 +223,7 @@ export function BlocksOfType({ screen, types, className }: { screen: Screen | un
   const blocks = types.flatMap((t) => all.filter((b) => b.type === t));
   if (!blocks.length) return null;
   return (
-    <div className={clsx('space-y-7', className)}>
+    <div className={clsx('space-y-5', className)}>
       {blocks.map((b) => (
         <ErrorBoundary key={b.id} label={blockLabel(b.type)}>
           <BlockRenderer block={b} />
