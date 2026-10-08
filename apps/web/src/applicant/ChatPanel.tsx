@@ -122,7 +122,7 @@ export function ChatPanel({ applicantId, className, autoFocus }: { applicantId: 
                 rows={1}
                 value={text}
                 autoFocus={autoFocus}
-                placeholder="Ask anything, or tell the agent something new"
+                placeholder="Ask anything"
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) submit(e);

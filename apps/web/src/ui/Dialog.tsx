@@ -41,8 +41,9 @@ export function Dialog({
       }}
       className={clsx(
         'm-0 max-h-none max-w-none border-0 bg-transparent p-0 backdrop:bg-black/45',
-        variant === 'center' && 'fixed inset-0 grid h-full w-full place-items-center px-4 py-6',
-        variant === 'sheet' && 'fixed inset-0 h-full w-full',
+        // A closed <dialog> must stay display:none, so never set a display class unless it is open.
+        open ? 'fixed inset-0 h-full w-full' : 'hidden',
+        open && variant === 'center' && 'grid place-items-center px-4 py-6',
       )}
     >
       {open ? (
