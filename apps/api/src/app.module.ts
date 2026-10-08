@@ -41,6 +41,7 @@ import { StaffController } from './http/staff.controller';
 import { StaffService } from './http/staff.service';
 import { SystemController } from './http/system.controller';
 import { MockWebController } from './mockweb/mockweb.controller';
+import { DiscordService } from './discord/discord.service';
 
 /**
  * One module. Everything is a singleton and the services already know each other by constructor
@@ -84,6 +85,7 @@ import { MockWebController } from './mockweb/mockweb.controller';
     ApprovalsService,
 
     StaffService,
+    DiscordService,
   ],
 })
 export class AppModule {}

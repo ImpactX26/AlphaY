@@ -21,6 +21,7 @@ import { MailService } from '../outbound/mail.service';
 import { toApprovalDTO } from '../outbound/approvals.service';
 import { toApplicantDTO } from './applicant.controller';
 import { StaffService } from './staff.service';
+import { DiscordService } from '../discord/discord.service';
 
 @Roles('staff')
 @Controller('staff')
@@ -28,6 +29,7 @@ export class StaffController {
   constructor(
     private readonly staff: StaffService,
     private readonly mail: MailService,
+    private readonly discord: DiscordService,
   ) {}
 
   @Get('pipeline')
@@ -138,6 +140,14 @@ export class StaffController {
   @Get('stats')
   stats(): Promise<StatsDTO> {
     return this.staff.stats();
+  }
+
+  /** Posts the cohort links into the Discord channel, and optionally an announcement with them. */
+  @Post('discord/links')
+  async discordLinks(@Body() b: { announce?: string }) {
+    const posted = await this.discord.postCohortLinks();
+    if (b?.announce) await this.discord.announce(b.announce);
+    return { ok: true as const, posted, connected: this.discord.ready };
   }
 
   /** Demo helper: pretend the employer or university answered. */
