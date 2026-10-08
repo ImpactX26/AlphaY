@@ -51,10 +51,13 @@ export function Login() {
   };
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-      {/* Left: what this is. The hero is the agent's promise, in its own voice. */}
-      <section className="relative flex flex-col justify-between gap-10 overflow-hidden bg-ink px-6 py-8 text-bg sm:px-10 lg:py-12">
-        <div className="flex items-center gap-2.5">
+    <div className="flex min-h-dvh flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+      {/*
+        Applicants arrive on a phone, so signing in comes first there and the pitch
+        follows it. On a wide screen the two sit side by side, pitch on the left.
+      */}
+      <section className="order-2 flex flex-col gap-8 overflow-hidden bg-ink px-6 py-9 text-bg sm:px-10 lg:order-1 lg:justify-between lg:gap-10 lg:py-12">
+        <div className="hidden items-center gap-2.5 lg:flex">
           <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden>
             <rect width="32" height="32" rx="7" fill="var(--bg)" />
             <path d="M8 8h14v3.6h-9.7v2.7h8.4v3.4h-8.4v2.7H22V24H8z" fill="var(--ink)" />
@@ -64,15 +67,15 @@ export function Login() {
           <span className="ml-auto text-[12px] uppercase tracking-[0.12em] opacity-60">Applicant flow v2</span>
         </div>
 
-        <div className="max-w-[26ch]">
-          <h1 className="display text-[clamp(30px,5.2vw,46px)] font-extrabold leading-[1.04] tracking-[-0.02em]">
+        <div>
+          <h1 className="display text-[clamp(28px,5.4vw,44px)] font-extrabold leading-[1.04] tracking-[-0.02em]">
             Talk once.
             <br />
             Upload everything.
             <br />
             <span className="text-[#46c1cf]">Get a real plan.</span>
           </h1>
-          <p className="mt-5 max-w-[42ch] text-[15.5px] leading-relaxed opacity-80">
+          <p className="mt-5 max-w-[44ch] text-[15.5px] leading-relaxed opacity-80">
             Record a short video, drop every document, and the agent builds your profile, checks it against the real requirements of the university or employer you pick, and fixes the
             gaps with Educaro’s own courses and services.
           </p>
@@ -94,15 +97,25 @@ export function Login() {
         </ul>
       </section>
 
-      {/* Right: sign in. */}
-      <section className="flex flex-col px-5 py-6 sm:px-10 lg:py-12">
-        <div className="mb-8 flex items-center justify-end gap-2">
-          {isMock ? (
-            <Tag s={{ label: 'Demo data', cls: 't-warn' }} title="Mock mode: nothing is sent to a server">
-              <FlaskConical size={12} aria-hidden /> Demo data
-            </Tag>
-          ) : null}
-          <ThemeToggle />
+      {/* Sign in. */}
+      <section className="order-1 flex flex-col px-5 py-6 sm:px-10 lg:order-2 lg:justify-center lg:py-12">
+        <div className="mb-7 flex items-center gap-2">
+          <span className="flex items-center gap-2.5 lg:hidden">
+            <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden>
+              <rect width="32" height="32" rx="7" fill="var(--ink)" />
+              <path d="M8 8h14v3.6h-9.7v2.7h8.4v3.4h-8.4v2.7H22V24H8z" fill="var(--bg)" />
+              <rect x="23" y="14.3" width="3.4" height="3.4" rx=".8" fill="var(--applicant)" />
+            </svg>
+            <span className="display text-[18px] font-extrabold">Educaro</span>
+          </span>
+          <span className="ml-auto flex items-center gap-2">
+            {isMock ? (
+              <Tag s={{ label: 'Demo data', cls: 't-warn' }} title="Mock mode: nothing is sent to a server">
+                <FlaskConical size={12} aria-hidden /> Demo data
+              </Tag>
+            ) : null}
+            <ThemeToggle />
+          </span>
         </div>
 
         <div className="mx-auto w-full max-w-sm">
