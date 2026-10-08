@@ -172,3 +172,14 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
   sections moved where things live and that script gets read on stage.
   **Still cannot verify anything needing the live API** — no Docker on this machine, so `npm run smoke`
   and the `fresh` video upload run on A's side only.
+
+- 08:05 · B · **Design pass: one marked thing per screen.** The brief was "a user should understand what
+  to do quickly", which was a hierarchy problem rather than a decoration one — every block arrived as an
+  equal tinted card, so a letter waiting for approval and a fee footnote looked alike. The most urgent ask
+  now carries a rule in the agent's own indigo (no new colour: `--warn` and `--loop` are already amber and
+  "warn" is the wrong meaning for "do this next"), its sentence is the largest type on the page, and its
+  first answer is filled while the rest stay outlined. Nothing else may carry the rule — the scarcity is
+  the mechanism. Tapping an answer now holds the chosen option and steps the others back, so a slow
+  connection no longer reads as "did that register?". Sign-in leads with what Educaro actually does
+  instead of the word "Sign in" over four identical rows. Verified: axe clean (0 serious/critical) across
+  light/dark x 1440/375, no horizontal overflow, contrast 7.0-7.9 against 4.5 needed, tsc and build clean.
