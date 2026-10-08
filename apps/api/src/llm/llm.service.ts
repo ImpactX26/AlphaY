@@ -76,11 +76,19 @@ export class LlmService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    const [row] = await db
-      .select({ total: sql<number>`coalesce(sum(${schema.traces.costUsd}), 0)` })
-      .from(schema.traces)
-      .where(and(eq(schema.traces.kind, 'llm'), sql`${schema.traces.detail}->>'provider' = 'openai'`));
-    this.openaiSpent = Number(row?.total ?? 0);
+    // Restoring past spend must never stop the API from starting: if Postgres is not up yet the
+    // counter begins at 0 and the spend cap still applies to this run. Crashing here took the
+    // whole API down with a stack trace whenever the database was a moment behind.
+    try {
+      const [row] = await db
+        .select({ total: sql<number>`coalesce(sum(${schema.traces.costUsd}), 0)` })
+        .from(schema.traces)
+        .where(and(eq(schema.traces.kind, 'llm'), sql`${schema.traces.detail}->>'provider' = 'openai'`));
+      this.openaiSpent = Number(row?.total ?? 0);
+    } catch (e) {
+      this.openaiSpent = 0;
+      this.log.warn(`could not read past OpenAI spend (${(e as Error).message}); starting this run at $0`);
+    }
     this.log.log(
       `providers: groq=${!!this.groq} openai=${!!this.openai} | openai spent $${this.openaiSpent.toFixed(4)} of $${config.openaiBudgetUsd}`,
     );
