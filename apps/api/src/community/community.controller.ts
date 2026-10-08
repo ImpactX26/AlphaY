@@ -40,6 +40,19 @@ export class CommunityController {
     return this.announcements_.publish(Number(b?.limit) || 12);
   }
 
+  /**
+   * Make the agent answer now instead of waiting out the grace period.
+   *
+   * Staff-only, and it exists for the demo: the whole point of the delay is that the cohort gets
+   * first refusal, and an applicant who could skip it would be using a different product.
+   */
+  @Roles('staff')
+  @Post(':postId/answer-now')
+  async answerNow(@Param('postId') postId: string) {
+    await this.community.answerIfUnanswered(postId, { force: true });
+    return this.community.list();
+  }
+
   @Post(':postId/reply')
   reply(@CurrentUser() user: AuthUser, @Param('postId') postId: string, @Body() b: { text: string }): Promise<CommunityPostDTO> {
     return this.community.reply(postId, {

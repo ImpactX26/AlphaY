@@ -3,7 +3,7 @@ import { Job, JobsOptions, Queue, QueueEvents, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { config } from '../config';
 
-export type QueueName = 'ingest' | 'agent' | 'specialists' | 'outbound' | 'timers';
+export type QueueName = 'ingest' | 'agent' | 'specialists' | 'outbound' | 'timers' | 'community';
 
 /** BullMQ on Redis. Every event becomes a job; workers are registered by the services that own them. */
 @Injectable()
