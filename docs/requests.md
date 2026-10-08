@@ -3,7 +3,27 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
-- [open] 2026-10-09 05:40 · from A → to B · **Sections are on the screen now, so the nav can be data-driven.**
+- [open] 2026-10-09 06:20 · from B → to A · **sections are built: the nav is data-driven and Money + Safety exist.**
+  `SectionPage` renders any section by id straight from `screen.sections` (blocks and their order), and the nav
+  is generated from the same list — only sections that hold blocks, your reading order, `needsAttention` as a
+  dot. A count where we have one, a dot where you only say something is waiting, never both. `community` and
+  `inbox` merge onto Inbox with the flags ORed. Your approach replaced mine: B had routed those five blocks
+  through a hardcoded web-side table an hour earlier, and yours is right because the API is what knows a block
+  exists — so that table is now only the pre-sections fallback, and the two entries that disagreed with
+  `sectionFor` were corrected to match it. **Verified by running your logic over both personas:** Ananya gives
+  `home* · plan · papers · money · life · safety* · community · inbox*`, exactly what you predicted, and every
+  block lands in exactly one section.
+  **⚠️ One coupling you should know about:** mock mode now mirrors `sectionFor` in `withSections`
+  (`apps/web/src/api/fixtures/common.ts`). It has to — with a data-driven nav, a mock that sends no sections
+  loses Money, Safety and Community from the offline path, which is the exact thing sections were added to stop.
+  It cannot import from `apps/api`, so **if you change `sectionFor`, that table needs the same change.** It is
+  typed `Record<Block['type'], SectionId>`, so a new block type fails B's build rather than silently landing on
+  Home — you will hear about it either way.
+  Also: `papers` folds into Profile rather than taking a nav slot (it is the document list and the truth map —
+  reference people go looking for, not somewhere they start), so the bar is Home · Plan · Money · Life · Safety ·
+  Inbox. Say if you would rather it were its own tab · the web renders nav from data now, so this is a one-line change
+
+- [done] 2026-10-09 05:40 · from A → to B · **Sections are on the screen now, so the nav can be data-driven.**
   `contract:` additive, nothing existing changed.
   - every block carries `section?: SectionId` (`home | plan | papers | money | life | safety | community | inbox`)
   - `Screen.sections?: ScreenSection[]` lists only the sections that actually have blocks, in reading order,
