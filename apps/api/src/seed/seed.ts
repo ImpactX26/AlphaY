@@ -12,6 +12,7 @@ import { AgentEventsService } from '../agent/events.service';
 import { QueueService } from '../queue/queue.service';
 import { ANANYA_DOCS, ANANYA_VIDEO_SCRIPT, ROHAN_DOCS, ROHAN_VIDEO_SCRIPT, type DemoDoc } from './documents';
 import { OPENINGS, PROGRAMME_ROWS } from './catalogue';
+import { seedCohort } from './cohort';
 import { WebService } from '../web/web.service';
 
 const log = new Logger('Seed');
@@ -159,6 +160,8 @@ async function main() {
     applicants.map(async (a) => `${a.name}: ${(await db.select().from(schema.facts).where(eq(schema.facts.applicantId, a.id))).length} facts`),
   );
   log.log(counts.join(' · '));
+
+  await seedCohort(log);
 
   await q.redis.quit().catch(() => undefined);
   await app.close();
