@@ -16,7 +16,7 @@ export function RouteCard({ block }: { block: RouteBlock }) {
   const ck = block.chancenkarte;
   return (
     <BlockFrame
-      kicker={<Kicker>{block.title ?? 'Your route'}</Kicker>}
+      kicker={block.title ?? 'Your route'}
       body={block.body}
       headerExtra={<Chip tone="applicant" className="flex-none">{ROUTE_LABEL[block.primary]}</Chip>}
       footer={
@@ -64,13 +64,13 @@ export function RouteCard({ block }: { block: RouteBlock }) {
   );
 }
 
-export function OpportunitiesCard({ block }: { block: OpportunitiesBlock }) {
+export function OpportunitiesCard({ block, bare }: { block: OpportunitiesBlock; bare?: boolean }) {
   const { shortlist, shortlistingId, readOnly } = useScreenActions();
   const [url, setUrl] = useState('');
   const [pasting, setPasting] = useState(false);
   const pasted = shortlistingId === 'pasted-url';
   return (
-    <BlockFrame kicker={<Kicker>{block.title ?? 'Worth a look'}</Kicker>} body={block.body}>
+    <BlockFrame bare={bare} kicker={block.title ?? 'Worth a look'} body={block.body}>
       <ul className="space-y-2.5">
         {block.items.map((item) => (
           <li key={item.id} className="rounded-lg border border-line px-3.5 py-3">
@@ -149,7 +149,7 @@ export function OpportunitiesCard({ block }: { block: OpportunitiesBlock }) {
 
 export function ShortlistCard({ block }: { block: ShortlistBlock }) {
   return (
-    <BlockFrame kicker={<Kicker>{block.title ?? 'Your shortlist'}</Kicker>} body={block.body}>
+    <BlockFrame kicker={block.title ?? 'Your shortlist'} body={block.body}>
       <ul className="divide-y divide-line">
         {block.items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
@@ -177,7 +177,7 @@ export function ShortlistCard({ block }: { block: ShortlistBlock }) {
 export function MatrixCard({ block }: { block: MatrixBlock }) {
   return (
     <BlockFrame
-      kicker={<Kicker>Requirement matrix</Kicker>}
+      kicker={'Requirement matrix'}
       title={block.title}
       body={block.body}
       footer={<span>Each row comes from the target’s own page and your documents. Grades, levels and days are compared in code.</span>}
@@ -262,9 +262,9 @@ export function MatrixCard({ block }: { block: MatrixBlock }) {
 }
 
 /** Gap plans: never a rejection. What, where, how long, what it costs, and the Educaro service. */
-export function GapPlanCard({ block }: { block: GapPlanBlock }) {
+export function GapPlanCard({ block, bare }: { block: GapPlanBlock; bare?: boolean }) {
   return (
-    <BlockFrame kicker={<Kicker>{block.title ?? 'Your plan for the gaps'}</Kicker>} body={block.body}>
+    <BlockFrame bare={bare} kicker={block.title ?? 'Your plan for the gaps'} body={block.body}>
       <ol className="space-y-3">
         {block.gaps.map((gap, i) => (
           <li key={gap.id} className="rounded-lg border border-line px-3.5 py-3">

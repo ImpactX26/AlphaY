@@ -106,9 +106,10 @@ export default function PlanPage() {
         ) : null}
 
         {openGaps.length ? (
-          <section className="mb-8">
+          <section className="mb-10">
             <SectionTitle>Your plan for the gaps</SectionTitle>
             <GapPlanCard
+              bare
               block={{
                 id: 'plan-gaps',
                 type: 'gap_plan',
@@ -133,29 +134,29 @@ export default function PlanPage() {
         ) : null}
 
         {services.length ? (
-          <section className="mb-8">
+          <section className="mb-10">
             <SectionTitle>Next step inside Educaro</SectionTitle>
             <div className="space-y-4">
               {services.map((block) => (
-                <ServicesCard key={block.id} block={block} />
+                <ServicesCard key={block.id} block={block} bare />
               ))}
             </div>
           </section>
         ) : null}
 
         {timelines.length ? (
-          <section className="mb-8">
+          <section className="mb-10">
             <SectionTitle>Your dates</SectionTitle>
             <div className="space-y-4">
               {timelines.map((block) => (
-                <TimelineCard key={block.id} block={block} />
+                <TimelineCard key={block.id} block={block} bare />
               ))}
             </div>
           </section>
         ) : null}
 
         {budgets.length ? (
-          <section className="mb-8">
+          <section className="mb-10">
             <SectionTitle>
               <span className="flex items-center gap-2">
                 <Wallet size={17} className="text-muted" aria-hidden />
@@ -164,13 +165,13 @@ export default function PlanPage() {
             </SectionTitle>
             <div className="grid gap-4 lg:grid-cols-2">
               {budgets.map((block) => (
-                <BudgetCard key={block.id} block={block} />
+                <BudgetCard key={block.id} block={block} bare />
               ))}
             </div>
           </section>
         ) : null}
 
-        <section className="mb-8">
+        <section className="mb-10">
           <SectionTitle>Practise before it counts</SectionTitle>
           <div className="card flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
             <p className="max-w-prose text-[14px]">

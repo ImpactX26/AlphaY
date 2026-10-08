@@ -7,7 +7,7 @@ import { FILE_STATUS, ITEM_STATUS, TRUTH_STATUS } from '../../lib/tags';
 import { Button } from '../../ui/Button';
 import { Spinner } from '../../ui/Spinner';
 import { FieldTag, RoleLabel, Tag } from '../../ui/Tag';
-import { BlockFrame, Kicker } from '../BlockFrame';
+import { BlockFrame } from '../BlockFrame';
 import { useRunAction, useScreenActions } from '../context';
 
 export function NextStepCard({ block }: { block: NextStepBlock }) {
@@ -16,7 +16,7 @@ export function NextStepCard({ block }: { block: NextStepBlock }) {
   return (
     <BlockFrame
       tone="accent"
-      kicker={<Kicker>{block.title ?? 'Your next step'}</Kicker>}
+      kicker={block.title ?? 'Your next step'}
       title={undefined}
       body={undefined}
       footer={
@@ -66,8 +66,9 @@ export function QuestionCard({ block }: { block: QuestionBlock }) {
   const [typing, setTyping] = useState(false);
   const busy = answeringQuestionId === block.questionId;
   const freeText = block.options.some((o) => /explain|something else|other/i.test(o));
+  // A question is waiting on the applicant, so it stays framed: it is a thing to act on.
   return (
-    <BlockFrame tone="default" kicker={<Kicker>{block.title ?? 'One question'}</Kicker>} className="border-agent/40">
+    <BlockFrame tone="accent" kicker={block.title ?? 'One question'}>
       <p className="text-[15.5px] font-semibold leading-snug">{block.prompt}</p>
       <p className="mt-1.5 text-[13.5px] text-muted">{block.why}</p>
       {typing ? (
@@ -127,7 +128,7 @@ export function QuestionCard({ block }: { block: QuestionBlock }) {
 
 export function ChecklistCard({ block }: { block: ChecklistBlock }) {
   return (
-    <BlockFrame kicker={<Kicker>{block.title ?? 'Checklist'}</Kicker>} body={block.body}>
+    <BlockFrame kicker={block.title ?? 'Checklist'} body={block.body}>
       <ul className="divide-y divide-line">
         {block.items.map((item) => {
           const s = ITEM_STATUS[item.status];
@@ -152,7 +153,7 @@ export function DocumentsCard({ block }: { block: DocumentsBlock }) {
   const unclear = block.items.filter((i) => i.status === 'unclear');
   return (
     <BlockFrame
-      kicker={<Kicker>{block.title ?? 'Your documents'}</Kicker>}
+      kicker={block.title ?? 'Your documents'}
       body={block.body}
       headerExtra={
         reading ? (
@@ -222,11 +223,11 @@ export function NoteCard({ block }: { block: NoteBlock }) {
 }
 
 /** The truth map: what they said, wrote and proved, side by side. */
-export function TruthMapCard({ block }: { block: TruthMapBlock }) {
+export function TruthMapCard({ block, bare }: { block: TruthMapBlock; bare?: boolean }) {
   const conflicts = block.rows.filter((r) => r.status === 'conflict').length;
   return (
-    <BlockFrame
-      kicker={<Kicker>{block.title ?? 'What you said, wrote and proved'}</Kicker>}
+    <BlockFrame bare={bare}
+      kicker={block.title ?? 'What you said, wrote and proved'}
       body={block.body}
       headerExtra={
         conflicts ? (

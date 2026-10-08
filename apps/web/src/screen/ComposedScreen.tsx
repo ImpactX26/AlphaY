@@ -71,7 +71,8 @@ export function ComposedScreen({ screen: raw, loading, className }: { screen: Sc
       <h1 className="headline max-w-[34ch]">{screen.headline}</h1>
 
       {screen.blocks.length ? (
-        <div className="mt-5 space-y-3.5">
+        // Open sections are told apart by space, so the gap does the work a border used to.
+        <div className="mt-7 space-y-7">
           {screen.blocks.map((block, i) => (
             <div
               key={block.id}

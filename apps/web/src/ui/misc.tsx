@@ -74,8 +74,8 @@ export function Countdown({ date, label, days: given }: { date: string | null; l
 
 export function SectionTitle({ children, action, className }: { children: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={clsx('mb-3 flex items-end justify-between gap-3', className)}>
-      <h2 className="display text-[19px] font-bold leading-tight">{children}</h2>
+    <div className={clsx('mb-4 flex items-end justify-between gap-3', className)}>
+      <h2 className="display text-[20px] font-bold leading-tight tracking-[-0.01em]">{children}</h2>
       {action}
     </div>
   );

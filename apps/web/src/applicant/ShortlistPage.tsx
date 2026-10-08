@@ -215,7 +215,7 @@ export default function ShortlistPage() {
         {opportunities.length ? (
           <div className="mt-7 space-y-4">
             {opportunities.map((block) => (
-              <OpportunitiesCard key={block.id} block={block} />
+              <OpportunitiesCard key={block.id} block={block} bare />
             ))}
           </div>
         ) : null}

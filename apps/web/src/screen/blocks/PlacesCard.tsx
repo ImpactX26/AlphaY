@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { Building2, Church, Cross, MapPin, ShoppingBasket, Train, Utensils } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { Spinner } from '../../ui/Spinner';
-import { BlockFrame, Kicker } from '../BlockFrame';
+import { BlockFrame } from '../BlockFrame';
 
 // Leaflet is ~150 KB: only the Germany-mode screen pays for it.
 const PlacesMap = lazy(() => import('./PlacesMap'));
@@ -22,7 +22,7 @@ export function PlacesCard({ block }: { block: PlacesBlock }) {
   const places = block.groups.flatMap((g) => g.places.map((p) => ({ ...p, kind: g.kind, groupLabel: g.label })));
   return (
     <BlockFrame
-      kicker={<Kicker>{block.title ?? `Near you in ${block.city}`}</Kicker>}
+      kicker={block.title ?? `Near you in ${block.city}`}
       body={block.body}
       footer={<span>Places from OpenStreetMap. Distances are straight-line, from your address.</span>}
     >

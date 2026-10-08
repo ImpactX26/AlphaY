@@ -12,12 +12,15 @@ import { useScreenActions } from '../context';
 export function ReadinessCard({ block }: { block: ReadinessBlock }) {
   const outcome = OUTCOME[block.outcome];
   return (
-    <BlockFrame kicker={<Kicker>{block.title ?? 'How ready you are'}</Kicker>} body={block.body} headerExtra={<Tag s={outcome} className="flex-none" />}>
-      <div className="flex items-baseline gap-2">
-        <span className="display num text-[40px] font-extrabold leading-none">{Math.round(block.overall)}%</span>
-        <span className="text-[13.5px] text-muted">ready</span>
+    <BlockFrame kicker={block.title ?? 'How ready you are'} body={block.body} headerExtra={<Tag s={outcome} className="flex-none" />}>
+      {/* The one number the whole page is about: how close she is. It carries the page. */}
+      <div className="flex items-baseline gap-2.5">
+        <span className="display num text-[clamp(56px,13vw,76px)] font-extrabold leading-[0.85] tracking-[-0.03em]">
+          {Math.round(block.overall)}%
+        </span>
+        <span className="text-[15px] text-muted">ready</span>
       </div>
-      <div className="mt-3 space-y-1.5">
+      <div className="mt-5 space-y-1.5">
         {block.meters.map((m) => (
           <Meter key={m.label} label={m.label} value={m.value} />
         ))}
@@ -27,11 +30,11 @@ export function ReadinessCard({ block }: { block: ReadinessBlock }) {
   );
 }
 
-export function BudgetCard({ block }: { block: BudgetBlock }) {
+export function BudgetCard({ block, bare }: { block: BudgetBlock; bare?: boolean }) {
   const outgoings = block.lines.some((l) => l.amount < 0);
   return (
-    <BlockFrame
-      kicker={<Kicker>{block.title ?? 'Your month'}</Kicker>}
+    <BlockFrame bare={bare}
+      kicker={block.title ?? 'Your month'}
       body={block.body}
       headerExtra={<span className="flex-none text-[12.5px] text-muted">{block.city}</span>}
       footer={
@@ -91,10 +94,10 @@ export function BudgetCard({ block }: { block: BudgetBlock }) {
 const TIMELINE_ICON = { deadline: FileSignature, exam: GraduationCap, task: Check, event: CalendarDays, interview: Plane } as const;
 const TIMELINE_TONE = { deadline: 'text-bad', exam: 'text-agent', task: 'text-muted', event: 'text-applicant', interview: 'text-staff' } as const;
 
-export function TimelineCard({ block }: { block: TimelineBlock }) {
+export function TimelineCard({ block, bare }: { block: TimelineBlock; bare?: boolean }) {
   const sorted = [...block.items].sort((a, b) => a.date.localeCompare(b.date));
   return (
-    <BlockFrame kicker={<Kicker>{block.title ?? 'Coming up'}</Kicker>} body={block.body}>
+    <BlockFrame bare={bare} kicker={block.title ?? 'Coming up'} body={block.body}>
       <ol className="relative space-y-3 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-[2px] before:bg-line">
         {sorted.map((item) => {
           const Icon = TIMELINE_ICON[item.kind];
@@ -117,9 +120,9 @@ export function TimelineCard({ block }: { block: TimelineBlock }) {
   );
 }
 
-export function ServicesCard({ block }: { block: ServicesBlock }) {
+export function ServicesCard({ block, bare }: { block: ServicesBlock; bare?: boolean }) {
   return (
-    <BlockFrame
+    <BlockFrame bare={bare}
       kicker={
         <RoleLabel role="staff">
           <span>{block.title ?? 'Educaro can do this with you'}</span>
@@ -155,7 +158,7 @@ export function LettersCard({ block }: { block: LettersBlock }) {
   return (
     <BlockFrame
       tone="accent"
-      kicker={<Kicker>{block.title ?? 'Ready for you to check'}</Kicker>}
+      kicker={block.title ?? 'Ready for you to check'}
       body={block.body}
       footer={<span>Nothing is sent until you approve it. You can edit every word first.</span>}
     >
@@ -183,7 +186,7 @@ export function LettersCard({ block }: { block: LettersBlock }) {
 
 export function ArrivalCard({ block }: { block: ArrivalBlock }) {
   return (
-    <BlockFrame kicker={<Kicker>{block.title ?? 'Your first weeks'}</Kicker>} body={block.body}>
+    <BlockFrame kicker={block.title ?? 'Your first weeks'} body={block.body}>
       <div className="space-y-4">
         {block.phases.map((phase) => {
           const done = phase.items.filter((i) => i.done).length;
