@@ -10,6 +10,11 @@ import type { ApplicantState } from './state.service';
 import { ROUTES, SPECIALIST_LABEL, type SpecialistName } from '../knowledge/routes';
 import { MAX_OPEN_QUESTIONS } from './guards.service';
 import { midSentence } from '../knowledge/normalize';
+import { germanLevels } from './checks';
+import { classifyIntent, REPLY_SYSTEM } from './intent';
+import { describeWeather, fetchWeather } from '../web/weather';
+import { targetCity } from './specialists/living';
+import { TraceService } from '../trace/trace.service';
 
 const LOOP_NAMES = ['route', 'exams', 'scout', 'jobs', 'recognition', 'visa', 'money', 'housing', 'life', 'factcheck'] as const;
 
@@ -48,9 +53,10 @@ export class SupervisorService {
   constructor(
     private readonly llm: LlmService,
     private readonly skills: SkillsService,
+    private readonly trace: TraceService,
   ) {}
 
-  async plan(state: ApplicantState, report: CheckReport, events: AgentEvent[], candidates: QuestionCandidate[], required: SpecialistName[], runId: string): Promise<{ plan: Plan; by: 'agent' | 'rules' }> {
+  async plan(state: ApplicantState, report: CheckReport, events: AgentEvent[], candidates: QuestionCandidate[], required: SpecialistName[], runId: string): Promise<{ plan: Plan; by: 'agent' | 'rules' | 'rules+reply' }> {
     const slots = Math.max(0, MAX_OPEN_QUESTIONS - state.questions.filter((q) => q.status === 'open').length);
     const route = state.applicant.route as Route | null;
     const skill = route ? await this.skills.load(ROUTES[route].skill) : '';
@@ -65,9 +71,78 @@ export class SupervisorService {
     const llmPlan = await this.llm.json({ task: 'supervisor', tier: 'quality', system: SYSTEM, user, schema: Plan, applicantId: state.applicant.id, runId, maxTokens: 2500 });
     if (llmPlan) {
       llmPlan.ask = llmPlan.ask.filter((id) => candidates.some((c) => c.id === id)).slice(0, slots);
+      // The planning prompt is asked to decide moves, and its reply drifts to whatever it just
+      // decided: "how much will my first month cost" came back about a date mismatch on a CV. The
+      // focused call answers the question that was actually asked, so it wins whenever there is one.
+      const focused = await this.replyTo(state, report, events, runId);
+      if (focused) llmPlan.reply = focused;
       return { plan: llmPlan, by: 'agent' };
     }
-    return { plan: this.rulesPlan(state, report, events, candidates, required, slots), by: 'rules' };
+    const plan = this.rulesPlan(state, report, events, candidates, required, slots);
+    // The planning prompt is large and it is the first thing a rate limit takes away. A reply is
+    // small, so ask for it on its own rather than handing the applicant the same canned sentence
+    // for every question they ask — which is exactly what a reviewer saw.
+    const reply = await this.replyTo(state, report, events, runId);
+    if (reply) plan.reply = reply;
+    return { plan, by: reply ? 'rules+reply' : 'rules' };
+  }
+
+
+  /**
+   * One question, one focused call. Classified first in code, so an acknowledgement never reaches a
+   * model and a real question is asked on its own instead of riding inside the planning prompt.
+   */
+  private async replyTo(state: ApplicantState, report: CheckReport, events: AgentEvent[], runId: string): Promise<string | null> {
+    const chat = [...events].reverse().find((e) => e.type === 'chat' || e.type === 'discord');
+    const text = String(chat?.detail?.text ?? '').trim();
+    if (!text) return null;
+
+    const intent = classifyIntent(text);
+    if (intent.cannedReply) {
+      await this.trace.record('plan', 'intent', { intent: intent.intent, answered: 'rules' }, { applicantId: state.applicant.id, runId });
+      return intent.cannedReply;
+    }
+
+    const lang = germanLevels(state);
+    const facts = state.facts
+      .filter((f) => (f.tag === 'verified' || f.tag === 'said') && !f.key.startsWith('contact.') && f.key !== 'identity.passport')
+      .slice(-18)
+      .map((f) => `${f.label}: ${f.value} (${f.tag})`);
+    const context = [
+      `APPLICANT: ${state.applicant.name.split(' ')[0]}, route ${state.applicant.route ?? 'not decided'}, city ${state.applicant.targetCity ?? 'not decided'}, stage ${state.applicant.stage}`,
+      `GERMAN: proven ${lang.proven ?? 'none'}, claimed ${lang.claimed ?? 'none'}, needed ${report.language.need ?? 'n/a'}`,
+      `NEXT STEPS: ${report.gaps.slice(0, 4).map((g) => `${g.title} (${g.howLong}, ${g.cost})`).join('; ') || 'none open'}`,
+      // The specialists already worked the numbers out. Without them here the model says "I do not
+      // have the figures" about a budget that is sitting on the applicant's own screen.
+      numbers(state),
+      `THEIR FACTS:\n${facts.join('\n') || 'nothing on file yet'}`,
+      intent.focus === 'process' ? 'They are asking how something works in Germany, not about their own file. Answer the mechanism, then tie it to their situation in one clause.' : '',
+      intent.focus === 'weather' ? await this.weatherFor(state) : '',
+      `QUESTION: ${text}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    const reply = await this.llm.text({
+      task: 'chat_reply',
+      tier: 'cheap',
+      system: REPLY_SYSTEM,
+      user: context,
+      applicantId: state.applicant.id,
+      runId,
+      maxTokens: 400,
+    });
+    await this.trace.record('plan', 'intent', { intent: intent.intent, answered: reply ? 'model' : 'none' }, { applicantId: state.applicant.id, runId });
+    return reply?.trim() || null;
+  }
+
+
+  /** Live weather for the city they are heading to, plus the winter they have not met yet. */
+  private async weatherFor(state: ApplicantState): Promise<string> {
+    const city = targetCity(state);
+    const w = await fetchWeather(city.name, city.lat, city.lon);
+    return `WEATHER (live, use these exact numbers and do not invent any):
+${describeWeather(w, state.applicant.homeCity)}`;
   }
 
   private rulesPlan(state: ApplicantState, report: CheckReport, events: AgentEvent[], candidates: QuestionCandidate[], required: SpecialistName[], slots: number): Plan {
@@ -130,4 +205,18 @@ export function summarizeState(state: ApplicantState, report: CheckReport): stri
   lines.push(`SPECIALISTS ALREADY RUN: ${outs.join(', ') || 'none'}`);
   lines.push(`PENDING APPROVALS: ${state.approvals.filter((x) => x.status === 'pending').map((x) => x.title).join('; ') || 'none'}`);
   return lines.join('\n');
+}
+
+/** The figures the specialists already computed, so a question about money gets the real answer. */
+function numbers(state: ApplicantState): string {
+  const out: string[] = [];
+  const money = state.outputs.money?.output as any;
+  if (money?.total) out.push(`Monthly budget in ${money.city}: about EUR ${money.total}${money.lines?.length ? ` (${money.lines.slice(0, 4).map((l: any) => `${l.label} ${l.amount}`).join(', ')})` : ''}`);
+  const housing = state.outputs.housing?.output as any;
+  if (housing?.wgRoom) out.push(`Rent in ${housing.city}: WG room about EUR ${housing.wgRoom}, studio about EUR ${housing.studio}`);
+  const exams = state.outputs.exams?.output as any;
+  if (exams?.steps?.length) out.push(`Language plan: ${exams.steps.map((x: any) => `${x.level} ${x.weeks ? `${x.weeks}w` : ''} ${x.costEur ? `EUR ${x.costEur}` : ''}`.trim()).join(' -> ')}`);
+  const recognition = state.outputs.recognition?.output as any;
+  if (recognition?.months) out.push(`Recognition: about ${recognition.months} months once the file is complete`);
+  return out.length ? `FIGURES ALREADY WORKED OUT (use these, do not invent others):\n${out.join('\n')}` : '';
 }
