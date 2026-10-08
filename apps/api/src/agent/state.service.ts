@@ -12,6 +12,9 @@ export type GapRow = typeof schema.gaps.$inferSelect;
 export type ApprovalRow = typeof schema.approvals.$inferSelect;
 export type CalendarRow = typeof schema.calendarEvents.$inferSelect;
 
+/** Bump when a specialist's output shape changes, so stored answers are re-run rather than trusted. */
+export const SPECIALIST_VERSION = 2;
+
 export interface ApplicantState {
   applicant: ApplicantRow;
   files: FileRow[];
@@ -70,13 +73,20 @@ export class StateService {
     return { applicant, files, facts, truth, questions, shortlist, gaps, approvals, calendar, outputs };
   }
 
+  /**
+   * A specialist re-runs when its answer is older than the newest fact. That misses the other way
+   * an answer goes stale: the code changed and the old output no longer has the shape the screen
+   * reads. Stamping the version it was produced by makes that visible, so a deploy invalidates what
+   * it should and nothing else.
+   */
   async saveOutput(applicantId: string, specialist: string, runId: string, output: Record<string, unknown>) {
+    const stamped = { ...output, _v: SPECIALIST_VERSION };
     await db
       .insert(schema.specialistOutputs)
-      .values({ applicantId, specialist, runId, output })
+      .values({ applicantId, specialist, runId, output: stamped })
       .onConflictDoUpdate({
         target: [schema.specialistOutputs.applicantId, schema.specialistOutputs.specialist],
-        set: { output, runId, createdAt: new Date() },
+        set: { output: stamped, runId, createdAt: new Date() },
       });
   }
 

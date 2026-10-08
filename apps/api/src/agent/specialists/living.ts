@@ -2,6 +2,7 @@ import { CITIES, DEFAULT_CITY, findCity, type CityInfo } from '../../knowledge/c
 import { monthlyBudget, netPay } from '../../knowledge/money';
 import { OFFICIAL } from '../../knowledge/official';
 import { seededPlaces } from '../../knowledge/places';
+import { commuteMinutes, listingsFor } from '../../knowledge/rentals';
 import { bestFact, type ApplicantState } from '../state.service';
 import { cite, type Kit, type SpecialistResult } from './kit';
 
@@ -52,12 +53,50 @@ export async function moneySpecialist(kit: Kit): Promise<SpecialistResult> {
 }
 
 /** Housing: realistic rent by type, districts, scam warnings, the landlord form Anmeldung needs. */
+
+/**
+ * Where they will actually be going most days: the employer who hired them, the university they are
+ * applying to, or failing both, the city centre.
+ */
+async function commuteAnchor(kit: Kit): Promise<{ label: string; lat: number; lon: number } | null> {
+  const city = targetCity(kit.state);
+  const top = kit.state.shortlist.find((s) => s.status !== 'checking') ?? kit.state.shortlist[0];
+  if (top) {
+    const where = `${top.title}, ${top.subtitle}`;
+    const point = await kit.web.geocode(where, { runId: kit.runId, applicantId: kit.applicantId }).catch(() => null);
+    if (point) return { label: top.subtitle.split(' · ')[0] || top.title, ...point };
+  }
+  const addr = kit.state.applicant.germanyAddress;
+  if (addr) {
+    const point = await kit.web.geocode(`${addr}, ${city.name}`, { runId: kit.runId, applicantId: kit.applicantId }).catch(() => null);
+    if (point) return { label: 'your address', ...point };
+  }
+  return { label: `${city.name} centre`, lat: city.lat, lon: city.lon };
+}
+
 export async function housingSpecialist(kit: Kit): Promise<SpecialistResult> {
   const city = targetCity(kit.state);
+
+  // What they are commuting to is the thing that decides the day: the hospital that hired them, or
+  // the campus. Rent without that number is not a decision anyone can make.
+  const anchor = await commuteAnchor(kit);
+  const budget = (kit.state.outputs.money?.output as any)?.total as number | undefined;
+  const ceiling = budget ? Math.round(budget * 0.45) : null; // the rule of thumb everyone is given
+  const listings = listingsFor(city.name).map((l) => ({
+    ...l,
+    commuteMin: anchor ? commuteMinutes(l, anchor) : null,
+    affordable: ceiling === null ? true : l.warmRentEur <= ceiling,
+  }));
+
   return {
-    summary: `Housing: WG room about €${city.wgRoom}, studio about €${city.studio} in ${city.name}`,
+    summary: `Housing: ${listings.length} places in ${city.name}, WG room from €${listings[0]?.warmRentEur ?? city.wgRoom}${anchor ? `, ${Math.min(...listings.map((l) => l.commuteMin ?? 99))}–${Math.max(...listings.map((l) => l.commuteMin ?? 0))} min to ${anchor.label}` : ''}`,
     output: {
       city: city.name,
+      center: { lat: city.lat, lon: city.lon },
+      anchor,
+      budgetEur: ceiling,
+      listings,
+      listingSource: 'Educaro district averages (MLP / Moses Mendelssohn Institute). Representative listings, not live adverts.',
       options: [
         { type: 'Room in a shared flat (WG)', rent: city.wgRoom },
         { type: 'Small studio', rent: city.studio },

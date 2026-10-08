@@ -13,7 +13,7 @@ import { ShortlistService } from './shortlist.service';
 import { essentialQuestion } from './essentials';
 import { AgentEventsService, kLock, type AgentEvent } from './events.service';
 import { SpecialistsService } from './specialists/specialists.service';
-import { StateService, type ApplicantState } from './state.service';
+import { SPECIALIST_VERSION, StateService, type ApplicantState } from './state.service';
 import { SupervisorService, type Plan } from './supervisor.service';
 import { ActionsService } from './actions.service';
 import { ChatService } from '../profile/chat.service';
@@ -173,7 +173,7 @@ export class AgentLoopService implements OnModuleInit {
     const newestFact = st.facts.reduce((m, f) => Math.max(m, +f.createdAt), 0);
     const spec = ROUTES[route];
     const base: SpecialistName[] = st.applicant.mode === 'germany' ? ['life', 'housing', 'money'] : spec.specialists.filter((s) => s !== 'route');
-    const stale = base.filter((s) => !st.outputs[s] || +st.outputs[s].at < newestFact);
+    const stale = base.filter((s) => !st.outputs[s] || +st.outputs[s].at < newestFact || (st.outputs[s].output as any)?._v !== SPECIALIST_VERSION);
     if (events.some((e) => e.type === 'shortlist') && route === 'study' && !stale.includes('money')) stale.push('money');
     if (events.some((e) => e.type === 'recheck')) stale.push('factcheck');
     return [...new Set(stale)];

@@ -57,6 +57,8 @@ export class ComposerService {
       if (life?.arrival) blocks.push({ id: 'arrival', type: 'arrival', phases: life.arrival.map((p: any) => ({ title: p.title, items: p.items.map((i: string) => ({ label: i, done: false })) })) });
       if (life?.groups) blocks.push({ id: 'places', type: 'places', city: life.city, center: life.center, groups: life.groups });
       if (money) blocks.push(budgetBlock(money));
+      const housingG = outputs.housing?.output as any;
+      if (housingG?.listings?.length) blocks.push(rentalsBlock(housingG));
       if (money?.pay) {
         blocks.push({
           id: 'payslip',
@@ -212,6 +214,10 @@ export class ComposerService {
     // ---------- money ----------
     if (outputs.money?.output) blocks.push(budgetBlock(outputs.money.output));
 
+    // ---------- where they could live ----------
+    const housing = outputs.housing?.output as any;
+    if (housing?.listings?.length) blocks.push(rentalsBlock(housing));
+
     // ---------- timeline ----------
     const tl = timelineBlock(state);
     if (tl.items.length) blocks.push(tl);
@@ -280,6 +286,34 @@ export class ComposerService {
     await this.trace.record('tool', 'compose_screen', { version: screen.version, blocks: screen.blocks.map((b) => b.type), by: screen.composedBy }, { applicantId, runId });
     return screen;
   }
+}
+
+
+/** Rooms and flats with the commute to whatever decides their day, and what fits the budget. */
+function rentalsBlock(housing: any): Block {
+  return {
+    id: 'rentals',
+    type: 'rentals',
+    city: housing.city,
+    center: housing.center,
+    anchor: housing.anchor ?? null,
+    budgetEur: housing.budgetEur ?? null,
+    listings: (housing.listings ?? []).map((l: any) => ({
+      id: l.id,
+      title: l.title,
+      district: l.district,
+      kind: l.kind,
+      warmRentEur: l.warmRentEur,
+      sizeSqm: l.sizeSqm ?? null,
+      lat: l.lat,
+      lon: l.lon,
+      commuteMin: l.commuteMin ?? null,
+      url: l.url ?? null,
+      affordable: l.affordable !== false,
+      note: l.note,
+    })),
+    source: housing.listingSource ?? 'Educaro district averages',
+  };
 }
 
 function budgetBlock(money: any): Block {
