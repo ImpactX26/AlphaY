@@ -167,6 +167,14 @@ async function main() {
     svcUrls.length > 0 && svcUrls.every((u) => u.includes('book-call') || (u.startsWith('https://') && !u.includes('/api/mock/'))),
     svcUrls.join(' '),
   );
+  // This passed while the consultant link was broken: `includes('book-call')` is true of the
+  // unresolved `/api/applicants/:id/book-call` too. Ananya's name-affidavit gap routes to the
+  // consultant, so the dead link was on a seeded persona's screen and no check saw it.
+  check(
+    'no service link ships an unresolved :id',
+    svcUrls.every((u) => !u.includes(':id')),
+    svcUrls.filter((u) => u.includes(':id')).join(' ') || 'all resolved',
+  );
   check(
     'every step also names the German institution behind it',
     (gaps ?? []).some((g) => (g.links ?? []).some((l) => /telc|goethe|osd|fintiba|expatrio|anerkennung|aps-india|uni-assist|arbeitsagentur|volkshochschule|make-it-in-germany/i.test(l.url))),
@@ -358,6 +366,19 @@ async function main() {
   const feed = (await api('/community/announcements?limit=20', { token: aT })).body ?? [];
   check('the announcements feed has something in it', feed.length > 0, `${feed.length} posts`);
   check('announcements are one item each, not a wall of links', feed.every((p) => (p.text.match(/https?:\/\//g) ?? []).length <= 1));
+  // The app parses this shape back into a title, a detail and a real link, so a change to `line()`
+  // that the panel cannot read should fail here rather than show up as a feed of raw markdown.
+  check(
+    'each announcement is in the shape the app parses',
+    feed.length > 0 && feed.every((p) => /^\S+\s+\*\*.+\*\*$/.test(p.text.split('\n')[0].trim())),
+    feed.find((p) => !/^\S+\s+\*\*.+\*\*$/.test(p.text.split('\n')[0].trim()))?.text?.slice(0, 60) ?? 'all parse',
+  );
+  // One item being replyable is the reason the feed is posts and not one long message.
+  if (feed[0]) {
+    const fr = await api(`/community/${feed[0].id}/reply`, { token: aT, method: 'POST', body: { text: 'Is this one open to non-EU applicants?' } });
+    const after = ((await api('/community/announcements?limit=20', { token: aT })).body ?? []).find((p) => p.id === feed[0].id);
+    check('an announcement can be replied to', fr.status < 300 && Boolean(after?.replies?.length), `${after?.replies?.length ?? 0} replies`);
+  }
 
   const aBlocks = await blocksOf(A, aT);
   const cohortBlock = block(aBlocks, 'cohort');
