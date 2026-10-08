@@ -141,20 +141,27 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
 
   const movedOut = useMemo(() => {
     if (!screen || !focus) return [];
+    // Keyed by path, not by label: two sections can share a page — `community` and `inbox` both
+    // live at /app/inbox — and the links are rendered with the path as the React key, so keying
+    // this map by label produced two entries with the same key and React dropped one.
     const pages = new Map<string, string>();
     // Prefer the API's own sections: it lists only the ones that have blocks, already in reading
     // order, so Home never offers a link to an empty page.
     if (screen.sections?.length) {
       for (const s of screen.sections) {
-        if (s.id !== 'home' && s.blockIds.length) pages.set(s.label, sectionPath(s.id));
+        if (s.id !== 'home' && s.blockIds.length) {
+          const to = sectionPath(s.id);
+          // `inbox` wins the shared path over `community`, so the chip matches the nav tab.
+          if (!pages.has(to) || s.id === 'inbox') pages.set(to, s.label);
+        }
       }
-      return [...pages].map(([page, to]) => ({ page, to }));
+    } else {
+      for (const b of screen.blocks) {
+        const dest = ELSEWHERE[b.type];
+        if (dest && !pages.has(dest.to)) pages.set(dest.to, dest.page);
+      }
     }
-    for (const b of screen.blocks) {
-      const dest = ELSEWHERE[b.type];
-      if (dest) pages.set(dest.page, dest.to);
-    }
-    return [...pages].map(([page, to]) => ({ page, to }));
+    return [...pages].map(([to, page]) => ({ page, to }));
   }, [screen, focus]);
 
   if (loading && !screen)

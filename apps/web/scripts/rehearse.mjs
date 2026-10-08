@@ -48,6 +48,18 @@ async function signInAs(page, name) {
   await page.getByRole('button', { name }).click();
 }
 
+/**
+ * Go to a section page.
+ *
+ * Blocks carry a section now, so the screen is no longer one long scroll: the truth map is on
+ * Papers (inside Profile), the shortlist and the matrix on Plan, letters on Inbox. A presenter
+ * clicks to them, so the rehearsal does too.
+ */
+async function goTo(page, path) {
+  await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+}
+
 async function capture(page, label) {
   if (!SHOTS) return;
   await mkdir(OUT, { recursive: true });
@@ -75,32 +87,52 @@ await beat('0:00', 'Ananya signs in; her story is already uploaded', async () =>
 });
 
 await beat('0:10', 'Replay: the screen starts empty and fills while the files are read', async () => {
-  await page.getByRole('button', { name: 'Account menu' }).click();
-  const replay = page.getByRole('menuitem', { name: /Replay the intake live/ });
+  // Replaying rewinds the account to "nothing read yet" and rebuilds only as far as the first
+  // question, so it runs in its own context. Sharing the tab would leave every later beat
+  // asserting on gaps, letters and a shortlist that the rewind had thrown away.
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, deviceScaleFactor: 2 });
+  const replayPage = await ctx.newPage();
+  replayPage.on('pageerror', (e) => consoleErrors.push(e.message));
+  await replayPage.goto(BASE, { waitUntil: 'networkidle' });
+  await replayPage.getByRole('button', { name: /Ananya Nair/ }).click();
+  await replayPage.waitForURL(/\/app/, { timeout: 15_000 });
+  await replayPage.waitForTimeout(2000);
+
+  await replayPage.getByRole('button', { name: 'Account menu' }).click();
+  const replay = replayPage.getByRole('menuitem', { name: /Replay the intake live/ });
   expect((await replay.count()) > 0, 'no replay tool in the account menu (is mock mode on?)');
   await replay.click();
-  await page.waitForTimeout(1400);
-  const reading = await page.getByText(/Reading|Transcribing/).count();
+  await replayPage.waitForTimeout(1400);
+  const reading = await replayPage.getByText(/Reading|Transcribing/).count();
   expect(reading > 0, 'nothing showed as being read');
-  await capture(page, 'filling');
-  await page.waitForTimeout(12_000);
+  await capture(replayPage, 'filling');
+  await replayPage.waitForTimeout(12_000);
+  await ctx.close();
   return 'files read live';
 });
 
 await beat('0:25', 'The truth map lights up; exactly two questions are asked', async () => {
-  const conflicts = await page.getByText('Conflict').count();
-  expect(conflicts >= 2, `expected the experience and name conflicts, saw ${conflicts}`);
+  // The questions stay on Home — they are what is being asked of her today.
   const questions = await page.locator('h1.headline ~ div').getByText(/^(One question|And one more)$/).count();
   expect(questions === 2, `the guard allows two open questions, saw ${questions}`);
+
+  // The truth map moved to Papers when blocks gained sections, so go there for the conflicts.
+  await goTo(page, '/app/profile');
+  const conflicts = await page.getByText('Conflict', { exact: false }).count();
+  expect(conflicts >= 2, `expected the experience and name conflicts on Papers, saw ${conflicts}`);
   await capture(page, 'truth-map');
-  return `${conflicts} conflicts, ${questions} questions`;
+  await goTo(page, '/app');
+  return `conflicts shown on Papers, ${questions} questions on Home`;
 });
 
 await beat('0:40', 'She answers the experience conflict and the CV is fixed', async () => {
   await page.getByRole('button', { name: 'The letter. Fix my CV' }).click();
   await page.waitForTimeout(2600);
+  // The answer is given on Home; the corrected row shows in the truth map, which is on Papers.
+  await goTo(page, '/app/profile');
   expect((await page.getByText('Jul 2021 to Aug 2024 (fixed)').count()) > 0, 'the CV row was not corrected');
   await capture(page, 'answered');
+  await goTo(page, '/app');
   return 'CV now matches the letter';
 });
 
@@ -117,7 +149,9 @@ await beat('0:50', 'Rohan: a completely different screen from the same app', asy
   await capture(other, 'rohan-home');
 
   await beat('1:10', 'He shortlists a programme; the matrix shows APS missing, with links', async () => {
-    await other.getByRole('button', { name: 'Shortlist' }).first().click();
+    // Opportunities and the matrix are the Plan section now, not the home scroll.
+    await goTo(other, '/app/plan');
+    await other.getByRole('link', { name: /Shortlist/ }).first().click();
     await other.waitForTimeout(6000);
     expect((await other.getByText('APS certificate').count()) > 0, 'no APS row in the matrix');
     expect((await other.getByText('Start now').count()) > 0, 'APS is not flagged as start now');
@@ -130,8 +164,7 @@ await beat('0:50', 'Rohan: a completely different screen from the same app', asy
 });
 
 await beat('1:35', 'Ananya’s German gap routes to an Educaro course and the ÖSD exam', async () => {
-  await page.getByRole('link', { name: 'Plan', exact: false }).first().click();
-  await page.waitForTimeout(1600);
+  await goTo(page, '/app/plan');
   expect((await page.getByText(/German B1, then B2/).count()) > 0, 'no German gap plan');
   expect((await page.locator('a[href*="educaro.de/sprachkurse"]').count()) > 0, 'the gap does not route to the Educaro course');
   await capture(page, 'gap-plan');
@@ -139,9 +172,9 @@ await beat('1:35', 'Ananya’s German gap routes to an Educaro course and the Ö
 });
 
 await beat('1:55', 'The Bewerbung: keywords highlighted, she approves, it is sent', async () => {
-  await page.getByRole('link', { name: 'Home', exact: false }).first().click();
-  await page.waitForTimeout(1200);
-  const review = page.getByRole('button', { name: /Review and send/ }).first();
+  // Letters are the Inbox section — the same place the mail and the approvals live.
+  await goTo(page, '/app/inbox');
+  const review = page.getByRole('link', { name: /Review and send/ }).first();
   await review.waitFor({ state: 'visible', timeout: 20_000 });
   await review.click();
   await page.waitForURL(/approvals/, { timeout: 15_000 });
@@ -159,8 +192,7 @@ await beat('1:55', 'The Bewerbung: keywords highlighted, she approves, it is sen
 });
 
 await beat('2:20', 'A reply invites her to interview: calendar, screen and Discord', async () => {
-  await page.getByRole('link', { name: 'Home', exact: false }).first().click();
-  await page.waitForTimeout(1000);
+  await goTo(page, '/app');
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: /Simulate an interview invite/ }).click();
   await page.waitForTimeout(4000);
@@ -168,8 +200,7 @@ await beat('2:20', 'A reply invites her to interview: calendar, screen and Disco
   expect(Boolean(headline?.includes('wants to meet you')), 'the screen did not lead on the interview');
   expect((await page.getByText(/Interview booked/).count()) > 0, 'no Discord ping in the chat');
   await capture(page, 'interview');
-  await page.getByRole('link', { name: 'Inbox', exact: false }).first().click();
-  await page.waitForTimeout(1600);
+  await goTo(page, '/app/inbox');
   expect((await page.getByText('Interview invite').count()) > 0, 'the reply was not classified');
   expect((await page.getByText(/Interview with Rheinpflege/).count()) > 0, 'no calendar event');
   await capture(page, 'calendar');
