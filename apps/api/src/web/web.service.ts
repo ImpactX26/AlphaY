@@ -97,11 +97,10 @@ export class WebService {
 
   /** web_search. `personal` holds the applicant's name, phone, passport number: never sent out. */
   async search(query: string, ctx: Ctx, personal: string[] = []): Promise<{ title: string; url: string; snippet: string }[]> {
-    try {
-      await this.guards.assertCleanQuery(ctx, query, personal);
-    } catch {
-      return [];
-    }
+    // A refusal is not an empty result. Swallowing it made "this query carries personal data" look
+    // identical to "the web had nothing", so a caller could never tell the guard had fired — least
+    // of all an MCP client, which only ever sees the return value.
+    await this.guards.assertCleanQuery(ctx, query, personal);
     let results: { title: string; url: string; snippet: string }[] = [];
     try {
       if (config.searchProvider === 'tavily' && config.tavilyKey) {

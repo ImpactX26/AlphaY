@@ -44,13 +44,15 @@ import { SystemController } from './http/system.controller';
 import { MockWebController } from './mockweb/mockweb.controller';
 import { DiscordService } from './discord/discord.service';
 import { CallController } from './http/call.controller';
+import { McpController } from './mcp/mcp.controller';
+import { McpService } from './mcp/mcp.service';
 
 /**
  * One module. Everything is a singleton and the services already know each other by constructor
  * injection, so wiring stays in one readable list rather than a tree of feature modules.
  */
 @Module({
-  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController],
+  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController, McpController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     BusService,
@@ -88,6 +90,7 @@ import { CallController } from './http/call.controller';
     ApprovalsService,
 
     StaffService,
+    McpService,
     DiscordService,
   ],
 })
