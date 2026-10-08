@@ -1,6 +1,6 @@
 import type { ChatMessageDTO } from '@educaro/shared';
 import clsx from 'clsx';
-import { Mic, Send, Square } from 'lucide-react';
+import { CircleAlert, Mic, MicOff, Send, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { errorText } from '../api/client';
 import { useChat, useSendChat, useSendVoiceNote } from '../api/queries';
@@ -13,6 +13,9 @@ import { toast } from '../ui/Toast';
 import { useRecorder } from './useRecorder';
 
 const AUTHOR_LABEL: Record<ChatMessageDTO['author'], string> = { applicant: 'You', agent: 'Educaro agent', staff: 'Educaro staff', system: 'Educaro' };
+
+/** Two minutes is a long question. The recorder stops itself there and the note is still sent. */
+const VOICE_MAX_SECONDS = 120;
 
 function Bubble({ message }: { message: ChatMessageDTO }) {
   const mine = message.author === 'applicant';
@@ -49,7 +52,9 @@ export function ChatPanel({ applicantId, className, autoFocus }: { applicantId: 
   const activity = useAgentActivity(applicantId);
   const [text, setText] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
-  const recorder = useRecorder();
+  // A question is not a monologue, and the server caps the upload at 30 MB — better to stop at two
+  // minutes than to let someone talk past the limit and lose the whole recording on upload.
+  const recorder = useRecorder('audio', VOICE_MAX_SECONDS);
 
   useEffect(() => {
     const el = listRef.current;
@@ -64,7 +69,16 @@ export function ChatPanel({ applicantId, className, autoFocus }: { applicantId: 
     send.mutate(value, { onError: (err) => toast(errorText(err), 'error') });
   };
 
-  const stopAndSend = async () => {
+  // `recorder` and `voice` are fresh objects every render, so the latest closure goes in a ref and
+  // the effect below depends only on primitives.
+  const sendRef = useRef<() => Promise<void>>(async () => {});
+  // Latched, not a concurrency guard: `stop()` resolves before React re-renders with the new
+  // state, so a flag that cleared on completion let every extra render at the cap send again.
+  // It stays set until the next recording starts.
+  const sent = useRef(false);
+  sendRef.current = async () => {
+    if (sent.current) return;
+    sent.current = true;
     const result = await recorder.stop();
     if (!result) return;
     voice.mutate(
@@ -72,6 +86,18 @@ export function ChatPanel({ applicantId, className, autoFocus }: { applicantId: 
       { onError: (err) => toast(errorText(err), 'error') },
     );
   };
+  const stopAndSend = () => void sendRef.current();
+
+  const startRecording = () => {
+    sent.current = false;
+    recorder.start();
+  };
+
+  // The recorder stops itself at the cap but cannot know what to do with the result, so the timer
+  // would keep climbing over a recording that already ended and the note would never be sent.
+  useEffect(() => {
+    if (recorder.state === 'recording' && recorder.seconds >= VOICE_MAX_SECONDS) void sendRef.current();
+  }, [recorder.state, recorder.seconds]);
 
   return (
     <div className={clsx('flex min-h-0 flex-col', className)}>
@@ -98,15 +124,34 @@ export function ChatPanel({ applicantId, className, autoFocus }: { applicantId: 
         )}
       </div>
 
+      {/* A blocked or missing microphone is the common case on a borrowed laptop. Without this the
+          mic button does nothing at all when tapped, which reads as a broken feature. */}
+      {recorder.error ? (
+        <p role="status" className="flex items-start gap-2 border-t border-line bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] px-3 py-2 text-[13px]">
+          <CircleAlert size={15} className="mt-0.5 flex-none text-warn" aria-hidden />
+          {recorder.error}
+        </p>
+      ) : null}
+
       <form onSubmit={submit} className="flex items-end gap-2 border-t border-line bg-surface px-3 py-2.5">
         {recorder.state === 'recording' ? (
           <div className="flex flex-1 items-center gap-3 px-1">
             <span className="h-2.5 w-2.5 flex-none animate-pulse rounded-full bg-bad" aria-hidden />
             <span className="num text-[14px] font-semibold" aria-live="off">
-              {formatDuration(recorder.seconds)}
+              {formatDuration(recorder.seconds)} / {formatDuration(VOICE_MAX_SECONDS)}
             </span>
             <span className="text-[13px] text-muted">Recording a voice note</span>
-            <Button size="sm" variant="ghost" className="ml-auto" onClick={recorder.cancel}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto"
+              onClick={() => {
+                // Latch it closed: a cancelled note must not be sent by a render that still
+                // sees `recording` at the cap.
+                sent.current = true;
+                recorder.cancel();
+              }}
+            >
               Cancel
             </Button>
             <Button size="sm" variant="primary" icon={Square} onClick={stopAndSend}>
@@ -129,9 +174,13 @@ export function ChatPanel({ applicantId, className, autoFocus }: { applicantId: 
                 }}
               />
             </label>
-            {recorder.supported && !text.trim() ? (
-              <IconButton label="Record a voice note" icon={Mic} onClick={recorder.start} disabled={voice.isPending} />
-            ) : null}
+            {/* A browser that cannot record still shows the button, disabled, with the reason on
+                hover: silently hiding it makes the feature look unbuilt rather than unavailable. */}
+            {text.trim() ? null : recorder.supported ? (
+              <IconButton label="Record a voice note" icon={Mic} onClick={startRecording} disabled={voice.isPending} />
+            ) : (
+              <IconButton label={recorder.unsupportedReason ?? 'This browser cannot record audio'} icon={MicOff} disabled />
+            )}
             <Button type="submit" variant="primary" icon={Send} loading={send.isPending || voice.isPending} disabled={!text.trim()} aria-label="Send message">
               <span className="sr-only sm:not-sr-only">Send</span>
             </Button>
