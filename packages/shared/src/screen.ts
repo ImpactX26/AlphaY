@@ -135,6 +135,66 @@ export interface NoteBlock extends Base {
   tone: 'info' | 'warn' | 'success';
 }
 
+/**
+ * Rooms and flats near where they are actually going, with the commute to the place that decides
+ * their day — the hospital or the campus. Rent on its own does not tell anyone whether they can
+ * live somewhere: 80 euros cheaper and 50 minutes each way is not cheaper.
+ */
+export interface RentalsBlock extends Base {
+  type: 'rentals';
+  city: string;
+  center: { lat: number; lon: number };
+  /** What they are commuting to, if we know it. */
+  anchor: { label: string; lat: number; lon: number } | null;
+  budgetEur: number | null;
+  listings: {
+    id: string;
+    title: string;
+    district: string;
+    kind: 'wg_room' | 'studio' | 'flat';
+    warmRentEur: number;
+    sizeSqm: number | null;
+    lat: number;
+    lon: number;
+    commuteMin: number | null;
+    url: string | null;
+    affordable: boolean;
+    note?: string;
+  }[];
+  source: string;
+}
+
+/**
+ * People who were in the same position, anonymised, and how long each step actually took them.
+ *
+ * Every applicant asks "how long will this take". An average off a government page is not an
+ * answer; what the people on this route actually took is. Only cohort members far enough along to
+ * have real dates are counted, and the count is shown so nobody mistakes three people for a trend.
+ */
+export interface CohortBlock extends Base {
+  type: 'cohort';
+  route: string;
+  /** How many anonymised files this is drawn from. */
+  basis: number;
+  steps: { label: string; medianWeeks: number; rangeWeeks: [number, number]; youAre: 'ahead' | 'on_track' | 'behind' | 'not_started' }[];
+  peers: { label: string; headline: string; nowAt: string }[];
+}
+
+/** The cohort channel, in the app: the same thread that lives in Discord. */
+export interface CommunityBlock extends Base {
+  type: 'community';
+  channel: string | null;
+  posts: {
+    id: string;
+    author: string;
+    authorKind: 'applicant' | 'agent' | 'staff';
+    text: string;
+    createdAt: string;
+    replies: number;
+    viaDiscord: boolean;
+  }[];
+}
+
 export type Block =
   | NextStepBlock
   | QuestionBlock
@@ -153,6 +213,9 @@ export type Block =
   | PlacesBlock
   | LettersBlock
   | ArrivalBlock
+  | RentalsBlock
+  | CohortBlock
+  | CommunityBlock
   | NoteBlock;
 
 export type BlockType = Block['type'];

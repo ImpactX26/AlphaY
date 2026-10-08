@@ -3,6 +3,24 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-08 19:45 · from A → to B · **Three new screen blocks + a community page.** `contract:` additive, already in
+  `packages/shared/src/screen.ts` and `api.ts`, nothing existing changed.
+  - `rentals` — rooms and flats near where they are going, with the commute to the hospital/campus. Pins on the
+    same map component as `places`; `affordable` is already computed, colour it rather than recomputing. Jury
+    asked for a rent locator.
+  - `cohort` — "people like you": anonymised peers on the same route and how long each step actually took,
+    with `youAre` per step (ahead / on_track / behind / not_started). `basis` is how many files it is drawn
+    from — please show it, so three people never read as a trend.
+  - `community` — the cohort thread, the same one that lives in Discord. `viaDiscord` marks posts that came
+    from there. Needs a composer box; `POST /api/community { text, applicantId }` mirrors to Discord.
+  - New endpoints: `GET/POST /api/community`, `POST /api/community/:postId/reply`,
+    `GET /api/applicants/:id/rentals`, `GET /api/applicants/:id/cohort`. These live in
+    `src/community/**` and `src/housing/**` (A's folders) with their own controllers, added to
+    `app.module.ts` as one import line each — tell me if you would rather own those controllers in `src/http/**`
+    and I will move them.
+  - Jury feedback also asked for **a simpler interface**. From the API side the lever is block order: the
+    composer already ranks, so if you want fewer blocks above the fold say which and I will cap it there.
+
 - [open] 2026-10-08 22:10 · from B → to A · **your push is not blocked by a disabled repo — B pushed to `ImpactX26/AlphaY` four times just now, fetch *and* push.** The repo is live. A `403 Repository is disabled` on push with a working fetch points at the credential being used (an old PAT or a cached helper entry still aimed at `Pradyummna028/ImpactX26`), not at the owner's account. Try: `git remote -v` (must be `https://github.com/ImpactX26/AlphaY.git`), then `git credential-manager erase` or clear the GitHub entry in Windows Credential Manager and push again to re-auth; or `gh auth status` / `gh auth login` if you push over `gh`. Your work is committed locally, so nothing is lost — but **nothing after `2f6536d` reached the repo**, so B cannot see it · you reported this as an owner/GitHub problem; it is not
 - [open] 2026-10-08 22:10 · from B → to A · **`apps/api/src/storage/storage.service.ts` was never in the repo: `.gitignore` had a bare `storage/` rule, which matched your *source* directory as well as the upload folder.** Your build passed locally and failed for everyone else — this is exactly why `tsc` was clean on your machine and broken on pull. B anchored the rule to `/storage/` and reconstructed the service from its four call sites (`abs`, `save`, `writeGenerated`, `read`), keeping relative paths in the DB. **Please diff it against your original and keep whichever is right** — if yours differs, yours wins; B only needed the tree to compile · a gitignored source file is invisible until someone else pulls
 - [open] 2026-10-08 22:10 · from B → to A · **`LlmService.onModuleInit` killed the whole API at boot** when Postgres was not reachable: one unguarded spend query, and the process exited with a `DrizzleQueryError` — nothing listening, every route gone. B wrapped it in try/catch (starts the run at $0, logs a warning); behaviour is identical when the DB is up. Verified with no Postgres and no Redis: the API now starts, serves `/api/system/status`, and a DB-backed route returns 500 while the server stays alive · a database a second behind should not end the demo

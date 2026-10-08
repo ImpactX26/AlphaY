@@ -186,6 +186,26 @@ export interface CalendarEventDTO {
   description: string | null;
 }
 
+/** One message in the cohort thread. The same post exists in Discord; this is the app's view of it. */
+export interface CommunityPostDTO {
+  id: string;
+  channel: string;
+  author: string;
+  authorKind: 'applicant' | 'agent' | 'staff';
+  applicantId: string | null;
+  text: string;
+  viaDiscord: boolean;
+  replies: CommunityPostDTO[];
+  createdAt: string;
+}
+
+export interface CohortDTO {
+  route: string;
+  basis: number;
+  steps: { label: string; medianWeeks: number; rangeWeeks: [number, number]; youAre: 'ahead' | 'on_track' | 'behind' | 'not_started' }[];
+  peers: { label: string; headline: string; nowAt: string }[];
+}
+
 export interface InterviewDTO {
   id: string;
   kind: 'visa' | 'employer' | 'university';
