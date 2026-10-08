@@ -66,6 +66,14 @@ const ELSEWHERE: Partial<Record<Block['type'], { to: string; page: string }>> = 
   arrival: { to: '/app/life', page: 'Life' },
   documents: { to: '/app/profile', page: 'Profile' },
   community: { to: '/app/inbox', page: 'Cohort' },
+  // The five jury blocks are all standing reference rather than something to act on today, and
+  // dropping them on Home would rebuild the wall of boxes the simpler-interface note asked us to
+  // tear down. Life owns the money and the move; "Is it safe?" owns the rest.
+  finance_plan: { to: '/app/life', page: 'Life' },
+  cohort_group: { to: '/app/life', page: 'Life' },
+  scam_check: { to: '/app/life', page: 'Life' },
+  reality_check: { to: '/app/life', page: 'Life' },
+  help: { to: '/app/life', page: 'Life' },
 };
 
 // Everything else stays on Home, including the truth map and the requirement matrix: the agent

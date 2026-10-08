@@ -90,7 +90,10 @@ export function ScamCheckCard({ block, bare }: { block: ScamCheckBlock; bare?: b
 
       {block.neverDo.length ? (
         <details className="mt-4 text-[13px]">
-          <summary className="cursor-pointer font-medium">Five things never to do</summary>
+          {/* Counted, not hardcoded: the API decides how many rules it sends. */}
+          <summary className="cursor-pointer font-medium">
+            {block.neverDo.length} {block.neverDo.length === 1 ? 'thing' : 'things'} never to do
+          </summary>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
             {block.neverDo.map((n, i) => (
               <li key={i}>{n}</li>

@@ -12,11 +12,19 @@ import { EmptyState, PageHeader } from '../ui/misc';
  * Where you will actually live.
  *
  * The map, the rent locator, the budget and the arrival steps were buried mid-plan, where a 280px
- * map had no room. They are one subject — the move — but two jobs: choosing a place, and the list
- * you work through once you land. One page, two tabs, so neither is a wall.
+ * map had no room. They are one subject — the move — but several jobs: choosing a place, paying
+ * for it, arriving, and knowing when you are being cheated. One page, tabs, so none is a wall.
+ *
+ * A tab with nothing in it never renders, so a persona who has no scam check or no finance plan
+ * simply sees fewer tabs rather than an empty one.
  */
 const TABS = {
-  place: { label: 'Where you’ll live', types: ['rentals', 'places', 'budget'] as Block['type'][] },
+  place: { label: 'Where you’ll live', types: ['rentals', 'places'] as Block['type'][] },
+  money: { label: 'What it costs', types: ['finance_plan', 'budget'] as Block['type'][] },
+  // The honest version of the route, next to the people arriving with her: both are "what am I
+  // actually walking into", and both belong before the money is spent rather than after.
+  truth: { label: 'What it’s really like', types: ['reality_check', 'cohort_group'] as Block['type'][] },
+  safe: { label: 'Is it safe?', types: ['scam_check', 'help'] as Block['type'][] },
   settling: { label: 'Settling in', types: ['arrival'] as Block['type'][] },
 };
 type TabKey = keyof typeof TABS;
@@ -33,7 +41,10 @@ export default function LifePage() {
 
   return (
     <div className="mx-auto max-w-[980px]">
-      <PageHeader title="Your life there">Where you could live, what a month costs, and what happens in your first weeks.</PageHeader>
+      <PageHeader title="Your life there">
+        Where you could live, what it costs over the whole plan, what the route is really like, and how to tell when someone is
+        cheating you.
+      </PageHeader>
 
       {available.length ? (
         <>

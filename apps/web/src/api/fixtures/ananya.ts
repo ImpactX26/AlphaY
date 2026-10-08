@@ -1,5 +1,5 @@
 import type { ApprovalDetailDTO, FactDTO, LetterPayload, TraceDTO, TruthRow } from '@educaro/shared';
-import { communityPosts, nursingCohort } from './community';
+import { cohortGroup, communityPosts, nursingCohort } from './community';
 import { type ApplicantState, ago, DAY, MIN, SERVICES } from './common';
 
 export const ANANYA_ID = 'app-ananya';
@@ -535,6 +535,137 @@ export function ananyaState(): ApplicantState {
             replies: p.replies.length,
             viaDiscord: p.viaDiscord,
           })),
+        },
+        // A real WhatsApp recruiter approach, of the kind Kerala nurses get weekly. Every signal
+        // here is checkable in code, and the three contract clauses are all unenforceable in
+        // Germany — which is the point: the product knows the law, the applicant does not yet.
+        {
+          id: 'b-an-scam',
+          type: 'scam_check',
+          title: 'That WhatsApp offer you forwarded me',
+          body: 'You asked if "Global Care Recruiters" is real. It is not. Here is how I know, so you can spot the next one yourself.',
+          subject: { kind: 'agent', name: 'Global Care Recruiters' },
+          verdict: 'high_risk',
+          score: 8,
+          signals: [
+            { label: 'Asks for €2,400 before any contract', status: 'bad', detail: 'A licensed recruiter is paid by the employer. In Germany you never pay to be placed in a nursing job.' },
+            { label: 'No Erlaubnis number anywhere', status: 'bad', detail: 'Placement agencies must hold a permit and show the number. There is none on the letter, the website or the stamp.' },
+            { label: 'Gmail address on a letter with a ministry crest', status: 'bad', detail: 'globalcare.recruiters2024@gmail.com. No German authority or hospital corresponds from Gmail.' },
+            { label: 'Domain registered 3 weeks ago', status: 'bad', detail: 'globalcare-recruiters.com was created on 16 September 2026. A 40-year-old agency does not have a 3-week-old domain.' },
+            { label: 'The hospital it names is real', status: 'warn', detail: 'St. Elisabeth in Cologne exists — which is exactly why the letter uses it. I called: they have no vacancy through any agent.' },
+            { label: 'Deposit by Western Union to a personal name', status: 'bad', detail: 'Irreversible and untraceable, and addressed to a person rather than a company. No legitimate employer asks for this.' },
+          ],
+          contractFlags: [
+            {
+              clause: 'The employee shall pay a placement fee of €2,400, non-refundable under any circumstances.',
+              why: 'You are being charged for a job, and told you can never get it back.',
+              lawSays: '§ 296 SGB III: a private agency may only be paid by the employer for placing a nurse. A fee charged to you is void, and "non-refundable" does not survive it.',
+              severity: 'illegal',
+            },
+            {
+              clause: 'The employee agrees not to leave this employer for 5 years from arrival.',
+              why: 'It makes you unable to walk away from a bad ward, which is the whole leverage of the scam.',
+              lawSays: 'Art. 12 GG and § 622 BGB: you may always terminate with notice. A 5-year tie-in on an employee is unenforceable.',
+              severity: 'illegal',
+            },
+            {
+              clause: 'The employer retains the employee’s passport for the duration of the contract.',
+              why: 'Nobody may hold your passport. This is the single clearest sign of trafficking, not employment.',
+              lawSays: 'Your passport is yours and stays with you. Keeping it is a criminal offence, not a contract term.',
+              severity: 'illegal',
+            },
+          ],
+          neverDo: [
+            'Pay anyone to get you a nursing job in Germany. The employer pays.',
+            'Send money by Western Union, MoneyGram, UPI or crypto to a recruiter.',
+            'Hand your passport to an employer or agent, in India or in Germany.',
+            'Sign anything you have not had read to you by someone who is not paid by them.',
+          ],
+        },
+        // Money over time, not money per month. The blocked account is the number that decides
+        // whether this plan is real, and it lands nine months before she travels.
+        {
+          id: 'b-an-finance',
+          type: 'finance_plan',
+          title: 'What this costs, and when',
+          body: 'Spread over fourteen months, not all at once. The blocked account is the big one, and it is due long before you fly.',
+          currency: 'EUR',
+          inrPerEur: 92,
+          oneOff: [
+            { label: 'B1 course at Educaro', amountEur: 420, whenMonth: 'Nov 2026', paid: true, note: 'Paid — batch starts 2 November.' },
+            { label: 'ÖSD B1 exam fee', amountEur: 180, whenMonth: 'Feb 2027', paid: false },
+            { label: 'Anerkennung file and certified translations', amountEur: 310, whenMonth: 'Mar 2027', paid: false, note: 'Includes the affidavit for the name mismatch on your diploma.' },
+            { label: 'B2 course', amountEur: 480, whenMonth: 'Apr 2027', paid: false },
+            { label: 'Blocked account (Sperrkonto)', amountEur: 12324, whenMonth: 'Jun 2027', paid: false, note: 'Returned to you monthly once you arrive — it is proof, not a cost.' },
+            { label: 'Visa fee and biometrics', amountEur: 75, whenMonth: 'Jul 2027', paid: false },
+            { label: 'Flight, Kochi to Cologne', amountEur: 520, whenMonth: 'Aug 2027', paid: false },
+          ],
+          monthlyEur: 1027,
+          needBeforeTravelEur: 14309,
+          haveEur: 9800,
+          fundingGapEur: 4509,
+          options: [
+            { label: 'Your sister in Cologne can sponsor the blocked account', detail: 'A Verpflichtungserklärung from a resident relative replaces the Sperrkonto entirely. If she signs, your gap drops to about €640.' },
+            { label: 'Work as a Pflegehelferin during Anerkennung', detail: 'The Lindenhof opening pays about €2,100 a month from June 2027, which covers your living costs while recognition finishes.' },
+            { label: 'Education loan against the Anerkennung letter', detail: 'Once the recognition file is accepted, Indian banks lend against it at 9–11%. Not before — the letter is the collateral.' },
+            { label: 'Employer-funded adaptation course', detail: 'Rheinpflege funds the adaptation course and the B2 top-up, which takes €480 out of the plan above.' },
+          ],
+        },
+        // The parts a brochure leaves out. These are the numbers that make the rest believable.
+        {
+          id: 'b-an-reality',
+          type: 'reality_check',
+          title: 'What nursing in Germany is actually like',
+          body: 'You should hear this before you spend fourteen months on it, not after you land.',
+          route: 'Nursing with Anerkennung',
+          headline: 'The pay and the security are real. The first year is lonely, the German is harder than the exam suggests, and you will do work you did not do in Kochi.',
+          shifts: [
+            { label: 'Twelve shifts a month, nights and weekends', detail: 'Früh, Spät and Nacht rotate. Most wards give a roster four weeks out, so planning anything is hard at first.' },
+            { label: 'You will do basic care you may not have done as a GNM', detail: 'Washing, feeding and toileting are nursing tasks here, not a helper’s. Indian nurses consistently say this is the hardest adjustment, and it is not a demotion.' },
+            { label: 'Documentation in German, every shift', detail: 'Everything is written, and it is legally binding. This is where B2 stops being a certificate and starts being the job.' },
+            { label: '8 to 12 patients on a late shift', detail: 'Better than most Indian wards, worse than the brochures imply. Elderly care runs heavier than hospital.' },
+          ],
+          money: [
+            { label: '€2,800–3,300 gross once recognised', detail: 'About €1,950–2,250 in hand after tax and insurance, in Nordrhein-Westfalen.' },
+            { label: '€2,100 gross while in Anerkennung', detail: 'You are paid as a Pflegehelferin until the recognition comes through — plan for 6 to 14 months of it.' },
+            { label: 'Night and Sunday supplements are 25–50%', detail: 'Real money. Many nurses deliberately take nights for the first two years.' },
+            { label: 'Rent takes a third of it', detail: 'Around €700 warm for a room in Ehrenfeld, which is why the cohort flat share below matters.' },
+          ],
+          hard: [
+            { stat: '14 months', detail: 'Median from first application to starting work, for GNM nurses on this route' },
+            { stat: '1 in 3', detail: 'Need a second attempt at the B2 exam' },
+            { stat: '9 months', detail: 'Typical Anerkennung wait in NRW after a complete file' },
+          ],
+          voices: [
+            { who: 'Nurse from Thrissur, Cologne, arrived 2024', quote: 'The job I could do from week one. Ordering electricity, understanding a letter from the Ausländerbehörde, being the only one in the room who does not get the joke — that took a year.' },
+            { who: 'Nurse from Kochi, Düsseldorf, arrived 2023', quote: 'Do the B2 properly before you come. I passed the exam and still could not follow a handover for three months.' },
+            { who: 'Nurse from Kottayam, Essen, arrived 2022', quote: 'Three years in I have a permanent contract, a flat and my mother’s visa. I would do it again. I would not do it again without someone telling me the first year honestly.' },
+          ],
+          source: 'Nine Educaro nurses on this route, plus BA pay data for NRW, 2026',
+        },
+        cohortGroup,
+        // Rights first, phone numbers second: knowing the rule is what makes somebody willing to call.
+        {
+          id: 'b-an-help',
+          type: 'help',
+          title: 'If something goes wrong at work',
+          body: 'These apply from your first shift, whatever a contract or a manager says. Nobody can sign them away, including you.',
+          rights: [
+            { title: 'Your passport stays with you', detail: 'No employer or agent may hold it, not even "for the visa file". If someone has taken it, that is a police matter, not an HR one.' },
+            { title: '24 days of paid leave, minimum', detail: 'By law, on a 6-day week. Most nursing contracts in NRW give 28 to 30. It cannot be traded for money while you are employed.' },
+            { title: 'Overtime is paid or given back as time', detail: 'Unpaid overtime is not legal because your ward is short-staffed. Keep your own note of hours — your roster is evidence.' },
+            { title: 'Sick means sick', detail: 'A doctor’s note from day one if your contract says so, and you keep full pay for six weeks. You cannot be dismissed for being ill.' },
+            { title: 'You can leave', detail: 'Four weeks’ notice during probation, then the contract’s term. A clause tying you for years is void — walking away is always available to you.' },
+            { title: 'Dismissal needs a reason in writing', detail: 'After six months you have Kündigungsschutz. You have three weeks to challenge it at the Arbeitsgericht, and that clock is strict.' },
+          ],
+          contacts: [
+            { label: 'Faire Integration', detail: 'Free, confidential labour-rights advice for migrant workers, in English. The right first call.', url: 'https://www.faire-integration.de/' },
+            { label: 'ver.di', detail: 'The union for care work. Free legal representation in employment disputes once you are a member.', url: 'https://www.verdi.de/' },
+            { label: 'Arbeitsgericht Köln', detail: 'Labour court. No lawyer needed to file, and no court fee for the first instance.', url: 'https://www.ag-koeln.nrw.de/' },
+            { label: 'Your Educaro case worker', detail: 'Priya, in the app. She has done this with forty nurses and answers within a day.', url: null },
+            { label: 'Emergency', detail: '112 for police or ambulance, anywhere in Germany, free from any phone.', url: null },
+          ],
+          reportHint: 'You can also report an employer to me privately. It never carries your name, and it feeds the employer rating other applicants see.',
         },
       ],
     },

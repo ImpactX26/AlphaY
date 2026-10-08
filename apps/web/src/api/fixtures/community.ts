@@ -1,4 +1,4 @@
-import type { CohortDTO, CommunityPostDTO, RentalsBlock } from '@educaro/shared';
+import type { CohortDTO, CohortGroupBlock, CommunityPostDTO, RentalsBlock } from '@educaro/shared';
 
 const ago = (mins: number) => new Date(Date.now() - mins * 60_000).toISOString();
 
@@ -114,6 +114,36 @@ export const nursingCohort: CohortDTO = {
     { label: 'BSc nurse, Tamil Nadu', headline: 'Anerkennung came back asking for an adaptation course', nowAt: 'Adaptation, month 2' },
     { label: 'GNM nurse, Kerala', headline: 'Name mismatch on the diploma, fixed with an affidavit', nowAt: 'Visa booked' },
   ],
+};
+
+/**
+ * The people arriving in the same city in the same month.
+ *
+ * Different from `nursingCohort`, which is people *ahead* of her: this is the five landing beside
+ * her, and the reason it exists is that arriving alone is the part nobody plans for. The flat share
+ * sits in Ehrenfeld on purpose — the same district as the cheap room in `rentalsFor`, nine minutes
+ * from the clinic, so the two blocks agree with each other.
+ */
+export const cohortGroup: CohortGroupBlock = {
+  id: 'b-cohort-group',
+  type: 'cohort_group',
+  title: 'Going to Cologne with you',
+  body: 'Five others land the same month. Two have already found each other a flat.',
+  city: 'Cologne',
+  month: 'September 2027',
+  members: [
+    { label: 'GNM nurse, Kochi', route: 'Nursing, Anerkennung', arrivingMonth: 'Sep 2027', sharedInterest: 'Also from Kerala' },
+    { label: 'GNM nurse, Thrissur', route: 'Nursing, Anerkennung', arrivingMonth: 'Sep 2027', sharedInterest: 'Malayalam' },
+    { label: 'BSc nurse, Coimbatore', route: 'Nursing, Anerkennung', arrivingMonth: 'Sep 2027', sharedInterest: null },
+    { label: 'Ausbildung, Pune', route: 'Pflege Ausbildung', arrivingMonth: 'Aug 2027', sharedInterest: 'Same German school' },
+    { label: 'GNM nurse, Kollam', route: 'Nursing, Anerkennung', arrivingMonth: 'Oct 2027', sharedInterest: 'Elderly care' },
+  ],
+  flatShare: { seats: 1, budgetEachEur: 510, district: 'Ehrenfeld' },
+  travel: {
+    label: 'Three of you are on the same Kochi–Cologne route in the last week of August',
+    detail: 'Sharing a flight means somebody is at the airport who knows your name. The group is sorting dates in the thread.',
+  },
+  joined: false,
 };
 
 /** The cohort thread. The Discord-sourced posts are the ones the bot mirrored in. */
