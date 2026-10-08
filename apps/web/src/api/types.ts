@@ -1,4 +1,7 @@
 import type {
+  CohortGroupDTO,
+  CohortGroupsDTO,
+  StaffGroupDTO,
   EmployerRatingDTO,
   EmployerReportDTO,
   ReportInput,
@@ -99,6 +102,12 @@ export interface Api {
   germany(id: string, input: { city: string; address?: string; startDate?: string }): Promise<ApplicantDTO>;
   rentals(id: string): Promise<RentalsBlock>;
   cohort(id: string): Promise<CohortDTO>;
+  groups(id: string): Promise<CohortGroupsDTO>;
+  proposeShare(id: string, who: string, kind?: 'flat_share' | 'travel'): Promise<{ group: CohortGroupDTO; invited: { applicantId: string; label: string } }>;
+  respondToGroup(id: string, groupId: string, accept: boolean): Promise<CohortGroupDTO>;
+  requestGroup(id: string, groupId: string): Promise<CohortGroupDTO>;
+  leaveGroup(id: string, groupId: string): Promise<{ ok: true }>;
+  staffGroups(): Promise<StaffGroupDTO[]>;
   check(id: string, input: SafetyCheckInput): Promise<SafetyCheckDTO>;
   checks(id: string): Promise<SafetyCheckSummaryDTO[]>;
   report(id: string, input: ReportInput): Promise<{ id: string; status: string; createdAt: string }>;

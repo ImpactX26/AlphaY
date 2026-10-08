@@ -6,6 +6,14 @@ export interface BusEvents {
   notify: { applicantId: string; title: string; text: string; ics?: string; channels?: ('email' | 'discord')[] };
   /** A post in the cohort thread that should be mirrored into the Discord channel. */
   community_post: { id: string; channel: string; author: string; text: string; replyToDiscordId?: string | null };
+  /**
+   * Somebody asked somebody else to share a flat or a flight.
+   *
+   * Separate from `notify` because this one needs an answer, and an invitation you reply to by
+   * opening another app is an invitation that expires unanswered. Discord turns it into two
+   * buttons; anywhere else it degrades to the text.
+   */
+  group_invite: { applicantId: string; groupId: string; from: string; title: string; text: string };
 }
 
 /** In-process bus so chat, mail and Discord can talk without import cycles. */

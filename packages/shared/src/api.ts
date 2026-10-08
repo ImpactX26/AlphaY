@@ -431,5 +431,79 @@ export interface EmployerReportDTO {
   createdAt: string;
 }
 
+// ---------- flat-shares and travel groups ----------
+// GET    /api/applicants/:id/groups                        -> CohortGroupsDTO
+// POST   /api/applicants/:id/groups                        -> CohortGroupDTO
+// POST   /api/applicants/:id/groups/propose { who, kind }  -> { group, invited }
+// POST   /api/applicants/:id/groups/:groupId/invite        -> CohortGroupDTO
+// POST   /api/applicants/:id/groups/:groupId/request       -> CohortGroupDTO
+// POST   /api/applicants/:id/groups/:groupId/respond       -> CohortGroupDTO
+// DELETE /api/applicants/:id/groups/:groupId               -> { ok: true }
+// GET    /api/staff/groups                                 -> StaffGroupDTO[]  (staff)
+
+export interface CohortGroupMemberDTO {
+  /** Null until you are both in: nobody consented to being identifiable in a group they declined. */
+  applicantId: string | null;
+  label: string;
+  route: string;
+  homeCity: string | null;
+  role: 'owner' | 'member';
+  status: 'invited' | 'requested' | 'joined' | 'declined';
+}
+
+export interface CohortGroupDTO {
+  id: string;
+  kind: 'flat_share' | 'travel';
+  title: string;
+  city: string;
+  month: string;
+  district: string | null;
+  seats: number;
+  fromCity: string | null;
+  note: string | null;
+  status: 'open' | 'full' | 'closed';
+  rentSplit: 'even' | 'by_room';
+  budgetEachEur: number | null;
+  /** The arithmetic, done: "split evenly" is only an answer once it is a number. */
+  shareEachEur: number | null;
+  /** What the people already in it would each pay today. Null until there are two of them. */
+  shareNowEur?: number | null;
+  seatsLeft: number;
+  members: CohortGroupMemberDTO[];
+  /** Null means they have nothing to do with this group yet. */
+  youAre: 'invited' | 'requested' | 'joined' | 'declined' | null;
+  awaitingYou: boolean;
+}
+
+export interface CohortSuggestionDTO {
+  city: string;
+  month: string;
+  district: string | null;
+  seats: number;
+  budgetEachEur: number;
+  candidates: { applicantId: string; label: string; route: string; homeCity: string | null; sharedInterest: string | null }[];
+}
+
+export interface CohortGroupsDTO {
+  groups: CohortGroupDTO[];
+  suggestion: CohortSuggestionDTO | null;
+}
+
+export interface StaffGroupDTO {
+  id: string;
+  kind: 'flat_share' | 'travel';
+  title: string;
+  city: string;
+  month: string;
+  status: string;
+  seats: number;
+  joined: number;
+  pending: number;
+  shareEachEur: number | null;
+  shareNowEur?: number | null;
+  members: string[];
+  createdAt: string;
+}
+
 // Re-exported elsewhere in the package; imported here so the endpoint comments above type-check in editors.
 export type _ContractRefs = [ApprovalDTO, FactDTO, QuestionDTO, TraceDTO, TruthRow, ChatMessageDTO, Screen];

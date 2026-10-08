@@ -1,5 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   ChannelType,
   Client,
   Events,
@@ -7,6 +10,7 @@ import {
   REST,
   Routes,
   SlashCommandBuilder,
+  type ButtonInteraction,
   type ChatInputCommandInteraction,
   type Guild,
   type Message,
@@ -24,6 +28,8 @@ import { TraceService } from '../trace/trace.service';
 import { ROUTE_LABEL, type Route } from '@educaro/shared';
 import { DISCORD_LINKS } from '../seed/catalogue';
 import { CommunityService } from '../community/community.service';
+import { GroupsService } from '../community/groups.service';
+import { parseShareIntent } from '../community/share-intent';
 import { ANNOUNCEMENTS } from '../community/announcements.service';
 
 const COHORT = 'educaro-cohort';
@@ -47,6 +53,7 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly bus: BusService,
     private readonly community: CommunityService,
+    private readonly groups: GroupsService,
     private readonly chat: ChatService,
     private readonly state: StateService,
     private readonly q: QueueService,
@@ -72,6 +79,7 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     });
     this.client.on(Events.InteractionCreate, (i) => {
       if (i.isChatInputCommand()) void this.onCommand(i).catch((e) => this.log.error(e.message));
+      if (i.isButton()) void this.onButton(i).catch((e) => this.log.error(e.message));
     });
     this.client.on(Events.MessageCreate, (m) => {
       if (m.author.bot) return;
@@ -88,6 +96,9 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     });
     this.bus.on('notify', async (p) => {
       if (!p.channels || p.channels.includes('discord')) await this.dmApplicant(p.applicantId, `**${p.title}**\n${p.text}`);
+    });
+    this.bus.on('group_invite', async (p) => {
+      await this.sendInvite(p.applicantId, p.groupId, p.title, p.text);
     });
     this.bus.on('community_post', async (p) => {
       // The feed and the conversation live in different channels on purpose: put a wall of links
@@ -136,6 +147,7 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     });
     this.client.on(Events.InteractionCreate, (i) => {
       if (i.isChatInputCommand()) void this.onCommand(i).catch((e) => this.log.error(e.message));
+      if (i.isButton()) void this.onButton(i).catch((e) => this.log.error(e.message));
     });
   }
 
@@ -156,6 +168,15 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
       new SlashCommandBuilder().setName('next').setDescription('Your next step and how long it takes'),
       new SlashCommandBuilder().setName('ask').setDescription('Ask the agent anything about your own file').addStringOption((o) => o.setName('question').setDescription('Your question').setRequired(true)),
       new SlashCommandBuilder().setName('links').setDescription('Post the cohort links (universities, APS, visa, courses)'),
+      new SlashCommandBuilder()
+        .setName('flatshare')
+        .setDescription('Ask someone in the cohort to share a flat, split evenly')
+        .addStringOption((o) => o.setName('who').setDescription('Their name in the cohort, or @mention them').setRequired(true)),
+      new SlashCommandBuilder()
+        .setName('travel')
+        .setDescription('Ask someone arriving the same month to travel together')
+        .addStringOption((o) => o.setName('who').setDescription('Their name in the cohort, or @mention them').setRequired(true)),
+      new SlashCommandBuilder().setName('cohort').setDescription('Your flat-shares and travel groups, and who else is going where you are'),
     ].map((c) => c.toJSON());
     const rest = new REST().setToken(config.discordToken);
     // Guild commands appear instantly; global ones take up to an hour, so a guild id is worth
@@ -238,6 +259,93 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
       channel: COHORT,
       applicantId: applicant?.id ?? null,
     });
+    if (applicant) await this.maybeShare(m, applicant.id).catch((e) => this.log.warn(`share intent: ${e.message}`));
+  }
+
+  /**
+   * "I'd like to stay with Rohan and split the rent evenly."
+   *
+   * Said in the channel, in the middle of a conversation, never as a command — so the bot has to
+   * hear it in an ordinary sentence or the feature does not exist for the people it is for. The
+   * rules are narrow on purpose: this ends in a message to a named third party about where they are
+   * going to live, so an unsure parse asks instead of acting.
+   */
+  private async maybeShare(m: Message, applicantId: string) {
+    const intent = parseShareIntent(m.content);
+    if (!intent) return;
+
+    if (!intent.confident) {
+      await m.reply(
+        intent.who
+          ? `I think you want to ${intent.kind === 'travel' ? 'travel' : 'share a flat'} with ${intent.who}. Say it as "I'd like to ${intent.kind === 'travel' ? 'fly' : 'stay'} with ${intent.who}" and I will ask them.`
+          : `Happy to set that up — who with? Name them, or use \`/flatshare\`, and I will ask them. Nobody is added to anything without saying yes.`,
+      );
+      return;
+    }
+
+    try {
+      const { group, invited } = await this.groups.proposeShare(applicantId, intent.who!, { kind: intent.kind });
+      await m.reply(
+        intent.kind === 'travel'
+          ? `Asked **${invited.label}** if they want to fly to ${group.city} with you around ${group.month}. I will tell you the moment they answer.`
+          : [
+              `Asked **${invited.label}** about sharing a flat in ${group.city} from ${group.month}${group.district ? ` (${group.district})` : ''}.`,
+              group.shareEachEur ? `Split evenly that is about **EUR ${group.shareEachEur} each a month** — I will recompute it as people join.` : null,
+              `They get two buttons and nothing is shared until they tap one.`,
+            ]
+              .filter(Boolean)
+              .join('\n'),
+      );
+    } catch (e: any) {
+      await m.reply(e?.message ?? 'I could not set that up. Try `/flatshare` and pick them from the list.');
+    }
+  }
+
+  /** The invitation itself: two buttons, because an invitation you have to go elsewhere to answer expires. */
+  private async sendInvite(applicantId: string, groupId: string, title: string, text: string) {
+    if (!this.client) return;
+    const a = await db.query.applicants.findFirst({ where: eq(schema.applicants.id, applicantId) });
+    if (!a?.userId) return;
+    const u = await db.query.users.findFirst({ where: eq(schema.users.id, a.userId) });
+    if (!u?.discordUserId) return;
+    const user = await this.client.users.fetch(u.discordUserId).catch(() => null);
+    if (!user) return;
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(`grp:yes:${groupId}`).setLabel('Yes, count me in').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`grp:no:${groupId}`).setLabel('No thanks').setStyle(ButtonStyle.Secondary),
+    );
+    await user.send({ content: `**${title}**\n${text}`.slice(0, 1900), components: [row] }).catch(() => undefined);
+  }
+
+  /**
+   * Tapping yes or no.
+   *
+   * The applicant is resolved from the Discord account rather than from anything in the button id,
+   * so a copied custom id cannot answer on somebody else's behalf.
+   */
+  private async onButton(i: ButtonInteraction) {
+    const [ns, verb, groupId] = i.customId.split(':');
+    if (ns !== 'grp') return;
+    await i.deferUpdate().catch(() => undefined);
+
+    const a = await this.applicantFor(i.user.id);
+    if (!a) {
+      await i.followUp({ content: 'I do not know whose file this is. Run `/link <code>` first.', ephemeral: true }).catch(() => undefined);
+      return;
+    }
+    try {
+      const group = await this.groups.respond(a.id, groupId, verb === 'yes');
+      await i.editReply({
+        content:
+          verb === 'yes'
+            ? `**You are in — ${group.title}.**\n${group.shareEachEur ? `About EUR ${group.shareEachEur} each a month, split evenly between ${group.members.filter((m) => m.status === 'joined').length} of you. ` : ''}I will send flats that take ${group.seats}, and I check every listing and landlord before you reply to one.`
+            : 'No problem — I have told them, and nothing was shared.',
+        components: [],
+      }).catch(() => undefined);
+    } catch (e: any) {
+      await i.editReply({ content: e?.message ?? 'That did not work. Open Educaro and answer there.', components: [] }).catch(() => undefined);
+    }
   }
 
   // ---------------- per-applicant ----------------
@@ -324,6 +432,46 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
       );
       return;
     }
+    if (i.commandName === 'flatshare' || i.commandName === 'travel') {
+      const who = i.options.getString('who', true);
+      try {
+        const { group, invited } = await this.groups.proposeShare(a.id, who, { kind: i.commandName === 'travel' ? 'travel' : 'flat_share' });
+        await i.editReply(
+          i.commandName === 'travel'
+            ? `Asked **${invited.label}** about flying to ${group.city} with you around ${group.month}. They get two buttons; nothing is shared until they tap one.`
+            : `Asked **${invited.label}** about sharing a flat in ${group.city} from ${group.month}${group.district ? ` (${group.district})` : ''}.${group.shareEachEur ? ` Split evenly that is about **EUR ${group.shareEachEur} each a month**.` : ''} They get two buttons; nothing is shared until they tap one.`,
+        );
+      } catch (e: any) {
+        await i.editReply(e?.message ?? 'I could not work out who you meant. Try their first name as it shows in the cohort.');
+      }
+      return;
+    }
+
+    if (i.commandName === 'cohort') {
+      const { groups, suggestion } = await this.groups.forApplicant(a.id);
+      const mine = groups.filter((g) => g.youAre !== null);
+      const open = groups.filter((g) => g.youAre === null && g.status === 'open');
+      const lines: string[] = [];
+
+      for (const g of mine) {
+        const joined = g.members.filter((m) => m.status === 'joined');
+        lines.push(
+          `**${g.title}** — ${g.youAre === 'joined' ? `you are in, ${joined.length} of ${g.seats}` : g.youAre === 'invited' ? 'waiting for your answer' : g.youAre}` +
+            (g.shareEachEur ? ` · about EUR ${g.shareEachEur} each` : '') +
+            (joined.length ? `\n· ${joined.map((m) => m.label).join(', ')}` : ''),
+        );
+      }
+      if (open.length) lines.push(`\n__Open near you__\n` + open.map((g) => `· **${g.title}** — ${g.seatsLeft} place${g.seatsLeft === 1 ? '' : 's'} left${g.shareEachEur ? `, about EUR ${g.shareEachEur} each` : ''}`).join('\n'));
+      if (!mine.length && suggestion?.candidates.length) {
+        lines.push(
+          `You are not in a group yet. ${suggestion.candidates.length} other${suggestion.candidates.length === 1 ? ' person is' : 's are'} heading for ${suggestion.city} around ${suggestion.month}: ${suggestion.candidates.map((c) => c.label).join(', ')}.`,
+          `A flat for ${suggestion.seats} there works out at about EUR ${suggestion.budgetEachEur} each. Use \`/flatshare <name>\` and I will ask them.`,
+        );
+      }
+      await i.editReply(lines.length ? lines.join('\n').slice(0, 1900) : 'Nobody else is going where you are going yet. I will tell you the moment somebody is.');
+      return;
+    }
+
     if (i.commandName === 'ask') {
       const question = i.options.getString('question', true);
       await this.chat.applicantSays(a.id, question, 'discord');

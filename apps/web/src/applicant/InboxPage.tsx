@@ -14,6 +14,7 @@ import { Tag } from '../ui/Tag';
 import { BlocksOfType } from '../screen/ComposedScreen';
 import { READ_ONLY, ScreenActionsProvider } from '../screen/context';
 import { toast } from '../ui/Toast';
+import { CohortGroupsPanel } from './CohortGroupsPanel';
 
 const REPLY_LABEL: Record<NonNullable<EmailDTO['classified']>['kind'], { label: string; cls: string }> = {
   interview: { label: 'Interview invite', cls: 't-ver' },
@@ -148,6 +149,7 @@ export default function InboxPage() {
 
       {/* The cohort thread and the Discord link are the same conversation, so they sit together. */}
       <ScreenActionsProvider value={actions}>
+        <CohortGroupsPanel />
         <BlocksOfType screen={screen} types={['community']} className="mb-6" />
       </ScreenActionsProvider>
 

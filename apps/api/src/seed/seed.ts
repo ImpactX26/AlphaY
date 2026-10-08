@@ -99,9 +99,14 @@ async function main() {
   log.log('staff login ready: staff@demo.educaro.local');
 
   // ---------------- personas ----------------
+  // `targetCity` and `startDate` are what every cohort feature keys on — flat-shares, travel groups,
+  // rent splits, "who else is going where you are going". The two demo personas had neither, so all
+  // of it came back empty for exactly the two files a jury opens, while the seeded cohort around
+  // them worked fine. Ananya goes to Cologne because her sister is there; Rohan to Aachen because
+  // RWTH is top of his shortlist.
   const personas = [
-    { key: 'ananya' as const, name: 'Ananya Nair', subtitle: 'GNM nurse, 4 years', homeCity: 'Kochi', docs: ANANYA_DOCS, script: ANANYA_VIDEO_SCRIPT },
-    { key: 'rohan' as const, name: 'Rohan Mehta', subtitle: 'B.Tech CS, 2 years', homeCity: 'Pune', docs: ROHAN_DOCS, script: ROHAN_VIDEO_SCRIPT },
+    { key: 'ananya' as const, name: 'Ananya Nair', subtitle: 'GNM nurse, 4 years', homeCity: 'Kochi', targetCity: 'Cologne', startDate: '2027-03-01', docs: ANANYA_DOCS, script: ANANYA_VIDEO_SCRIPT },
+    { key: 'rohan' as const, name: 'Rohan Mehta', subtitle: 'B.Tech CS, 2 years', homeCity: 'Pune', targetCity: 'Aachen', startDate: '2027-10-01', docs: ROHAN_DOCS, script: ROHAN_VIDEO_SCRIPT },
   ];
 
   const fileIds: string[] = [];
@@ -111,7 +116,7 @@ async function main() {
     await db.delete(schema.applicants).where(eq(schema.applicants.userId, u.id));
     const [a] = await db
       .insert(schema.applicants)
-      .values({ userId: u.id, name: p.name, email: personaEmail(p.key), subtitle: p.subtitle, homeCity: p.homeCity })
+      .values({ userId: u.id, name: p.name, email: personaEmail(p.key), subtitle: p.subtitle, homeCity: p.homeCity, targetCity: p.targetCity, startDate: p.startDate })
       .returning();
 
     for (const doc of p.docs) {

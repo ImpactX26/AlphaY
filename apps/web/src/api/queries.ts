@@ -27,6 +27,8 @@ export const qk = {
   rentals: (id: string) => ['applicant', id, 'rentals'] as const,
   cohort: (id: string) => ['applicant', id, 'cohort'] as const,
   checks: (id: string) => ['applicant', id, 'checks'] as const,
+  groups: (id: string) => ['applicant', id, 'groups'] as const,
+  staffGroups: ['staff', 'groups'] as const,
   employers: ['staff', 'employers'] as const,
   reports: ['staff', 'reports'] as const,
   community: () => ['community'] as const,
@@ -205,6 +207,31 @@ export function useSendReport(id: Id) {
 export const useEmployerRatings = () => useQuery({ queryKey: qk.employers, queryFn: () => api.employerRatings() });
 export const useEmployerReports = (employer?: string) =>
   useQuery({ queryKey: [...qk.reports, employer ?? 'all'], queryFn: () => api.employerReports(employer) });
+
+export const useCohortGroups = (id: Id) =>
+  useQuery({ queryKey: qk.groups(id ?? ''), queryFn: () => api.groups(id ?? ''), enabled: !!id });
+
+/** Asking somebody to share. The answer is theirs, so nothing here is optimistic. */
+export function useProposeShare(id: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ who, kind }: { who: string; kind?: 'flat_share' | 'travel' }) => api.proposeShare(id ?? '', who, kind),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.groups(id ?? '') }),
+  });
+}
+
+export function useRespondToGroup(id: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, accept }: { groupId: string; accept: boolean }) => api.respondToGroup(id ?? '', groupId, accept),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.groups(id ?? '') });
+      void qc.invalidateQueries({ queryKey: qk.chat(id ?? '') });
+    },
+  });
+}
+
+export const useStaffGroups = () => useQuery({ queryKey: qk.staffGroups, queryFn: () => api.staffGroups() });
 
 // ---------- staff ----------
 

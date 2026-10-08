@@ -51,6 +51,8 @@ import { McpClientService } from './mcp/mcp-client.service';
 import { CommunityController } from './community/community.controller';
 import { CommunityService } from './community/community.service';
 import { AnnouncementsService } from './community/announcements.service';
+import { GroupsController } from './community/groups.controller';
+import { GroupsService } from './community/groups.service';
 import { InsightController } from './community/insight.controller';
 import { SafetyController } from './safety/safety.controller';
 import { SafetyService } from './safety/safety.service';
@@ -60,7 +62,7 @@ import { SafetyService } from './safety/safety.service';
  * injection, so wiring stays in one readable list rather than a tree of feature modules.
  */
 @Module({
-  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController, McpController, CommunityController, InsightController, SafetyController],
+  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController, McpController, CommunityController, GroupsController, InsightController, SafetyController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     BusService,
@@ -103,6 +105,7 @@ import { SafetyService } from './safety/safety.service';
     McpClientService,
     CommunityService,
     AnnouncementsService,
+    GroupsService,
     SafetyService,
     DiscordService,
   ],
