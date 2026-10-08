@@ -1,4 +1,5 @@
 import type { ApprovalDetailDTO, FactDTO, LetterPayload, TraceDTO, TruthRow } from '@educaro/shared';
+import { communityPosts, nursingCohort } from './community';
 import { type ApplicantState, ago, DAY, MIN, SERVICES } from './common';
 
 export const ANANYA_ID = 'app-ananya';
@@ -454,6 +455,16 @@ export function ananyaState(): ApplicantState {
           ],
         },
         {
+          id: 'b-an-cohort',
+          type: 'cohort',
+          title: 'People who were where you are',
+          body: 'Nine nurses on this route, anonymised, and what each step actually took them.',
+          route: nursingCohort.route,
+          basis: nursingCohort.basis,
+          steps: nursingCohort.steps,
+          peers: nursingCohort.peers,
+        },
+        {
           id: 'b-an-opps',
           type: 'opportunities',
           title: 'Partner employers near Cologne',
@@ -508,6 +519,22 @@ export function ananyaState(): ApplicantState {
             { ...SERVICES.osd, why: 'Sit the exam where you study.' },
             { ...SERVICES.anerkennung, why: 'The recognition file and the adaptation course.' },
           ],
+        },
+        {
+          id: 'b-an-community',
+          type: 'community',
+          title: 'Your cohort',
+          body: 'The September 2027 Cologne group. The same thread runs in Discord.',
+          channel: 'koeln-pflege-sep27',
+          posts: communityPosts.map((p) => ({
+            id: p.id,
+            author: p.author,
+            authorKind: p.authorKind,
+            text: p.text,
+            createdAt: p.createdAt,
+            replies: p.replies.length,
+            viaDiscord: p.viaDiscord,
+          })),
         },
       ],
     },

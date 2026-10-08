@@ -8,6 +8,8 @@ import type {
   BroadcastDTO,
   CalendarEventDTO,
   ChatMessageDTO,
+  CohortDTO,
+  CommunityPostDTO,
   CopilotResultDTO,
   DemoPersona,
   EmailDTO,
@@ -18,6 +20,7 @@ import type {
   MailTrackerDetailDTO,
   MailTrackerItemDTO,
   MatchDTO,
+  RentalsBlock,
   MeDTO,
   OpeningDTO,
   OpeningInput,
@@ -88,6 +91,11 @@ export interface Api {
   answerInterview(sessionId: string, text: string): Promise<InterviewDTO>;
   discordLink(id: string): Promise<{ code: string }>;
   germany(id: string, input: { city: string; address?: string; startDate?: string }): Promise<ApplicantDTO>;
+  rentals(id: string): Promise<RentalsBlock>;
+  cohort(id: string): Promise<CohortDTO>;
+  community(): Promise<CommunityPostDTO[]>;
+  postToCommunity(input: { text: string; applicantId: string }): Promise<CommunityPostDTO>;
+  replyInCommunity(postId: string, text: string): Promise<CommunityPostDTO>;
 
   // staff
   pipeline(): Promise<PipelineCardDTO[]>;

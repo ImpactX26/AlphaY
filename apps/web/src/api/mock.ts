@@ -3,6 +3,7 @@
  * the real server sends. Persona copy lives here and in ./fixtures, never in components.
  */
 import type {
+  CommunityPostDTO,
   ApplicantDTO,
   ApprovalDetailDTO,
   ApprovalDTO,
@@ -34,6 +35,7 @@ import { ApiError } from './errors';
 import { loadSnapshot, saveSnapshot } from './mockStore';
 import { ANANYA_ID, ananyaState } from './fixtures/ananya';
 import { type ApplicantState, DAY, emptyScreen, freshState, guessKind, HOUR, SERVICES } from './fixtures/common';
+import { communityPosts, nursingCohort, rentalsFor } from './fixtures/community';
 import { germanyScreen } from './fixtures/germany';
 import { ROHAN_ID, rohanState, RWTH_SHORTLIST } from './fixtures/rohan';
 import { BATCH_PLAN, BROADCASTS, copilotAnswer, germanProfile, OPENINGS, OTHER_CARDS, rankedMatches } from './fixtures/staff';
@@ -44,6 +46,9 @@ import type { Api, ReplyKind, ShortlistInput } from './types';
 // ---------- state ----------
 
 const clone = <T>(v: T): T => structuredClone(v);
+
+/** The cohort thread is shared across personas, so it lives beside the per-applicant state. */
+const thread: CommunityPostDTO[] = clone(communityPosts);
 
 const snapshot = loadSnapshot();
 
@@ -749,7 +754,26 @@ export const mockApi: Api = {
   },
   async screen(id) {
     await latency();
-    return clone(state(id).screen);
+    const screen = clone(state(id).screen);
+    // With the API running the composer rebuilds this block from the thread on every run. The mock
+    // does the same here, so a post made in the demo shows up instead of a frozen fixture.
+    screen.blocks = screen.blocks.map((b) =>
+      b.type === 'community'
+        ? {
+            ...b,
+            posts: thread.map((p) => ({
+              id: p.id,
+              author: p.author,
+              authorKind: p.authorKind,
+              text: p.text,
+              createdAt: p.createdAt,
+              replies: p.replies.length,
+              viaDiscord: p.viaDiscord,
+            })),
+          }
+        : b,
+    );
+    return screen;
   },
   async uploadVideo(id, video, filename, onProgress) {
     const s = state(id);
@@ -1018,6 +1042,56 @@ export const mockApi: Api = {
     }
     trace(session.applicantId, 'llm', 'interview_score', { tier: 'cheap', model: 'openai/gpt-oss-120b', score }, 0);
     return clone(session.dto);
+  },
+  async rentals(id) {
+    await latency();
+    const s = state(id);
+    return rentalsFor(s.applicant.targetCity ?? 'Cologne');
+  },
+  async cohort(id) {
+    await latency();
+    state(id);
+    return clone(nursingCohort);
+  },
+  async community() {
+    await latency();
+    return clone(thread);
+  },
+  async postToCommunity({ text, applicantId }) {
+    await latency();
+    const s = state(applicantId);
+    const post: CommunityPostDTO = {
+      id: `cp-${Date.now()}`,
+      channel: thread[0]?.channel ?? 'koeln-pflege-sep27',
+      author: s.applicant.name,
+      authorKind: 'applicant',
+      applicantId,
+      text,
+      viaDiscord: false,
+      replies: [],
+      createdAt: new Date().toISOString(),
+    };
+    thread.push(post);
+    trace(applicantId, 'tool', 'discord_post', { channel: post.channel, chars: text.length });
+    return clone(post);
+  },
+  async replyInCommunity(postId, text) {
+    await latency();
+    const parent = thread.find((p) => p.id === postId);
+    if (!parent) throw new ApiError(404, 'That post is gone.', null);
+    const reply: CommunityPostDTO = {
+      id: `cp-${Date.now()}`,
+      channel: parent.channel,
+      author: 'You',
+      authorKind: 'applicant',
+      applicantId: parent.applicantId,
+      text,
+      viaDiscord: false,
+      replies: [],
+      createdAt: new Date().toISOString(),
+    };
+    parent.replies.push(reply);
+    return clone(reply);
   },
   async discordLink(id) {
     await latency();

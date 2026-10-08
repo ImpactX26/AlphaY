@@ -1,3 +1,4 @@
+import { rentalsFor } from './community';
 import type { PlacesBlock, Screen } from '@educaro/shared';
 import { type ApplicantState, DAY } from './common';
 
@@ -112,6 +113,7 @@ export function germanyScreen(s: ApplicantState, cityInput: string): Screen {
         center: { lat: c.lat, lon: c.lon },
         groups: places(c.lat, c.lon, c.district, city),
       },
+      rentalsFor(city),
       {
         id: 'b-de-budget',
         type: 'budget',

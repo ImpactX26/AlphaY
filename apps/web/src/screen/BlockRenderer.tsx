@@ -1,6 +1,9 @@
 import type { Block } from '@educaro/shared';
 import { ArrivalCard, BudgetCard, LettersCard, ReadinessCard, ServicesCard, TimelineCard } from './blocks/outcome';
 import { PlacesCard } from './blocks/PlacesCard';
+import { RentalsCard } from './blocks/RentalsCard';
+import { CohortCard } from './blocks/CohortCard';
+import { CommunityCard } from './blocks/CommunityCard';
 import { ChecklistCard, DocumentsCard, NextStepCard, NoteCard, QuestionCard, TruthMapCard } from './blocks/core';
 import { GapPlanCard, MatrixCard, OpportunitiesCard, RouteCard, ShortlistCard } from './blocks/plan';
 
@@ -46,6 +49,12 @@ export function BlockRenderer({ block }: { block: Block }) {
       return <ArrivalCard block={block} />;
     case 'note':
       return <NoteCard block={block} />;
+    case 'rentals':
+      return <RentalsCard block={block} />;
+    case 'cohort':
+      return <CohortCard block={block} />;
+    case 'community':
+      return <CommunityCard block={block} />;
     default:
       return exhaustive(block);
   }
