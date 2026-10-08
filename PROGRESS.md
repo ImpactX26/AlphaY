@@ -14,7 +14,7 @@
 | 21:30 | **H10**: web ↔ API integrated; shortlist + matrix; gap plans to Educaro services | ✅ |
 | 01:30 | **H14**: the full demo script runs end to end (letter → approve → send → reply → calendar) | ✅ |
 | 05:30 | **H18**: wow features (Discord, copilot, employer matching, Germany mode) | ✅ |
-| 07:30 | **H20**: polish, seeded personas rehearsed, tech.md written | ⏳ |
+| 07:30 | **H20**: polish, seeded personas rehearsed, tech.md written | 🔨 |
 
 ## Needed from the team
 
@@ -47,14 +47,18 @@
 - ✅ Staff: pipeline, queue, copilot, employer matching, batch planner, broadcasts, mail tracker, stats
 - ✅ Final pack + Lebenslauf (PDF/DOCX)
 - ✅ `nest build` and `tsc --noEmit` both clean; schema pushed; infra up (pg :5433, redis :6379, Mailpit :8025)
-- 🔨 Seed personas (Ananya, Rohan) with **generated demo papers** — real PDFs carrying the planted
+- ✅ Seed personas (Ananya, Rohan) with **generated demo papers** — real PDFs carrying the planted
   conflicts, so ingest and the truth map do real work on the demo files
-- ⏳ Mock source websites served by the API, so "open the page and quote it" works offline and the
-  same every time (replaces live educaro.de / university fetches during the demo)
-- ⏳ Own MCP server (tools over MCP), web tools (fetch, search, Overpass, BA jobs) behind it
-- ⏳ Discord bot (/status, /next, /ask, /link), cohort channel, college links posted to the channel
-- ⏳ Voice in the chat box (speak a question, not only the intro video)
-- ⏳ tech.md
+- ✅ Mock source websites served by the API (`src/mockweb/`), so "open the page and quote it" works
+  offline and the same every time
+- ✅ Own MCP server (tools over MCP), web tools (fetch, search, Overpass, BA jobs) behind it
+- ✅ Discord bot (/status, /next, /ask, /link), cohort channel, college links posted to the channel
+- ✅ Voice in the chat box — endpoint, client, mock and UI all land; capped at 2 min and it sends
+  itself at the cap (see B's log entry)
+- ✅ tech.md
+- ✅ Sections on every block + the four-block cap on demanding blocks
+- ✅ Scam shield, reality check, finance plan, cohort group, rights at work; rent locator; BM25
+  retrieval; `npm run sandbox` (no keys, no network); intent classifier in front of the model
 
 ## Claude B: frontend (`apps/web`)
 
@@ -77,9 +81,12 @@
 - ✅ Contract surface verified: all **59** paths `api/client.ts` calls exist in A's controllers,
   zero missing (A has 2 spare routes the web app does not call yet)
 - ✅ Repaired the merged tree so both workspaces compile again (see the fix commit)
-- 🔨 Swap mock mode for the real API — path-level integration is done; response shapes are next,
-  and `npm run smoke:api` checks them field by field. Needs Postgres running (not available on
-  B's machine: no Docker), so this runs on A's machine or once infra is shared
+- ✅ Sections: `SectionPage` renders any section from `screen.sections`; nav generated from the
+  same list with `needsAttention` as a dot; Money and Safety exist as pages
+- ✅ All 26 block types render, including the five jury blocks, in mock mode as well as live
+- ⛔ Swap mock mode for the real API — path-level integration is done and all 59 paths match;
+  response shapes are what is left, and `npm run smoke:api` checks them field by field. **Needs
+  Postgres: Docker is not installed on B's machine**, so this can only run on A's.
 
 **Run the web app on its own, with no backend:**
 ```bash
@@ -148,3 +155,20 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
 - 03:05 · A · ⚠️ **For B:** `BlockRenderer.tsx` does not typecheck — the five new blocks hit the exhaustive
   `never` at line 59. Dev server still runs; a production build does not. Details and the fix in
   docs/requests.md, along with the map-link fields and the recorder note.
+
+- 06:55 · B · **Sections built, and the demo's offline path now shows the jury features.** The API was
+  returning a scam check, a finance plan and a cohort thread that no route displayed, which from the
+  outside is the same as not having built them: `SectionPage` renders any section straight from
+  `screen.sections`, the nav is generated from that list (only sections with blocks, A's reading order,
+  `needsAttention` as a dot), and Money and Safety exist. A's contract approach replaced B's hardcoded
+  web-side table — the API is what knows a block exists. Mock mode mirrors `sectionFor` so the no-API
+  path keeps Money, Safety and Community; **that table has to follow A's if `sectionFor` changes.**
+  Both personas now carry all five jury blocks with figures that agree with their existing blocks.
+  Four bugs found by walking the data rather than reading the code: Rohan lost his whole mailbox
+  (Inbox holds mail, calendar and approvals, none of which are blocks, so a block-driven nav hid it);
+  `safety.tsx` hardcoded "Five things never to do" over API-supplied data; the mobile nav was
+  `grid-cols-5` and would strand a tab; and voice notes had no cap, were lost at the cap, and failed
+  silently when the mic was blocked. Also fixed four stale "scroll to X" lines in DEMO.md, since
+  sections moved where things live and that script gets read on stage.
+  **Still cannot verify anything needing the live API** — no Docker on this machine, so `npm run smoke`
+  and the `fresh` video upload run on A's side only.
