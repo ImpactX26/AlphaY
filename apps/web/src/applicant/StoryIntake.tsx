@@ -16,11 +16,15 @@ const PROMPTS = ['Who are you?', 'What have you studied and worked on?', 'Why Ge
 const MIN_SECONDS = 20;
 const MAX_SECONDS = 180;
 
-/** Stage 2: one video and a document drop, instead of two forms. */
-export function StoryIntake({ headline, footnote }: { headline: string; footnote: string }) {
+/**
+ * Stage 2: one video and a document drop, instead of two forms.
+ * The agent writes the headline and footnote; these stand-ins only cover the moment before it has
+ * composed anything, so a new applicant still sees a complete page.
+ */
+export function StoryIntake({ headline, footnote }: { headline?: string; footnote?: string }) {
   return (
     <div className="min-w-0">
-      <h1 className="headline max-w-[30ch]">{headline}</h1>
+      <h1 className="headline max-w-[30ch]">{headline || 'Tell me your story once, and I’ll build your plan for Germany.'}</h1>
       <p className="mt-3 max-w-prose text-[15px] text-muted">
         No forms. Talk for a minute or two, drop every document you have, and the agent asks only what it cannot find.
       </p>
@@ -28,7 +32,9 @@ export function StoryIntake({ headline, footnote }: { headline: string; footnote
         <VideoStep />
         <DocumentStep />
       </div>
-      <p className="mt-5 border-t border-line pt-3 text-[13px] text-muted">{footnote}</p>
+      <p className="mt-5 border-t border-line pt-3 text-[13px] text-muted">
+        {footnote || 'Nothing is sent anywhere until you tap to approve it.'}
+      </p>
     </div>
   );
 }

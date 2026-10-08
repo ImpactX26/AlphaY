@@ -3,7 +3,7 @@ import { MessageCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { errorText } from '../api/client';
-import { useAddShortlist, useAnswerQuestion, useApplicant, useScreen, useSendChat, useSetRoute } from '../api/queries';
+import { useAddShortlist, useAnswerQuestion, useScreen, useSendChat, useSetRoute } from '../api/queries';
 import { useApplicantId } from '../auth/auth';
 import { ComposedScreen } from '../screen/ComposedScreen';
 import { ScreenActionsProvider, type ScreenActions } from '../screen/context';
@@ -16,7 +16,6 @@ import { StoryIntake } from './StoryIntake';
 export function Home() {
   const applicantId = useApplicantId();
   const navigate = useNavigate();
-  const { data: applicant } = useApplicant(applicantId);
   const { data: screen, isLoading } = useScreen(applicantId);
   const answer = useAnswerQuestion(applicantId);
   const chat = useSendChat(applicantId);
@@ -48,14 +47,16 @@ export function Home() {
     [applicantId, answer, chat, shortlist, navigate, setRoute],
   );
 
-  // No story yet: the first screen asks for one video and a pile of files.
-  const empty = !isLoading && screen && !screen.blocks.length && applicant?.mode === 'onboarding';
+  // No story yet: the first screen asks for one video and a pile of files. An applicant with nothing
+  // composed yet must never land on a blank page, so the intake stands in whenever there are no blocks —
+  // whatever the mode, and even if the screen endpoint 404s on a brand-new applicant.
+  const empty = !isLoading && !screen?.blocks.length;
 
   return (
     <ScreenActionsProvider value={actions}>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_352px] lg:items-start lg:gap-6">
         <div className="min-w-0">
-          {empty ? <StoryIntake headline={screen.headline} footnote={screen.footnote} /> : <ComposedScreen screen={screen} loading={isLoading} />}
+          {empty ? <StoryIntake headline={screen?.headline} footnote={screen?.footnote} /> : <ComposedScreen screen={screen} loading={isLoading} />}
         </div>
 
         {/* Desktop: chat beside the screen. Mobile: a bottom sheet. */}
