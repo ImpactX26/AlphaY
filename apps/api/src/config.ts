@@ -41,6 +41,10 @@ export const config = {
   imapHost: env('IMAP_HOST', 'imap.gmail.com'),
   imapPort: Number(env('IMAP_PORT', '993')),
   mailpitUrl: env('MAILPIT_URL', 'http://localhost:8025'),
+  // A model on this machine (Ollama and anything else that speaks the OpenAI API).
+  localLlmUrl: env('LOCAL_LLM_URL', 'http://localhost:11434/v1'),
+  localLlmModel: env('LOCAL_LLM_MODEL'),
+  localLlmFirst: env('LOCAL_LLM_FIRST') === '1' || env('LOCAL_LLM_FIRST') === 'true',
   sandbox: env('SANDBOX') === '1' || env('SANDBOX') === 'true',
   offline: env('OFFLINE') === '1',
   mailFrom: env('MAIL_FROM', env('SMTP_USER') ? `Educaro Agent <${env('SMTP_USER')}>` : 'Educaro Agent <agent@educaro.local>'),

@@ -39,7 +39,7 @@ export interface ChatCall extends Omit<BaseCall, 'user'> {
 }
 
 interface Provider {
-  name: 'openai' | 'groq';
+  name: 'openai' | 'groq' | 'local';
   client: OpenAI;
   model: string;
 }
@@ -59,6 +59,7 @@ export class LlmService implements OnModuleInit {
   private readonly log = new Logger('LLM');
   private openai: Provider | null = null;
   private groq: Provider | null = null;
+  private local: Provider | null = null;
   private openaiSpent = 0;
   private groqCooldownUntil = 0;
 
@@ -76,6 +77,24 @@ export class LlmService implements OnModuleInit {
         name: 'groq',
         client: new OpenAI({ apiKey: config.groqKey, baseURL: 'https://api.groq.com/openai/v1', ...opts }),
         model: config.groqModel,
+      };
+    }
+    /**
+     * A model on this machine, through Ollama or anything else speaking the OpenAI API.
+     *
+     * Every hosted free tier has a daily token budget, and a day of building spends it — twice in
+     * this build the replies collapsed to canned text mid-demo because the quota was gone, which
+     * looks exactly like a broken agent. A local model has no quota and no bill, so the hundreds of
+     * calls that go into testing stop competing with the ones a reviewer will make.
+     *
+     * It is slower and smaller, so it is not the default when a hosted key is present; LOCAL_LLM_FIRST
+     * puts it in front for exactly that reason.
+     */
+    if (config.localLlmModel) {
+      this.local = {
+        name: 'local',
+        client: new OpenAI({ apiKey: 'ollama', baseURL: config.localLlmUrl, timeout: 180_000, maxRetries: 0 }),
+        model: config.localLlmModel,
       };
     }
   }
@@ -102,6 +121,7 @@ export class LlmService implements OnModuleInit {
   status() {
     return {
       groq: !!this.groq,
+      local: this.local ? this.local.model : null,
       openai: !!this.openai,
       openaiModel: config.openaiModel,
       groqModel: config.groqModel,
@@ -111,7 +131,7 @@ export class LlmService implements OnModuleInit {
   }
 
   get available(): boolean {
-    return !!(this.groq || this.openai);
+    return !!(this.groq || this.openai || this.local);
   }
 
   /**
@@ -145,14 +165,21 @@ export class LlmService implements OnModuleInit {
   private groqOk() {
     return !!this.groq && Date.now() > this.groqCooldownUntil;
   }
+  private localOk() {
+    return !!this.local;
+  }
 
   private pick(tier: Tier): Provider[] {
     const order: Provider[] = [];
     const add = (p: Provider | null, ok: boolean) => {
       if (p && ok && !order.includes(p)) order.push(p);
     };
+    // Local first when asked for, so testing never eats the quota a demo depends on.
+    if (config.localLlmFirst) add(this.local, this.localOk());
     if (tier === 'quality' && config.qualityProvider === 'openai') add(this.openai, this.openaiOk());
     add(this.groq, this.groqOk());
+    // And always as the last resort: a model that is slow beats no model at all.
+    add(this.local, this.localOk());
     add(this.openai, this.openaiOk());
     return order;
   }

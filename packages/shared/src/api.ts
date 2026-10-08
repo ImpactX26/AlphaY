@@ -357,6 +357,8 @@ export interface StatsDTO {
 export interface SystemStatusDTO {
   llm: {
     groq: boolean;
+    /** The model running on this machine, when one is configured. */
+    local?: string | null;
     openai: boolean;
     openaiModel: string;
     groqModel: string;
