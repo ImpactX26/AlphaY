@@ -71,6 +71,22 @@ export function PlacesCard({ block }: { block: PlacesBlock }) {
                           <span className="num flex-none text-[12.5px] text-muted">{p.distanceM < 1000 ? `${p.distanceM} m` : `${(p.distanceM / 1000).toFixed(1)} km`}</span>
                         ) : null}
                       </button>
+                      {/* The API hands us ready-made Google Maps links; on a phone these open the
+                          map app the person already has, with no key and no embed. */}
+                      {p.mapsUrl || p.directionsUrl ? (
+                        <span className="flex gap-3 px-2 pb-1.5 text-[12px]">
+                          {p.mapsUrl ? (
+                            <a href={p.mapsUrl} target="_blank" rel="noreferrer noopener" className="text-muted underline-offset-2 hover:text-ink hover:underline">
+                              Show on the map
+                            </a>
+                          ) : null}
+                          {p.directionsUrl ? (
+                            <a href={p.directionsUrl} target="_blank" rel="noreferrer noopener" className="text-muted underline-offset-2 hover:text-ink hover:underline">
+                              How to get there
+                            </a>
+                          ) : null}
+                        </span>
+                      ) : null}
                     </li>
                   );
                 })}

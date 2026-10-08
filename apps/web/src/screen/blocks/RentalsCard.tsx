@@ -92,16 +92,24 @@ export function RentalsCard({ block, bare }: { block: RentalsBlock; bare?: boole
                     </span>
                   </span>
                 </button>
-                {l.url ? (
-                  <a
-                    href={l.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="mb-2 ml-2 inline-flex items-center gap-1 text-[12.5px] text-muted underline-offset-2 hover:text-ink hover:underline"
-                  >
-                    See the listing <ExternalLink size={11} aria-hidden />
-                  </a>
-                ) : null}
+                <span className="mb-2 ml-2 flex flex-wrap gap-3 text-[12.5px]">
+                  {l.url ? (
+                    <a href={l.url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-muted underline-offset-2 hover:text-ink hover:underline">
+                      See the listing <ExternalLink size={11} aria-hidden />
+                    </a>
+                  ) : null}
+                  {l.mapsUrl ? (
+                    <a href={l.mapsUrl} target="_blank" rel="noreferrer noopener" className="text-muted underline-offset-2 hover:text-ink hover:underline">
+                      Show on the map
+                    </a>
+                  ) : null}
+                  {/* Rentals route from the room to the workplace, which is the number that decides it. */}
+                  {l.directionsUrl ? (
+                    <a href={l.directionsUrl} target="_blank" rel="noreferrer noopener" className="text-muted underline-offset-2 hover:text-ink hover:underline">
+                      Commute to work
+                    </a>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>

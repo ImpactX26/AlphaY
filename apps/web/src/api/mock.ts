@@ -295,7 +295,9 @@ async function readFiles(s: ApplicantState, fileIds: string[]): Promise<void> {
 function composeFirstRead(s: ApplicantState): void {
   const id = s.applicant.id;
   const first = s.applicant.name.split(' ')[0];
-  const done = s.files.filter((f) => f.status === 'done' && f.kind !== 'video');
+  // The video counts as a file that was read: someone who uploads only their video used to be
+  // told "I've read 0 files", which is the first thing the agent ever says to them.
+  const done = s.files.filter((f) => f.status === 'done');
   const question = {
     id: `q-${id}-route`,
     prompt: 'What do you most want to do in Germany?',
