@@ -8,6 +8,7 @@
     "start": "node dist/main.js",
     "db:push": "drizzle-kit push",
     "seed": "nest build && node dist/seed/seed.js",
+    "demo:docs": "nest build && node dist/seed/write-documents.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

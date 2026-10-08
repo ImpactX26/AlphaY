@@ -339,6 +339,80 @@ export const MOCK_PAGES: MockPage[] = [
       'Public universities in Germany charge no tuition fees for a Master programme. You pay only the semester contribution, which is between EUR 85 and EUR 350.',
     ],
   },
+  {
+    slug: 'educaro-skilled-worker',
+    site: 'Educaro',
+    title: 'Work in Germany as a qualified professional',
+    updated: '2026-09-20',
+    body: [
+      'For engineers, IT professionals and skilled trades, we place candidates with German employers and handle the paperwork around the move.',
+      'What is included',
+      [
+        'Matching with employers who sponsor the visa, and interview preparation.',
+        'Recognition of your qualification where the profession is regulated.',
+        'German lessons to the level the employer needs, and relocation support.',
+      ],
+      'If you do not have an offer yet, the Opportunity Card lets you come and look for one for up to a year.',
+    ],
+  },
+  {
+    slug: 'educaro-integration',
+    site: 'Educaro',
+    title: 'Integration companion — your first months in Germany',
+    updated: '2026-09-20',
+    body: [
+      'Arriving is the part nobody prepares you for. A named person stays with you until your recognition is finished.',
+      'What they do with you',
+      [
+        'Airport pick-up and the first night sorted before you land.',
+        'Anmeldung (address registration), bank account, SIM card and health insurance appointments.',
+        'Your first weeks at work, and someone to call when something does not make sense.',
+      ],
+      'You must register your address within two weeks of moving in. Almost everything else in Germany depends on that one appointment.',
+    ],
+  },
+  {
+    slug: 'educaro-workshops',
+    site: 'Educaro',
+    title: 'Intercultural workshops',
+    updated: '2026-09-20',
+    body: [
+      'Hands-on sessions on how German workplaces actually run, for you and for the team receiving you.',
+      'Topics',
+      [
+        'Directness, punctuality and what feedback sounds like in a German team.',
+        'Handover and documentation habits in a hospital or a company.',
+        'Saying no, asking for help, and raising a problem early.',
+      ],
+    ],
+  },
+  {
+    slug: 'educaro-events',
+    site: 'Educaro',
+    title: 'Free webinars and Open Days in Bangalore',
+    updated: '2026-09-20',
+    body: [
+      'We run free online info sessions every month, and walk-in Open Days at the Bangalore office in Hebbal Kempapura.',
+      'Bring your certificates to an Open Day and we check them with you on the spot, so you know what is missing before you pay for anything.',
+      'Write to india@educaro.de or call +91 96 1154 3642 for the next date.',
+    ],
+  },
+  {
+    slug: 'educaro-india',
+    site: 'Educaro',
+    title: 'Educaro India',
+    updated: '2026-09-20',
+    body: [
+      'Educaro places Indian nurses, trainees, students and skilled professionals in Germany, and stays with them through the move.',
+      'Where to find us',
+      [
+        'Office: Hebbal Kempapura, Bangalore.',
+        'Email: india@educaro.de',
+        'Phone: +91 96 1154 3642',
+      ],
+      'Every service is listed inside your plan with what it costs and how long it takes, so nothing is a surprise.',
+    ],
+  },
 ];
 
 export const PAGE_BY_SLUG = new Map(MOCK_PAGES.map((p) => [p.slug, p]));

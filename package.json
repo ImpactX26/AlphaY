@@ -13,6 +13,7 @@
     "dev:web": "npm run dev -w @educaro/web",
     "db:push": "npm run db:push -w @educaro/api",
     "seed": "npm run seed -w @educaro/api",
+    "demo:docs": "npm run demo:docs -w @educaro/api",
     "smoke:api": "npm run smoke -w @educaro/web",
     "rehearse": "npm run rehearse -w @educaro/web"
   }

@@ -1,7 +1,13 @@
 /**
  * Mock or live?
- * Order: `?mock=1|0` in the URL (sticky) → localStorage override → VITE_MOCK → probe GET /api/system/status.
+ * Order: `?mock=1|0` in the URL → a pin made in this tab → VITE_MOCK → probe GET /api/system/status.
  * Mock is the default until the API answers.
+ *
+ * The pin lives in sessionStorage, not localStorage, and that is deliberate. A pin that outlives
+ * the tab is a trap: this app was built against mocks for a day, so any browser that met it before
+ * the API existed kept a "mock" pin forever and then quietly ignored a perfectly healthy API —
+ * uploads went nowhere and the chat answered with canned mock text. A pin is a thing you mean for
+ * as long as you are looking at it; the next session should ask the API again.
  */
 export type ApiMode = 'live' | 'mock';
 
@@ -9,21 +15,23 @@ const MODE_KEY = 'educaro.mode';
 
 function readOverride(): ApiMode | null {
   try {
+    // Clear the old persistent pin wherever it is still lying around from an earlier session.
+    localStorage.removeItem(MODE_KEY);
     const params = new URLSearchParams(window.location.search);
     const q = params.get('mock');
     if (q === '1' || q === '0') {
       const mode: ApiMode = q === '1' ? 'mock' : 'live';
-      localStorage.setItem(MODE_KEY, mode);
+      sessionStorage.setItem(MODE_KEY, mode);
       params.delete('mock');
       const qs = params.toString();
       window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
       return mode;
     }
     if (q === 'auto') {
-      localStorage.removeItem(MODE_KEY);
+      sessionStorage.removeItem(MODE_KEY);
       return null;
     }
-    const stored = localStorage.getItem(MODE_KEY);
+    const stored = sessionStorage.getItem(MODE_KEY);
     if (stored === 'mock' || stored === 'live') return stored;
   } catch {
     /* storage blocked: fall through */
@@ -58,8 +66,9 @@ export async function resolveMode(): Promise<{ mode: ApiMode; reason: 'override'
 /** Pin a mode (or clear the pin with null) and reload. */
 export function switchMode(mode: ApiMode | null) {
   try {
-    if (mode) localStorage.setItem(MODE_KEY, mode);
-    else localStorage.removeItem(MODE_KEY);
+    if (mode) sessionStorage.setItem(MODE_KEY, mode);
+    else sessionStorage.removeItem(MODE_KEY);
+    localStorage.removeItem(MODE_KEY);
   } catch {
     /* ignore */
   }

@@ -69,7 +69,7 @@ export class ComposerService {
           ],
         });
       }
-      blocks.push({ id: 'services', type: 'services', services: [service('integration-companion')!, service('intercultural-workshop')!, service('consultant')!] });
+      blocks.push({ id: 'services', type: 'services', services: [service('integration-companion')!, service('intercultural-workshop')!, service('consultant', state.applicant.id)!] });
       blocks.push(timelineBlock(state));
       return {
         blocks,
@@ -95,7 +95,7 @@ export class ComposerService {
         tags: [],
       });
     } else if (top) {
-      const svc = top.serviceId ? service(top.serviceId) : undefined;
+      const svc = top.serviceId ? service(top.serviceId, state.applicant.id) : undefined;
       blocks.push({
         id: 'next-step',
         type: 'next_step',
@@ -196,7 +196,7 @@ export class ComposerService {
         id: 'gaps',
         type: 'gap_plan',
         title: 'Your plan',
-        gaps: report.gaps.map((g) => ({ id: g.key, title: g.title, what: g.what, where: g.where, howLong: g.howLong, cost: g.cost, links: g.links, service: g.serviceId ? service(g.serviceId) : undefined })),
+        gaps: report.gaps.map((g) => ({ id: g.key, title: g.title, what: g.what, where: g.where, howLong: g.howLong, cost: g.cost, links: g.links, service: g.serviceId ? service(g.serviceId, state.applicant.id) : undefined })),
       });
     }
 
@@ -217,7 +217,7 @@ export class ComposerService {
     if (tl.items.length) blocks.push(tl);
 
     // ---------- services ----------
-    if (route) blocks.push({ id: 'services', type: 'services', services: servicesForRoute(route) });
+    if (route) blocks.push({ id: 'services', type: 'services', services: servicesForRoute(route, state.applicant.id) });
 
     if (processing) blocks.unshift({ id: 'reading-note', type: 'note', tone: 'info', title: 'Reading your files', body: 'Rows appear in your truth map as each file is read.' });
 
