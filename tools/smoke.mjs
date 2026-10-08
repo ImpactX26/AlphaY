@@ -332,12 +332,27 @@ async function main() {
   section('The cohort');
   const posted = await api('/community', { token: aT, method: 'POST', body: { text: 'Has anyone done the Anerkennung in NRW? How long did the deficit notice take?' } });
   check('an applicant can post to the cohort', Boolean(posted.body?.id), posted.body?.author);
-  const thread = await until('the agent to answer in the open', async () => {
+  // The agent deliberately waits before answering, so that somebody who has actually been through
+  // the Anerkennung gets first refusal. This asserts the behaviour we want rather than the old
+  // "answers instantly", which was the thing quietly turning a cohort into an audience.
+  const beforeGrace = (await api('/community', { token: aT })).body ?? [];
+  const bare = beforeGrace.find((p) => p.id === posted.body?.id);
+  check('the agent leaves the question to the cohort first', !bare?.replies?.some((r) => r.authorKind === 'agent'));
+
+  await api(`/community/${posted.body?.id}/answer-now`, { token: sT, method: 'POST' });
+  const agentAnswered = await until('the agent to answer once the cohort has not', async () => {
     const list = (await api('/community', { token: aT })).body ?? [];
     const mine = list.find((p) => p.id === posted.body?.id);
-    return mine?.replies?.length ? mine : undefined;
-  }, 40_000);
-  check('the agent answers the cohort, not just the asker', Boolean(thread), thread?.replies?.[0]?.text?.slice(0, 70));
+    return mine?.replies?.some((r) => r.authorKind === 'agent') ? mine : undefined;
+  }, 60_000);
+  check('the agent answers when nobody else has', Boolean(agentAnswered), agentAnswered?.replies?.find((r) => r.authorKind === 'agent')?.text?.slice(0, 70));
+
+  // And stays out when a person got there first, even when pushed.
+  const human = await api('/community', { token: aT, method: 'POST', body: { text: 'Which Krankenkasse did people pick in their first week?' } });
+  await api(`/community/${human.body?.id}/reply`, { token: rT, method: 'POST', body: { text: 'TK was easiest for me, the English support actually exists.' } });
+  await api(`/community/${human.body?.id}/answer-now`, { token: sT, method: 'POST' });
+  const left = ((await api('/community', { token: aT })).body ?? []).find((p) => p.id === human.body?.id);
+  check('the agent stays out when a person answered', !left?.replies?.some((r) => r.authorKind === 'agent'), `${left?.replies?.length ?? 0} reply from the cohort`);
   check('posts are first names only', !/\s[A-Z][a-z]+\s[A-Z][a-z]+/.test(posted.body?.author ?? ''), posted.body?.author);
 
   const feed = (await api('/community/announcements?limit=20', { token: aT })).body ?? [];

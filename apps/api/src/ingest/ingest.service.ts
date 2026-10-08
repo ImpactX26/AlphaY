@@ -124,11 +124,24 @@ export class IngestService implements OnModuleInit {
     const unclear = ext.unclear || confidence < 0.45 || kind === 'other';
 
     const expKey = await this.expKey(file.applicantId);
-    const saved = unclear ? [] : await this.facts.saveMany(file.applicantId, docFacts({ ...ext, kind }, file.id, expKey), { runId });
 
-    // Check it against the written standard for its kind, so "verified" means something a person
-    // can point at. Done before the row is written, so the verdict and the document land together.
+    // Check it against the written standard for its kind *before* saving anything from it, because
+    // the verdict decides how much the page is worth.
     const verdict = await this.standards.check(file.applicantId, kind, ext as unknown as Record<string, unknown>, text, runId);
+
+    // A document that fails its standard does not verify anything.
+    //
+    // "Verified" in this product means a document proved it. A language certificate from an issuer
+    // no Anerkennung office accepts has not proved anything — it is still a claim, and the whole
+    // point of the truth map is that a claim and a proof look different. Before this, uploading an
+    // unrecognised certificate turned an unproven A2 into a Verified one, which is precisely the
+    // failure the standards were built to catch.
+    const facts = docFacts({ ...ext, kind }, file.id, expKey).map((f) =>
+      verdict?.verdict === 'not_accepted' && f.tag === 'verified'
+        ? { ...f, tag: 'said' as const, data: { ...(f.data ?? {}), notVerified: 'the document did not meet the standard for its kind' } }
+        : f,
+    );
+    const saved = unclear ? [] : await this.facts.saveMany(file.applicantId, facts, { runId });
 
     await this.setFile(file, {
       kind,
