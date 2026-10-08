@@ -45,6 +45,9 @@ export class WebService {
     private readonly guards: GuardsService,
   ) {}
 
+  /** Shared across instances: one Overpass outage should not be re-discovered by every call. */
+  private static overpassColdUntil = 0;
+
   private async get(url: string, init: RequestInit = {}, timeoutMs = 15_000): Promise<Response> {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -135,19 +138,25 @@ export class WebService {
     const hit = await db.query.pageCache.findFirst({ where: eq(schema.pageCache.url, cacheKey) });
     let elements: any[] = [];
     if (hit && Date.now() - hit.fetchedAt.getTime() < 7 * DAY) elements = JSON.parse(hit.text);
-    else {
+    // Overpass is free and often busy, and the life specialist asks it five times in a row. On a
+    // bad network that was two endpoints x 25s x five calls, so a single agent run sat there for
+    // over a minute before giving the same empty answer it could have given at once. One failure
+    // means the next few minutes are not worth waiting for either.
+    else if (Date.now() > WebService.overpassColdUntil) {
       for (const endpoint of ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']) {
         try {
-          const res = await this.get(endpoint, { method: 'POST', body: `data=${encodeURIComponent(body)}`, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 25_000);
+          const res = await this.get(endpoint, { method: 'POST', body: `data=${encodeURIComponent(body)}`, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 8_000);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           elements = ((await res.json()) as any).elements ?? [];
           await db
             .insert(schema.pageCache)
             .values({ url: cacheKey, title: 'overpass', text: JSON.stringify(elements) })
             .onConflictDoUpdate({ target: schema.pageCache.url, set: { text: JSON.stringify(elements), fetchedAt: new Date() } });
+          WebService.overpassColdUntil = 0;
           break;
         } catch (e: any) {
           this.log.warn(`overpass ${endpoint} failed: ${e?.message ?? e}`);
+          WebService.overpassColdUntil = Date.now() + 3 * 60_000;
         }
       }
     }
