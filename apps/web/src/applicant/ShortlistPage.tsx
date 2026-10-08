@@ -8,6 +8,7 @@ import { hostOf } from '../lib/format';
 import { EXAM_STATUS, ITEM_STATUS, MATRIX_STATUS } from '../lib/tags';
 import { OpportunitiesCard } from '../screen/blocks/plan';
 import { ScreenActionsProvider, type ScreenActions } from '../screen/context';
+import { TailorPanel } from './TailorPanel';
 import { Button } from '../ui/Button';
 import { Countdown, EmptyState, ExternalLink, PageHeader, Skeleton } from '../ui/misc';
 import { Spinner } from '../ui/Spinner';
@@ -119,6 +120,10 @@ export default function ShortlistPage() {
                     )}
                     <Button size="sm" variant="ghost" icon={Trash2} loading={removing === item.id} onClick={() => remove(item.id)} aria-label={`Remove ${item.title}`} />
                   </div>
+                </div>
+
+                <div className="px-4 pt-3 sm:px-5">
+                  <TailorPanel shortlistId={item.id} title={item.title} />
                 </div>
 
                 {item.matrix ? (

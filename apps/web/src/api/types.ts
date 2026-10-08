@@ -1,4 +1,6 @@
 import type {
+  TailorDraftDTO,
+  TailorReportDTO,
   DocStandardDTO,
   FailingDocDTO,
   WatchCheckDTO,
@@ -112,6 +114,8 @@ export interface Api {
   requestGroup(id: string, groupId: string): Promise<CohortGroupDTO>;
   leaveGroup(id: string, groupId: string): Promise<{ ok: true }>;
   staffGroups(): Promise<StaffGroupDTO[]>;
+  tailorReport(id: string, shortlistId: string): Promise<TailorReportDTO>;
+  draftTailored(id: string, input: { shortlistId: string; to?: string; note?: string }): Promise<TailorDraftDTO>;
   docStandards(): Promise<DocStandardDTO[]>;
   updateStandard(id: string, input: { authority?: string; active?: boolean }): Promise<DocStandardDTO[]>;
   failingDocuments(): Promise<FailingDocDTO[]>;

@@ -7,6 +7,9 @@ import { ROUTES } from '../knowledge/routes';
 import { servicesForRoute } from '../knowledge/services';
 import { GuardsService } from '../agent/guards.service';
 import { bestFact, type ApplicantState } from '../agent/state.service';
+import type { TailorReport } from '../knowledge/keywords';
+import { db, schema } from '../db/db';
+import { StorageService } from '../storage/storage.service';
 import type { CheckReport } from '../agent/checks';
 
 /** Helvetica covers Latin-1 and €, but not ₹ or arrows. */
@@ -24,7 +27,10 @@ interface CvData {
 /** Final pack and Lebenslauf, PDF and DOCX. CV content uses only Verified and You-said facts (guard 3). */
 @Injectable()
 export class PackService {
-  constructor(private readonly guards: GuardsService) {}
+  constructor(
+    private readonly guards: GuardsService,
+    private readonly storage: StorageService,
+  ) {}
 
   cvData(st: ApplicantState): CvData {
     const facts = this.guards.writerFacts(st.facts).filter((f) => !(f.data as any)?.sensitive);
@@ -62,25 +68,81 @@ export class PackService {
     };
   }
 
-  async lebenslaufPdf(st: ApplicantState): Promise<Buffer> {
+  /**
+   * The Lebenslauf, optionally written for one particular target.
+   *
+   * Tailoring is selection and ordering, never addition. A profile line names the overlap between
+   * what their page asks for and what this applicant can evidence, and the skills section leads
+   * with the matched terms — but a keyword they cannot back with a document or a statement never
+   * appears, whatever the target wants. The person who has to defend this CV is sitting an
+   * interview in their third language.
+   */
+  async lebenslaufPdf(st: ApplicantState, tailor?: { target: string; report: TailorReport }): Promise<Buffer> {
     const cv = this.cvData(st);
+    const matched = tailor?.report.matches.filter((m) => m.have) ?? [];
     return pdf((doc) => {
       doc.font('Helvetica-Bold').fontSize(22).text('Lebenslauf');
       doc.moveDown(0.3).font('Helvetica').fontSize(13).text(clean(cv.name));
       doc.fontSize(9).fillColor('#586174').text(clean(cv.contact.join(' · ')));
       doc.fillColor('#000');
+      if (tailor && matched.length) {
+        section(doc, 'Profil');
+        doc
+          .font('Helvetica')
+          .fontSize(10)
+          .text(
+            clean(
+              `Application for ${tailor.target}. Evidenced against their stated requirements: ${matched
+                .slice(0, 8)
+                .map((m) => m.term)
+                .join(', ')}.`,
+            ),
+          );
+      }
       section(doc, 'Berufserfahrung');
       for (const e of cv.experience) row(doc, e.when, `${e.title}, ${e.place}`, e.tag);
       section(doc, 'Ausbildung');
       for (const e of cv.education) row(doc, e.when, `${e.title}${e.place ? `, ${e.place}` : ''}`, e.tag);
       section(doc, 'Sprachkenntnisse');
       for (const l of cv.languages) row(doc, l.name, l.level, l.tag);
-      if (cv.skills) {
+      if (cv.skills || matched.length) {
         section(doc, 'Kenntnisse');
-        doc.font('Helvetica').fontSize(10).text(clean(cv.skills));
+        // Matched terms lead, each marked with how it is backed, so a reader can ask about any of
+        // them and get an answer. The applicant's own list follows, unchanged.
+        if (matched.length) {
+          for (const m of matched.slice(0, 10)) row(doc, m.term, m.evidence ?? 'on file', m.tag === 'verified' ? 'verified' : 'self-declared');
+        }
+        if (cv.skills) doc.font('Helvetica').fontSize(10).text(clean(cv.skills));
       }
-      doc.moveDown(1.5).fontSize(8).fillColor('#586174').text('Built by the Educaro agent from verified documents and the applicant’s own statements only.');
+      doc
+        .moveDown(1.5)
+        .fontSize(8)
+        .fillColor('#586174')
+        .text(
+          tailor
+            ? `Built by the Educaro agent from verified documents and the applicant’s own statements only, and written for ${clean(tailor.target)}. Nothing on this page is claimed without a source.`
+            : 'Built by the Educaro agent from verified documents and the applicant’s own statements only.',
+        );
     });
+  }
+
+  /** Keep a generated document as a file on the applicant, so mail can attach it by id. */
+  async store(applicantId: string, name: string, bytes: Buffer): Promise<{ id: string; path: string }> {
+    const path = await this.storage.writeGenerated(applicantId, name, bytes);
+    const [row] = await db
+      .insert(schema.files)
+      .values({
+        applicantId,
+        originalName: name,
+        mime: 'application/pdf',
+        size: bytes.length,
+        storagePath: path,
+        kind: 'generated',
+        kindLabel: 'Tailored Lebenslauf',
+        status: 'done',
+      })
+      .returning();
+    return { id: row.id, path };
   }
 
   async lebenslaufDocx(st: ApplicantState): Promise<Buffer> {

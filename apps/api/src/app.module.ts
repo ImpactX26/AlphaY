@@ -53,6 +53,8 @@ import { CommunityService } from './community/community.service';
 import { AnnouncementsService } from './community/announcements.service';
 import { GroupsController } from './community/groups.controller';
 import { GroupsService } from './community/groups.service';
+import { TailorController } from './outbound/tailor.controller';
+import { TailorService } from './outbound/tailor.service';
 import { StandardsController } from './standards/standards.controller';
 import { StandardsService } from './standards/standards.service';
 import { WatchController } from './watch/watch.controller';
@@ -66,7 +68,7 @@ import { SafetyService } from './safety/safety.service';
  * injection, so wiring stays in one readable list rather than a tree of feature modules.
  */
 @Module({
-  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController, McpController, CommunityController, GroupsController, InsightController, SafetyController, StandardsController, WatchController],
+  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController, McpController, CommunityController, GroupsController, InsightController, SafetyController, StandardsController, TailorController, WatchController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     BusService,
@@ -111,6 +113,7 @@ import { SafetyService } from './safety/safety.service';
     AnnouncementsService,
     GroupsService,
     StandardsService,
+    TailorService,
     WatchService,
     SafetyService,
     DiscordService,

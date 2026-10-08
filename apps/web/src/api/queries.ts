@@ -31,6 +31,7 @@ export const qk = {
   staffGroups: ['staff', 'groups'] as const,
   watch: ['staff', 'watch'] as const,
   standards: ['staff', 'standards'] as const,
+  tailor: (id: string, shortlistId: string) => ['applicant', id, 'tailor', shortlistId] as const,
   failingDocs: ['staff', 'standards', 'failing'] as const,
   employers: ['staff', 'employers'] as const,
   reports: ['staff', 'reports'] as const,
@@ -235,6 +236,30 @@ export function useRespondToGroup(id: Id) {
 }
 
 export const useStaffGroups = () => useQuery({ queryKey: qk.staffGroups, queryFn: () => api.staffGroups() });
+
+// ---------- a CV written for one target ----------
+
+export const useTailorReport = (id: Id, shortlistId: string | null) =>
+  useQuery({
+    queryKey: qk.tailor(id ?? '', shortlistId ?? ''),
+    queryFn: () => api.tailorReport(id ?? '', shortlistId ?? ''),
+    enabled: !!id && !!shortlistId,
+    // The target's page is opened on every call, so this is slower and more valuable than a cache hit.
+    staleTime: 5 * 60_000,
+  });
+
+/** Builds the CV and the email, and returns an approval. It never sends. */
+export function useDraftTailored(id: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { shortlistId: string; to?: string; note?: string }) => api.draftTailored(id ?? '', input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.approvals(id ?? '') });
+      void qc.invalidateQueries({ queryKey: qk.chat(id ?? '') });
+      void qc.invalidateQueries({ queryKey: qk.files(id ?? '') });
+    },
+  });
+}
 
 // ---------- document standards ----------
 

@@ -634,5 +634,42 @@ export interface FailingDocDTO {
   createdAt: string;
 }
 
+// ---------- a CV written for one target ----------
+// GET  /api/applicants/:id/tailor?shortlistId=  -> TailorReportDTO
+// POST /api/applicants/:id/tailor               -> TailorDraftDTO   (creates an approval; sends nothing)
+
+export interface KeywordMatchDTO {
+  term: string;
+  weight: 'required' | 'desirable';
+  /** Is there evidence for it on this applicant's own file? */
+  have: boolean;
+  /** The document or fact that backs it, so every line on the CV is traceable. */
+  evidence: string | null;
+  tag: 'verified' | 'said' | null;
+}
+
+export interface TailorReportDTO {
+  target: string;
+  matches: KeywordMatchDTO[];
+  matched: number;
+  required: number;
+  requiredMatched: number;
+  /** What the page wants and they cannot evidence. Reported, never written onto the CV. */
+  missing: KeywordMatchDTO[];
+  url: string | null;
+  /** False when the target's page could not be opened and the report came from what we hold. */
+  pageOpened: boolean;
+}
+
+export interface TailorDraftDTO {
+  approvalId: string;
+  report: TailorReportDTO;
+  cvFileId: string;
+  to: string;
+  /** False when safe mode will redirect it to the demo inbox rather than the address typed. */
+  willSendAsTyped: boolean;
+  actualRecipients: string[];
+}
+
 // Re-exported elsewhere in the package; imported here so the endpoint comments above type-check in editors.
 export type _ContractRefs = [ApprovalDTO, FactDTO, QuestionDTO, TraceDTO, TruthRow, ChatMessageDTO, Screen];
