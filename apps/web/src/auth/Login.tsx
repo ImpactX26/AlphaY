@@ -71,7 +71,9 @@ export function Login() {
           {/* What this is, before who you are. Someone landing here has been sent a link by a
               recruiter or a cousin and has no idea what Educaro does; "Sign in" told them nothing. */}
           {mode === 'demo' ? (
-            <p className="lead-say">Tell your story once. Get a real plan for Germany.</p>
+            <h2 className="display max-w-[20ch] text-[clamp(23px,4vw,27px)] font-black leading-[1.15] tracking-[-0.02em]">
+              Tell your story once. Get a real plan for Germany.
+            </h2>
           ) : (
             <h2 className="display text-[26px] font-black leading-tight">{mode === 'register' ? 'Create your account' : 'Sign in'}</h2>
           )}

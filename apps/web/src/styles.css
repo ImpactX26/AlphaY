@@ -516,12 +516,21 @@
   transform-origin: top;
   animation: lead-draw 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
-/* The lead's own sentence is the largest text on the page, so the eye lands on
-   the instruction rather than on whichever card happens to be first. */
+/* An ask's own sentence, set so the eye lands on the instruction rather than on
+   whichever card happens to be first. The guard allows two open questions at once,
+   so the largest size is scoped to the block carrying the rule: two 23px headlines
+   side by side is no hierarchy at all. The second ask stays a step quieter. */
 .lead-say {
-  font: 700 clamp(19px, 2.4vw, 23px) / 1.25 var(--f-display);
-  letter-spacing: -0.016em;
+  font: 700 17.5px/1.3 var(--f-display);
+  letter-spacing: -0.013em;
   text-wrap: balance;
+  max-width: 40ch;
+  margin: 0;
+}
+.lead .lead-say {
+  font-size: clamp(19px, 2.4vw, 23px);
+  line-height: 1.25;
+  letter-spacing: -0.016em;
   max-width: 34ch;
 }
 /* Inside the lead, the first answer is filled rather than outlined. Four identical outline pills
