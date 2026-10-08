@@ -35,7 +35,18 @@ export interface IntentResult {
   focus: 'plan' | 'process' | 'weather' | 'none';
 }
 
-const ACK = /^(ok(ay)?|k|thanks?|thank you|thx|ty|got it|understood|sure|yes|yeah|yep|no|nope|fine|alright|cool|great|nice|perfect|done|will do|noted)[\s.!,]*$/i;
+// Acknowledgements arrive combined — "ok thanks", "yes got it", "alright perfect" — and matching
+// only single words sent "ok thanks" through to the model as if it were a question.
+const ACK_WORD = /^(ok(ay)?|k|thanks?|thank you|thx|ty|got it|understood|sure|yes|yeah|yep|no|nope|fine|alright|cool|great|nice|perfect|done|will do|noted|good)$/i;
+const ACK = {
+  test: (s: string) => {
+    const words = s.trim().replace(/[\s.!,]+$/, '').split(/\s+/);
+    if (!words.length || words.length > 3) return false;
+    // "thank you" and "got it" are two words that mean one thing; try the whole phrase first.
+    if (ACK_WORD.test(words.join(' '))) return true;
+    return words.every((w) => ACK_WORD.test(w.replace(/[.,!]+$/, '')));
+  },
+};
 const GREET = /^(hi|hey|hello|good (morning|afternoon|evening)|namaste|vanakkam)\b[\s.!,]*$/i;
 
 const PLAN = /\b(my|me|i|mine)\b.*\b(next|step|plan|status|ready|readiness|track|missing|left|remaining|progress|timeline|when (can|will) i)\b|\bwhat('?s| is) next\b|\bam i (on track|ready)\b|\bhow long (will|does) (it|this|my)\b|\bwhat do i need\b/i;
