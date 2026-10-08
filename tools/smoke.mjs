@@ -62,9 +62,18 @@ async function api(path, { token, method = 'GET', body, raw = false } = {}) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, QUICK ? Math.min(ms, 1500) : ms));
 
+/**
+ * A local model is an order of magnitude slower than a hosted one — qwen2.5:14b answers in 10 to 60
+ * seconds where Groq takes one, and Ollama serves requests one at a time, so parallel agent runs
+ * queue behind each other. Checks written for a hosted model then fail on a machine that is working
+ * perfectly, which is the least useful failure a suite can produce.
+ */
+let patience = 1;
+
 /** Polls instead of sleeping blind, so a slow machine does not fail and a fast one is not punished. */
 async function until(label, fn, timeoutMs = 60_000, everyMs = 2500) {
-  const deadline = Date.now() + (QUICK ? Math.min(timeoutMs, 15_000) : timeoutMs);
+  const budget = Math.round(timeoutMs * patience);
+  const deadline = Date.now() + (QUICK ? Math.min(budget, 15_000) : budget);
   let last;
   while (Date.now() < deadline) {
     last = await fn().catch(() => undefined);
@@ -83,7 +92,11 @@ async function main() {
   const status = await api('/system/status');
   check('system status answers', status.status === 200);
   const llm = status.body?.llm ?? {};
-  console.log(`  ${DIM}groq=${llm.groq} openai=${llm.openai} discord=${status.body?.discord} spent=$${llm.openaiSpentUsd}/${llm.openaiBudgetUsd}${OFF}`);
+  console.log(`  ${DIM}groq=${llm.groq} openai=${llm.openai} local=${llm.local ?? 'none'} discord=${status.body?.discord} spent=$${llm.openaiSpentUsd}/${llm.openaiBudgetUsd}${OFF}`);
+  if (llm.local) {
+    patience = 4;
+    console.log(`  ${DIM}local model in use: waiting 4x longer before giving up on anything${OFF}`);
+  }
 
   const mcp = await api('/mcp/tools');
   check('MCP publishes its tools', Array.isArray(mcp.body?.tools) && mcp.body.tools.length >= 10, `${mcp.body?.tools?.length ?? 0} tools`);
