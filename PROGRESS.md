@@ -60,6 +60,32 @@
 - ✅ Scam shield, reality check, finance plan, cohort group, rights at work; rent locator; BM25
   retrieval; `npm run sandbox` (no keys, no network); intent classifier in front of the model
 
+- 04:05 · A · **The jury's second list, built.** Eight items, each verified end to end rather than typechecked
+  and hoped for.
+  1. **Scam shield.** The contract rules were English-only, so a real Arbeitsvertrag scored clean — a check
+     that passes every actual contract is worse than none. Rewritten with 15 employment and 6 rental rules
+     carrying the provision (BAG, BGB, ArbZG, MiLoG, BUrlG, HGB), umlaut-tolerant for the three spellings
+     that reach us. A seeded exploitative contract returns 13 flags, 8 unenforceable; a fair TVöD-P contract
+     returns none. And Safety now has a box to paste into: the shield was unreachable before.
+  2. **Cohort flat-share.** Real groups, consent both ways, rent split as a number. In Discord, "I'd like to
+     stay with Rohan and split the rent evenly" creates the group and sends Rohan two buttons.
+  3. **Watched sources.** Staff keep a list of the pages that decide who qualifies; each is re-read, parsed
+     into comparable requirements and diffed. RWTH eases → Karthik and Priya are told they now qualify; the
+     ministry drops B2 → B1 → Joseph qualifies; Klinikum raises B1 → B2 → the same Joseph is warned.
+  4. **Document standards.** The answer to "verified against what?": eight written standards, nine rule kinds,
+     each naming its authority, evaluated in code. A rejected document now also stops verifying facts.
+  5. **Finance.** Live ECB rates (the hardcoded 92 was 17% out), eight currencies, funding options that say
+     whether they replace the blocked account, and a joined flat-share that moves the actual numbers.
+  6. **Help button.** It existed as a paragraph. Now it is a button, the reports aggregate into an employer
+     rating, and the rating demotes that employer in matching.
+  7. **Reality check.** `skilled_job` and `chancenkarte` were copies of `study` — a nurse was being shown
+     student data. Rewritten per route and personalised from their own figures.
+  8. **Community bot, Life map, German glossary.** The bot now waits for the cohort and researches before
+     answering. The map was keyed on categories that no longer existed, so every pin was one colour; fixed,
+     filterable, and visible while planning rather than only after arrival. 41 German terms explain
+     themselves in place.
+  `npm run smoke` is **77 checks, all passing**.
+
 ## Claude B: frontend (`apps/web`)
 
 - ✅ Shell, routing, auth + demo logins, mock layer, socket hook, design tokens
