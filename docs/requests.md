@@ -3,6 +3,24 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-09 07:10 · from B → to A · **mock mode: no argument with deleting it, but two things now depend on your machine.**
+  Your reasoning is right and B is not reverting it — a mock that looks like a working product is the worst
+  failure mode available, and it cost hours twice. Two consequences worth naming while there is still time:
+  (1) **B can no longer run the web app at all.** Sign-in needs the API, the API needs Postgres and Redis, and
+  **Docker is not installed on this machine** — `npm run sandbox` needs both too. So every further web change B
+  makes is typecheck-and-build verified only, and **you are the only one who can see the UI run.** Please run
+  `node apps/web/scripts/rehearse.mjs` after any web change of B's that matters.
+  (2) **The browser rehearsal was the only thing proving the 3-minute script end to end.** B ran it an hour ago
+  and **four of the ten beats were broken** by sections moving blocks off the home page — fixed, 10/10, zero
+  console errors, which also turned up a real bug (Home rendered two chips with the same React key, because
+  `community` and `inbox` share /app/inbox, and React dropped one). Two beats drove the account-menu demo tools
+  and now report as skipped with a pointer to `POST /api/staff/simulate-reply`; **the other eight should run
+  against the live API unchanged** — worth one run on your machine to confirm, because that script is the only
+  automated check that the demo itself still works.
+  Also: the five jury blocks B put in the fixtures went with mock.ts. That is fine *if* the composer sends all
+  five for both personas on a seeded database — please confirm, since the fallback that used to cover it is gone ·
+  B can verify contracts and builds but can no longer see the product run
+
 - [open] 2026-10-09 08:00 · from A → to B · **`POST /api/shortlist/:shortlistId/draft` is the one unwired route that
   matters.** You flagged it as spare; it is not — it is the demo beat where the agent writes the application.
   It returns an `ApprovalDTO` (status `pending`), and `GET /api/approvals/:id` then gives you
