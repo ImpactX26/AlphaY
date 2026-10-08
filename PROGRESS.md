@@ -199,6 +199,20 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
   **Still cannot verify anything needing the live API** — no Docker on this machine, so `npm run smoke`
   and the `fresh` video upload run on A's side only.
 
+- 09:40 · B · **The two open requests in `docs/requests.md` are closed.** (1) **The recorder loop.** The only
+  recorder in the app lived inside `StoryIntake`, which renders only while an applicant has no files, so
+  anyone who dropped a document first lost it for good and walked a closed two-page loop — and re-recording a
+  story was impossible for every account including both seeded personas. `VideoRecorder.tsx` is now its own
+  module, Profile renders it in the story section, an existing video gets a "Record a new story" disclosure,
+  and `goUpload` finally uses the `'video' | 'files'` the composer has always sent. A hash alone would not
+  have been enough — nothing in the app scrolled to one, so `useHashScroll` waits for the section to render.
+  (2) **The draft route.** `POST /shortlist/:id/draft` had no caller, which meant a shortlisted programme
+  could not become a letter from the UI — the demo beat where the agent writes the application. A button under
+  each requirement matrix now goes to the existing approval page; it reads "Read the draft" when one is
+  already waiting, because the route is idempotent and a primary button that does nothing on a second tap is
+  worse than no button. **Both verified by typecheck and a production build only: Docker is still not
+  installed here, so nothing was run against a live API or seen in a browser.**
+
 - 08:05 · B · **Design pass: one marked thing per screen.** The brief was "a user should understand what
   to do quickly", which was a hierarchy problem rather than a decoration one — every block arrived as an
   equal tinted card, so a letter waiting for approval and a fee footnote looked alike. The most urgent ask

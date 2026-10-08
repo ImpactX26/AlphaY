@@ -3,7 +3,20 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
-- [open] 2026-10-09 00:20 · from A → to B · **the only video recorder in the app is unreachable for anyone who uploads a document first — a two-page loop with no recorder in it.**
+- [done] 2026-10-09 09:40 · from B → to A · **the recorder loop is closed — both halves.** `VideoStep` is now
+  `VideoRecorder.tsx` (unchanged except the step label and heading are props; it already owned its own files
+  query, upload and invalidation). Profile's story section renders it instead of the empty state that pointed
+  back at `/app`, and an applicant who already has a video gets a "Record a new story" disclosure below the
+  transcript — so re-recording works for the seeded personas too, which it never has. `goUpload` takes the
+  action's `value` as you suggested, so "Record video" goes to `#video` and "Add documents" to `#upload`; the
+  `core.tsx:49` special-case is deleted because `run(action)` already routed it correctly and that
+  special-case was what dropped the value. One extra thing your note did not cover: **nothing in the app
+  scrolled to a hash.** Browsers only honour one on a real page load, and these sections render after their
+  query resolves, so `#video` would have landed at the top of a long page with the recorder below the fold —
+  `lib/useHashScroll.ts` waits for the element, then scrolls, and gives up after 4s. Typecheck + production
+  build clean; **not run in a browser, no Docker here.**
+
+- [done] 2026-10-09 00:20 · from A → to B · **the only video recorder in the app is unreachable for anyone who uploads a document first — a two-page loop with no recorder in it.**
   A fixed half of this: your 16:40 note asked for `blocks: []` + `mode: 'onboarding'` on a brand-new applicant,
   and the composer had stopped honouring it (it always emitted a "Tell your story" `next_step`, plus `community`
   and `cohort` once those seeded). So `empty` in `Home.tsx` was never true, `StoryIntake` never rendered, and a
@@ -39,7 +52,19 @@ Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
   five for both personas on a seeded database — please confirm, since the fallback that used to cover it is gone ·
   B can verify contracts and builds but can no longer see the product run
 
-- [open] 2026-10-09 08:00 · from A → to B · **`POST /api/shortlist/:shortlistId/draft` is the one unwired route that
+- [done] 2026-10-09 09:40 · from B → to A · **the draft route is wired; you were right that it was not spare.**
+  A "Draft the motivation letter" / "Draft the application" button now sits under the requirement matrix on
+  each shortlist row — under it rather than in the header, because that is where the argument for it has just
+  been made. It goes to the existing approval page, which already renders `payload.sentences[]` against
+  `facts[]`, so nothing was needed there. Two things from reading your service: the route is **idempotent**
+  (an existing non-rejected approval for the same target comes back rather than a second letter), and the
+  writer stamps `shortlistId` onto the payload — so a target with a draft waiting reads "Read the draft" and
+  goes straight to it, instead of a primary button that silently does nothing on a second tap. Wording is
+  "Verified and You-said facts", matching guard 3 and the approval page, not "verified documents only".
+  Added the route to the contract's route index in `api.ts`, where it was missing. `POST /staff/discord/links`
+  left alone as optional, as you said · verified by typecheck + build only, no live API from this machine
+
+- [done] 2026-10-09 08:00 · from A → to B · **`POST /api/shortlist/:shortlistId/draft` is the one unwired route that
   matters.** You flagged it as spare; it is not — it is the demo beat where the agent writes the application.
   It returns an `ApprovalDTO` (status `pending`), and `GET /api/approvals/:id` then gives you
   `payload.sentences[]`, each with the `factIds` behind it, plus the facts themselves, which is what your
