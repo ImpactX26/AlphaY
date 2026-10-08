@@ -63,13 +63,18 @@ export class LlmService implements OnModuleInit {
   private groqCooldownUntil = 0;
 
   constructor(private readonly trace: TraceService) {
+    // The SDK defaults to a ten minute timeout and two retries, so one slow call can block for half
+    // an hour. The agent loop holds a per-applicant lock while it waits, which turned a slow model
+    // into "the agent has stopped working" for that person, with nothing in the log to say why.
+    // Retries are zero on purpose: a retry re-spends tokens, and every task here has a fallback.
+    const opts = { timeout: 45_000, maxRetries: 0 };
     if (config.openaiKey) {
-      this.openai = { name: 'openai', client: new OpenAI({ apiKey: config.openaiKey }), model: config.openaiModel };
+      this.openai = { name: 'openai', client: new OpenAI({ apiKey: config.openaiKey, ...opts }), model: config.openaiModel };
     }
     if (config.groqKey) {
       this.groq = {
         name: 'groq',
-        client: new OpenAI({ apiKey: config.groqKey, baseURL: 'https://api.groq.com/openai/v1' }),
+        client: new OpenAI({ apiKey: config.groqKey, baseURL: 'https://api.groq.com/openai/v1', ...opts }),
         model: config.groqModel,
       };
     }

@@ -58,7 +58,14 @@ export class AgentLoopService implements OnModuleInit {
       await this.events.clearScheduled(applicantId);
       const events = await this.events.drain(applicantId);
       if (!events.length) return;
-      await this.run(applicantId, events);
+      // A ceiling on the whole run. Any one dependency — a model, a university's web server, a
+      // queue event that never arrives — can hang, and while it hangs the lock is held and this
+      // applicant's agent is dead with nothing in the log. Better to abandon the run, release the
+      // lock and let the next event start a fresh one: the state is in Postgres, nothing is lost.
+      await Promise.race([
+        this.run(applicantId, events),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('run exceeded 150s and was abandoned')), 150_000)),
+      ]);
     } catch (e: any) {
       this.log.error(`loop ${applicantId} failed: ${e?.message}`, e?.stack);
       await this.trace.record('event', 'loop_error', { message: String(e?.message ?? e) }, { applicantId });

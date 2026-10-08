@@ -221,7 +221,10 @@ export class StaffService {
           createdAt: a.updatedAt.toISOString(),
         });
       }
-      if (a.submittedAt && !a.approvedByStaffAt) {
+      // The pending 'submit' approval above already represents this, so adding it again put the
+      // same submission on the board twice.
+      const alreadyQueued = pending.some((p) => p.applicantId === a.id && p.kind === 'submit');
+      if (a.submittedAt && !a.approvedByStaffAt && !alreadyQueued) {
         items.push({
           id: `submit:${a.id}`,
           kind: 'submission',
