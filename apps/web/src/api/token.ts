@@ -45,14 +45,19 @@ export const tokenStore = {
  */
 function readMockPin(): boolean {
   try {
-    if (read(MOCK_KEY) === '1') {
-      // Migrate a legacy permanent pin into this session, then drop it for good.
-      sessionStorage.setItem(MOCK_KEY, '1');
-      write(MOCK_KEY, null);
-    }
-    if (new URLSearchParams(window.location.search).get('mock') === '0') {
+    // The old permanent pin is deleted, not carried over. Migrating it into the session looked
+    // tidier and was worse: anybody who had ever tapped the toggle stayed on mocks without asking
+    // for it again, and the only clue was a small badge next to a green "Live" dot. Mock is a thing
+    // you choose now, in this tab, on purpose.
+    write(MOCK_KEY, null);
+    const q = new URLSearchParams(window.location.search).get('mock');
+    if (q === '0') {
       sessionStorage.removeItem(MOCK_KEY);
       return false;
+    }
+    if (q === '1') {
+      sessionStorage.setItem(MOCK_KEY, '1');
+      return true;
     }
     return sessionStorage.getItem(MOCK_KEY) === '1';
   } catch {

@@ -141,12 +141,26 @@ export function AgentPill({ applicantId, className }: { applicantId: string | nu
   );
 }
 
+/**
+ * Mock mode has to announce itself and offer the way out.
+ *
+ * It sat next to a green "Live" dot as a quiet dashed chip, so a screen full of example data read
+ * as a working product — twice, to people who then reported the product as broken. A mode that
+ * changes every answer on the page is not a subtitle, and nobody should have to know a URL
+ * parameter to leave it.
+ */
 export function MockBadge() {
   if (!isMock) return null;
   return (
-    <span className="hidden items-center gap-1.5 rounded-full border border-dashed border-loop/60 px-2.5 py-1 text-[12px] font-semibold text-loop sm:inline-flex" title="Mock mode: example data, no server">
+    <button
+      type="button"
+      onClick={() => setMockMode(false)}
+      title="You are looking at example data. Click to use the real API."
+      className="inline-flex items-center gap-1.5 rounded-full border border-warn bg-[color-mix(in_srgb,var(--warn)_14%,transparent)] px-2.5 py-1 text-[12px] font-semibold text-warn transition hover:bg-[color-mix(in_srgb,var(--warn)_24%,transparent)]"
+    >
       <FlaskConical size={13} aria-hidden />
       Demo data
-    </span>
+      <span className="hidden font-normal opacity-80 sm:inline">— switch to live</span>
+    </button>
   );
 }
