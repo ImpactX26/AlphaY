@@ -90,7 +90,14 @@ export function extractDocByRules(kind: DocKind, text: string): DocExtraction {
     field: grab(/(?:branch|discipline|specialisation|specialization|in the field of)\s*[:\-]?\s*([A-Za-z &]+)/i),
     institution: grab(/(?:institution|college|university|school)\s*[:\-]\s*(.+)/i),
     year: grab(/(?:year of (?:passing|completion)|examination held in|passed in)\s*[:\-]?\s*([A-Za-z]*\s*\d{4})/i),
-    grade: grab(/((?:CGPA|CPI|GPA)\s*[:\-]?\s*\d{1,2}\.\d{1,2}(?:\s*\/\s*10)?)/i) ?? grab(/(\d{2}(?:\.\d+)?\s*%)/),
+    // A transcript lists every semester's SGPA before the cumulative figure, and an unanchored
+    // /GPA/ matches inside "SGPA" — which silently reports semester one as the final grade.
+    // Take the cumulative number, and never a per-semester one.
+    grade:
+      grabFlat(/cumulative grade point average[^0-9]{0,20}(\d{1,2}\.\d{1,2}(?:\s*\/\s*10)?)/i)?.replace(/^/, 'CGPA ') ??
+      grab(/\b((?:CGPA|CPI)\s*[:\-]?\s*\d{1,2}\.\d{1,2}(?:\s*\/\s*10)?)/i) ??
+      grab(/(?<![A-Z])\b(GPA\s*[:\-]?\s*\d{1,2}\.\d{1,2}(?:\s*\/\s*10)?)/i) ??
+      grab(/(\d{2}(?:\.\d+)?\s*%)/),
     gradeScaleMax: null,
     gradePassMin: null,
     employer:

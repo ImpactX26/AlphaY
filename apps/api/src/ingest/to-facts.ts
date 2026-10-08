@@ -1,8 +1,28 @@
 import type { DocKind } from '@educaro/shared';
 import { parseCefr } from '../knowledge/cefr';
 import { monthLabel, parseMonth } from '../knowledge/normalize';
+import { convertIndianGrade } from '../knowledge/grades';
 import type { FactInput } from '../profile/facts.service';
 import type { CvExtraction, DocExtraction, TranscriptClaims } from './extractors';
+
+/**
+ * The German equivalent, carried on the grade fact itself.
+ *
+ * It is pure arithmetic over the modified Bavarian formula, so it belongs with the grade and not in
+ * a sentence the agent might not write. Every university compares against this number, so it has to
+ * be visible wherever the grade is.
+ */
+function gradeFact(base: Omit<FactInput, 'key' | 'label' | 'value'>, raw: string, scaleMax?: number | null, passMin?: number | null): FactInput {
+  const conv = convertIndianGrade(raw, scaleMax, passMin);
+  return {
+    ...base,
+    key: 'education.grade',
+    label: 'Final grade',
+    value: conv ? `${raw} (German ${conv.german.toFixed(1)})` : raw,
+    data: { raw, scaleMax: scaleMax ?? null, passMin: passMin ?? null, german: conv?.german ?? null, formula: conv?.formula ?? null },
+  };
+}
+
 
 const period = (start: string | null, end: string | null) =>
   `${monthLabel(parseMonth(start))} to ${end && !/present/i.test(end) ? monthLabel(parseMonth(end)) : 'present'}`;
@@ -38,11 +58,11 @@ export function docFacts(e: DocExtraction, fileId: string, expKey: ExpKey): Fact
           data: { qualification: e.qualification, field: e.field, institution: e.institution, year: e.year, evidence: 'Certificate', kind },
         });
       }
-      if (e.grade) out.push({ ...base, key: 'education.grade', label: 'Final grade', value: e.grade, data: { raw: e.grade, scaleMax: e.gradeScaleMax, passMin: e.gradePassMin } });
+      if (e.grade) out.push(gradeFact(base, e.grade, e.gradeScaleMax, e.gradePassMin));
       break;
     }
     case 'transcript':
-      if (e.grade) out.push({ ...base, key: 'education.grade', label: 'Final grade', value: e.grade, data: { raw: e.grade, scaleMax: e.gradeScaleMax, passMin: e.gradePassMin } });
+      if (e.grade) out.push(gradeFact(base, e.grade, e.gradeScaleMax, e.gradePassMin));
       if (e.qualification) out.push({ ...base, key: 'education.transcript', label: 'Transcript', value: e.qualification, data: { institution: e.institution } });
       break;
     case 'marksheet_12':
@@ -104,7 +124,7 @@ export function cvFacts(cv: CvExtraction, fileId: string, expKey: ExpKey): FactI
       value: `${top.qualification}${top.field && !top.qualification.toLowerCase().includes(top.field.toLowerCase()) ? `, ${top.field}` : ''}${top.year ? `, ${top.year}` : ''}`,
       data: { qualification: top.qualification, field: top.field, institution: top.institution, year: top.year },
     });
-    if (top.grade) out.push({ ...base, key: 'education.grade', label: 'Final grade', value: top.grade, data: { raw: top.grade } });
+    if (top.grade) out.push(gradeFact(base, top.grade));
   }
   for (const x of cv.experience) {
     out.push({

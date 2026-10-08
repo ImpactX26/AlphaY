@@ -78,9 +78,30 @@ export class MediaService implements OnModuleDestroy {
   }
 
   /** Audio only. The picture is stored and never analysed. */
-  async transcribe(absPath: string): Promise<Transcript> {
+  /**
+   * Whisper's API already accepts the containers a browser records into, so the ffmpeg step is an
+   * optimisation, not a requirement: it only earns its keep on a file too big to post, or in a
+   * container the API will not take. Treating it as mandatory made the whole feature depend on a
+   * binary that npm resolves per-platform and can get wrong — which is exactly what happened here.
+   */
+  private async toUploadable(absPath: string): Promise<string> {
+    const ext = path.extname(absPath).toLowerCase().replace('.', '');
+    const accepted = ['flac', 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'ogg', 'opus', 'wav', 'webm'];
+    const big = (await fs.promises.stat(absPath).catch(() => null))?.size ?? 0;
+    if (accepted.includes(ext) && big > 0 && big < 24 * 1024 * 1024) return absPath;
+
     const audio = absPath.replace(/\.[^.]+$/, '') + '.audio.mp3';
-    await run(ffmpegPath, ['-y', '-i', absPath, '-vn', '-ac', '1', '-ar', '16000', '-b:a', '32k', audio], { windowsHide: true });
+    try {
+      await run(ffmpegPath, ['-y', '-i', absPath, '-vn', '-ac', '1', '-ar', '16000', '-b:a', '32k', audio], { windowsHide: true });
+      return audio;
+    } catch (e: any) {
+      this.log.warn(`ffmpeg unavailable (${e?.message ?? e}); sending the original file to Whisper`);
+      return absPath;
+    }
+  }
+
+  async transcribe(absPath: string): Promise<Transcript> {
+    const audio = await this.toUploadable(absPath);
 
     if (this.groq) {
       try {
