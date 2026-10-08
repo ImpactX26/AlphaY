@@ -1,12 +1,13 @@
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { db, schema } from '../../db/db';
 import { checkContract, contractKind, HELP_CONTACTS, looksLikeContract, missingFromContract, REGISTERS, scamCheck, WORK_RIGHTS } from '../../knowledge/safety';
-import { realityFor } from '../../knowledge/reality';
+import { personalise, realityFor } from '../../knowledge/reality';
 import { monthLabel, parseMonth } from '../../knowledge/normalize';
 import { bestFact } from '../state.service';
 import { fetchRates, CURRENCIES } from '../../web/fx';
 import { fundingFor, monthlyRepayment } from '../../knowledge/funding';
 import { targetCity } from './living';
+import { germanLevels } from '../checks';
 import type { Kit, SpecialistResult } from './kit';
 
 /**
@@ -46,7 +47,30 @@ export async function safetySpecialist(kit: Kit): Promise<SpecialistResult> {
   const contractFlags = contractText ? checkContract(contractText, kind) : [];
   const missing = contractText ? missingFromContract(contractText, kind) : [];
 
-  const reality = realityFor(route);
+  const city = targetCity(st);
+
+  // The generic preview, rewritten around the numbers the other specialists already computed. A
+  // page of identical text for everybody is a brochure with the good news removed; what makes this
+  // worth reading is that the money is theirs, in their city, against their rent.
+  const money = (st.outputs.money?.output ?? {}) as any;
+  const base = realityFor(route);
+  const lang = germanLevels(st);
+  const reality = base
+    ? personalise(base, {
+        city: city.name,
+        homeCity: st.applicant.homeCity,
+        // `pay` is what the money specialist calls it: { gross, net, lines, note, label }. Guessing
+        // `salary` meant every figure came back null and the preview silently stayed generic.
+        grossEur: money.pay?.gross ?? null,
+        netEur: money.pay?.net ?? null,
+        monthlyCostEur: money.total ?? null,
+        rentEur: money.lines?.find((l: any) => /room|flat|rent/i.test(l.label))?.amount ?? city.wgRoom,
+        needBeforeTravelEur: null,
+        germanProven: lang.proven ?? null,
+        germanNeeded: route === 'nursing' ? 'B2' : route === 'ausbildung' || route === 'skilled_job' ? 'B1' : null,
+        winterLowC: COLDEST_JANUARY[city.name] ?? null,
+      })
+    : null;
   const group = await cohortGroup(kit);
 
   // An illegal clause outranks a clean-looking sender. A real hospital can send a loaded contract,
@@ -281,3 +305,26 @@ async function checkHistory(applicantId: string) {
     .limit(8);
   return rows.map((r) => ({ id: r.id, kind: r.kind, subject: r.subject, verdict: r.verdict, score: r.score, createdAt: r.createdAt.toISOString() }));
 }
+
+
+/**
+ * Average January overnight low, by city.
+ *
+ * In code rather than from the weather service: this is a climate normal, not today's weather, and
+ * the point of it on this page is the winter somebody has not met yet rather than the one outside.
+ * Deutscher Wetterdienst 1991–2020 normals.
+ */
+const COLDEST_JANUARY: Record<string, number> = {
+  Cologne: 1,
+  Munich: -3,
+  Aachen: 1,
+  Darmstadt: 0,
+  Berlin: -1,
+  'Düsseldorf': 1,
+  Hamburg: 0,
+  Frankfurt: 0,
+  Stuttgart: -1,
+  Leipzig: -2,
+  Dortmund: 1,
+  Essen: 1,
+};

@@ -3,14 +3,26 @@
  *
  * Everything else an applicant reads about Germany is written by somebody who wants them to go:
  * agencies, universities, employers, us. The result is that people arrive having costed the visa
- * and not the first winter, and the ones who leave in year one rarely leave because of the paperwork.
+ * and not the first winter, and the ones who leave in year one rarely leave because of the
+ * paperwork.
  *
  * So before anyone commits, the product says the hard parts out loud, with numbers. It is a strange
  * thing for a company that gets paid when people go — and it is the reason to trust the rest of the
  * screen. A plan that only contains good news is a brochure.
  *
- * The figures below are drawn from the published collective agreements and from what alumni tell us
- * in exit conversations; the block says so rather than implying a study.
+ * Two things this file used to get wrong, both worth naming because they are the difference between
+ * an honest preview and a page of text:
+ *
+ * - **`skilled_job` and `chancenkarte` were copies of `study`.** A nurse on the skilled-worker route
+ *   was shown student shift patterns and told there are no tuition fees at a public university.
+ *   Every route now has its own content, written for the people actually on it.
+ * - **Nothing was personalised.** The figures are the same for everybody, which is correct for a
+ *   shift pattern and wrong for money: what matters is what *they* will have left after *their*
+ *   rent in *their* city. `personalise()` takes the computed numbers the specialists already hold
+ *   and rewrites the money section around them, so the preview is about them rather than about a
+ *   route.
+ *
+ * The alumni figures come from exit conversations and are labelled as that, not as a study.
  */
 
 export interface Reality {
@@ -23,7 +35,7 @@ export interface Reality {
   source: string;
 }
 
-const SOURCE = 'TVöD-P pay tables, Educaro alumni conversations (n≈120, 2024–2026). Indicative, not a study.';
+const SOURCE = 'TVöD-P and TVöD pay tables, Destatis cost-of-living data, and Educaro alumni exit conversations (n≈120, 2024–2026). Indicative, not a study.';
 
 export const REALITY: Record<string, Reality> = {
   nursing: {
@@ -57,6 +69,7 @@ export const REALITY: Record<string, Reality> = {
     ],
     source: SOURCE,
   },
+
   ausbildung: {
     route: 'ausbildung',
     headline: 'Three years of paid training that ends with the German qualification itself — low pay while you learn, no recognition fight afterwards.',
@@ -80,6 +93,7 @@ export const REALITY: Record<string, Reality> = {
     ],
     source: SOURCE,
   },
+
   study: {
     route: 'study',
     headline: 'No tuition fees, a real degree, and the part nobody warns you about is how much of it you organise alone.',
@@ -104,20 +118,136 @@ export const REALITY: Record<string, Reality> = {
     ],
     source: SOURCE,
   },
-};
 
-REALITY.skilled_job = { ...REALITY.study, route: 'skilled_job', headline: 'A proper salary and a proper job, and a first year where the language decides how much of either you enjoy.' };
-REALITY.chancenkarte = {
-  ...REALITY.study,
-  route: 'chancenkarte',
-  headline: 'A year to find the job, funded entirely by you — the freedom is real and so is the clock.',
-  hard: [
-    { stat: 'You must fund the whole year yourself', detail: 'About EUR 1,091 a month in a blocked account before the visa is granted.' },
-    { stat: 'You may work only 20 hours a week while searching', detail: 'Plus two-week trial periods with an employer.' },
-    { stat: 'Applications take longer than people plan for', detail: 'Expect two to four months to a signed contract, in German, with a recognised qualification.' },
-  ],
+  /**
+   * Written for the skilled-worker route, which used to be served a copy of the student page —
+   * so an engineer on a EUR 4,200 salary was told about blocked accounts and semester fees.
+   */
+  skilled_job: {
+    route: 'skilled_job',
+    headline: 'A proper salary and a proper job, and a first year where the language decides how much of either you enjoy.',
+    shifts: [
+      { label: 'The working week', detail: 'Usually 38 to 40 hours, Monday to Friday. Overtime exists but is logged and either paid or taken back as time off — a blanket "it is in the salary" clause is not enforceable.' },
+      { label: 'How work feels different', detail: 'Meetings start on time, decisions are written down, and disagreeing with your manager in a meeting is normal rather than rude. Most people find the directness harder than the hours.' },
+      { label: 'Holiday', detail: '25 to 30 days is typical, and you are expected to take it. Nobody is impressed by unused leave.' },
+      { label: 'Probation', detail: 'Six months, during which either side can end it with two weeks notice. After that, dismissal protection is strong.' },
+    ],
+    money: [
+      { label: 'Starting gross', detail: 'About EUR 4,000–4,800 a month for an engineer or developer with two years of experience. Less outside the big cities, and less in the east.' },
+      { label: 'After tax', detail: 'Roughly EUR 2,600–3,000 net in tax class I. The gap between gross and net is the thing that surprises people most.' },
+      { label: 'After rent', detail: 'A one-bedroom flat is EUR 900–1,400 depending on the city. You will keep EUR 1,300–1,900 after everything.' },
+      { label: 'The first two months', detail: 'Deposit, furniture, the Anmeldung queue and no salary yet. Budget EUR 3,000–4,000 for the landing itself.' },
+    ],
+    hard: [
+      { stat: 'English at work is not English outside it', detail: 'Your team may run in English. Your landlord, your Bürgeramt appointment, your doctor and your tax office will not. This is the single biggest complaint we hear from people on this route.' },
+      { stat: 'Finding a flat takes longer than finding the job', detail: 'In Munich or Frankfurt expect two to three months and dozens of applications, often while paying for temporary accommodation.' },
+      { stat: 'The Anmeldung bottleneck', detail: 'You cannot get a tax ID, a bank account or a permanent contract smoothly without registering, and appointments can be four to six weeks out. Book it before you land if the city allows it.' },
+      { stat: 'Roughly 1 in 5 changes employer within two years', detail: 'Usually upwards. Your permit follows your qualification, not the company, but tell us before you resign so the paperwork follows you.' },
+    ],
+    voices: [
+      { who: 'Software engineer, Pune → Berlin, 2024', quote: 'The job was the easy part. I underestimated every single thing that happens outside the office in German.' },
+      { who: 'Mechanical engineer, Chennai → Stuttgart, 2023', quote: 'My gross looked enormous from India. My first payslip was a shock. Nobody had explained class I to me.' },
+    ],
+    source: SOURCE,
+  },
+
+  /** The opportunity card: a year to find the job, funded entirely by you. */
+  chancenkarte: {
+    route: 'chancenkarte',
+    headline: 'A year in Germany to find the job yourself — the freedom is real, and so is the clock.',
+    shifts: [
+      { label: 'What you may do', detail: 'Work 20 hours a week while you search, plus two-week trial periods with an employer. Enough to slow the money going out, not enough to live on.' },
+      { label: 'The search itself', detail: 'Applications are formal: a one-page CV in German format, a tailored cover letter, and certificates attached. A generic application is not read.' },
+      { label: 'The clock', detail: 'Twelve months, extendable to two years only once you have a qualified job offer. There is no quiet extension.' },
+    ],
+    money: [
+      { label: 'Before you go', detail: 'About EUR 13,092 in a blocked account — the whole year, up front, before the visa is granted. This is the single largest sum on the route.' },
+      { label: 'What you may withdraw', detail: 'About EUR 1,091 a month. In Munich that is tight; in Leipzig or Dortmund it is workable.' },
+      { label: 'The part-time work', detail: '20 hours a week at EUR 13–15 adds roughly EUR 700–900 gross a month, which extends the runway rather than replacing it.' },
+    ],
+    hard: [
+      { stat: 'You fund the entire year yourself', detail: 'No employer, no university, no scholarship. If the blocked account is a stretch, one of the other routes is almost certainly the better plan.' },
+      { stat: 'Two to four months to a signed contract is normal', detail: 'In German, with a recognised qualification. People who arrive expecting six weeks spend the back half of the year frightened.' },
+      { stat: 'The points are not the hard part', detail: 'Qualifying for the card is arithmetic. Converting a year of freedom into a contract is the hard part, and it is mostly language and persistence.' },
+      { stat: 'Recognition still matters', detail: 'The card lets you in; it does not make your qualification equivalent. Start Anerkennung before you fly, not after.' },
+    ],
+    voices: [
+      { who: 'Chancenkarte, Hyderabad → Leipzig, 2025', quote: 'I chose the cheap city and it is the only reason the year worked. Munich would have eaten the blocked account by month seven.' },
+    ],
+    source: SOURCE,
+  },
 };
 
 export function realityFor(route: string | null): Reality | null {
-  return route ? REALITY[route] ?? null : null;
+  return route ? (REALITY[route] ?? null) : null;
+}
+
+export interface PersonalFigures {
+  city?: string | null;
+  /** Monthly gross, where the money specialist computed one. */
+  grossEur?: number | null;
+  netEur?: number | null;
+  /** Their own monthly budget total, including rent. */
+  monthlyCostEur?: number | null;
+  rentEur?: number | null;
+  /** What the finance plan says they need before they can fly. */
+  needBeforeTravelEur?: number | null;
+  /** Their proven German, so "B2 is not B2 on a ward" can be aimed at where they actually are. */
+  germanProven?: string | null;
+  germanNeeded?: string | null;
+  /** Coldest-month low and December daylight for their city, when we have them. */
+  winterLowC?: number | null;
+  homeCity?: string | null;
+}
+
+const eur = (n: number) => `EUR ${Math.round(n).toLocaleString('en-GB')}`;
+
+/**
+ * Rewrite the generic preview around this person's own numbers.
+ *
+ * Only the money section and a couple of the hard truths are replaced; the shift pattern is the
+ * same for everyone on a ward and inventing per-person variation in it would be dishonest. Each
+ * substitution only happens when the figure actually exists, so a file with nothing computed yet
+ * degrades to the generic page rather than to blanks.
+ */
+export function personalise(base: Reality, who: PersonalFigures): Reality {
+  const money = [...base.money];
+  const hard = [...base.hard];
+  const city = who.city ?? null;
+
+  if (who.netEur && who.monthlyCostEur) {
+    const left = Math.round(who.netEur - who.monthlyCostEur);
+    money.unshift({
+      label: `What this leaves you, in ${city ?? 'your city'}`,
+      detail:
+        left > 0
+          ? `${eur(who.netEur)} net a month against ${eur(who.monthlyCostEur)} of living costs${who.rentEur ? ` (${eur(who.rentEur)} of it rent)` : ''}. That is about ${eur(left)} a month left — before anything you send home.`
+          : `${eur(who.netEur)} net against ${eur(who.monthlyCostEur)} of living costs${who.rentEur ? ` (${eur(who.rentEur)} of it rent)` : ''}. On these figures it does not balance, which is worth facing now rather than in month two. A flat-share or a cheaper city closes most of the gap.`,
+    });
+  } else if (who.grossEur) {
+    money.unshift({ label: 'Your starting salary', detail: `About ${eur(who.grossEur)} a month gross on this route, before supplements.` });
+  }
+
+  if (who.needBeforeTravelEur) {
+    money.push({
+      label: 'Before you can go at all',
+      detail: `${eur(who.needBeforeTravelEur)} on your current plan — courses, papers, fees, the flight and the first month. This is the number people most often meet late.`,
+    });
+  }
+
+  if (who.germanProven && who.germanNeeded && who.germanProven !== who.germanNeeded) {
+    hard.unshift({
+      stat: `You are at ${who.germanProven} and this route needs ${who.germanNeeded}`,
+      detail: `That is the single biggest thing between you and going. Each level takes most people three to four months of real study, and the exam is the easy half — ${base.route === 'nursing' ? 'a handover at speed is the hard half' : 'using it all day is the hard half'}.`,
+    });
+  }
+
+  if (city && who.winterLowC !== null && who.winterLowC !== undefined) {
+    hard.push({
+      stat: `Your first winter in ${city}`,
+      detail: `About ${who.winterLowC} °C on an average January night, and dark by four in the afternoon from November${who.homeCity ? `. You have never lived through that in ${who.homeCity}` : ''}. Alumni describe the darkness as harder than the cold.`,
+    });
+  }
+
+  return { ...base, money, hard };
 }
