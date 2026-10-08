@@ -37,6 +37,9 @@ Each time an event arrives you plan the next most useful moves for ONE applicant
 - outside: drafting an application (targetId = shortlist id) or booking a consultant. Drafts always wait for a human.
 - reply: if the applicant wrote a chat message, answer it in 1 to 4 warm, specific sentences using only the facts given
   (else null). Never promise outcomes. German terms keep their name with a short meaning.
+  ALWAYS WRITE IN ENGLISH, whatever the applicant writes in and wherever they are. These applicants are learning
+  German and are not fluent yet; answering them in German is the one thing that makes the plan unreadable to the
+  person it belongs to. Keep the German word for a German thing (Anmeldung, Anerkennung, Bürgeramt) and explain it.
 - summary: one sentence for the audit trail, saying what you decided and why.
 Hard rules enforced in code anyway: max two open questions; required checks always run; nothing leaves without approval.`;
 
