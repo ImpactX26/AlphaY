@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import type { Block, ScreenSection, SectionId, Screen, ItemStatus, Route } from '@educaro/shared';
+import type { Block, ScreenSection, SectionId, Screen, ItemStatus, Route, ServiceRef } from '@educaro/shared';
 import { ROUTE_LABEL, SECTION_LABEL } from '@educaro/shared';
 import { db, schema } from '../db/db';
 import { LlmService } from '../llm/llm.service';
@@ -90,7 +90,13 @@ export class ComposerService {
       if (safetyG?.group) blocks.push(groupBlock(safetyG.group));
       if (safetyG?.scam) blocks.push(scamBlock(safetyG));
       if (state.community.length) blocks.push(communityBlock(state));
-      blocks.push({ id: 'services', type: 'services', services: [service('integration-companion')!, service('intercultural-workshop')!, service('consultant', state.applicant.id)!] });
+      // `.filter(Boolean)` rather than `!`: a service that cannot resolve is dropped, because an
+      // `undefined` in this array reaches the renderer as a broken card.
+      blocks.push({
+        id: 'services',
+        type: 'services',
+        services: [service('integration-companion'), service('intercultural-workshop'), service('consultant', state.applicant.id)].filter(Boolean) as ServiceRef[],
+      });
       blocks.push(timelineBlock(state));
       return {
         blocks,

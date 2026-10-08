@@ -333,7 +333,7 @@ export class ApplicantController {
     const report = runChecks(st);
     return report.gaps.map((g) => {
       const row = st.gaps.find((x) => x.key === g.key);
-      const svc = g.serviceId ? service(g.serviceId) : undefined;
+      const svc = g.serviceId ? service(g.serviceId, id) : undefined;
       return {
         id: row?.id ?? g.key,
         key: g.key,

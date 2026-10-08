@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { ServiceRef } from '@educaro/shared';
 
 /**
@@ -115,6 +116,13 @@ export function service(id: string, applicantId?: string | null): ServiceRef | u
   if (!s) return undefined;
   // The consultant link is per-applicant: it books their slot and opens their room.
   const url = applicantId ? s.url.replace(':id', applicantId) : s.url;
+  // A caller that forgets the applicantId used to ship `/api/applicants/:id/book-call` verbatim,
+  // which 404s on tap. Dropping the service is better than offering a dead link, and the warning
+  // names the caller instead of leaving it to be found by clicking.
+  if (url.includes(':id')) {
+    new Logger('Services').warn(`service('${id}') needs an applicantId; dropping it rather than returning an unresolved link`);
+    return undefined;
+  }
   return { id: s.id, name: s.name, url: url.startsWith('/') ? `${base()}${url}` : url, why: s.detail };
 }
 
