@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { eq } from 'drizzle-orm';
 import { config } from '../config';
+import { extractReadable, htmlToText, mergeHits, parseDuckDuckGo, parseTavily, type SearchHit } from './scrape';
 import { db, schema } from '../db/db';
 import { GuardsService } from '../agent/guards.service';
 import { TraceService } from '../trace/trace.service';
@@ -49,12 +50,28 @@ export class WebService {
   private static overpassColdUntil = 0;
 
   private async get(url: string, init: RequestInit = {}, timeoutMs = 15_000): Promise<Response> {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const attempt = async () => {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        return await fetch(url, {
+          redirect: 'follow',
+          ...init,
+          signal: ctrl.signal,
+          headers: { 'User-Agent': /openstreetmap|overpass/.test(url) ? OSM_UA : UA, 'Accept-Language': 'en,de;q=0.8', ...(init.headers ?? {}) },
+        });
+      } finally {
+        clearTimeout(t);
+      }
+    };
     try {
-      return await fetch(url, { ...init, signal: ctrl.signal, headers: { 'User-Agent': /openstreetmap|overpass/.test(url) ? OSM_UA : UA, 'Accept-Language': 'en,de;q=0.8', ...(init.headers ?? {}) } });
-    } finally {
-      clearTimeout(t);
+      return await attempt();
+    } catch (e: any) {
+      // A bare "fetch failed" is a transport error, not an answer from the server: a redirect that
+      // dropped the connection, a DNS blip, a TLS reset. One retry turns most of them into a page,
+      // and a university's own site failing once should not become "we could not read the page".
+      if (/aborted/i.test(String(e?.message))) throw e;
+      return await attempt();
     }
   }
 
@@ -73,7 +90,7 @@ export class WebService {
         const res = await this.get(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const html = await res.text();
-        ({ title, text } = htmlToText(html));
+        ({ title, text } = htmlToText(html, url));
         await db
           .insert(schema.pageCache)
           .values({ url, title, text })
@@ -95,38 +112,66 @@ export class WebService {
     return { url, title, text, cached };
   }
 
+
+  /**
+   * Tavily first when there is a key, DuckDuckGo otherwise, and DuckDuckGo again when Tavily comes
+   * back empty.
+   *
+   * Tavily gives clean, ranked results but costs credits and can rate-limit; scraping DuckDuckGo's
+   * HTML costs nothing but breaks whenever they touch their markup. Neither is reliable enough to
+   * be the only one, and a specialist that finds nothing is a specialist that silently stops
+   * working — so they back each other up and the trace records which one answered.
+   */
+  private async searchProviders(query: string): Promise<SearchHit[]> {
+    const useTavily = config.tavilyKey && config.searchProvider !== 'duckduckgo';
+    let tavily: SearchHit[] = [];
+    if (useTavily) {
+      try {
+        const res = await this.get('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.tavilyKey}` },
+          body: JSON.stringify({ query, max_results: 6, search_depth: 'basic' }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        tavily = parseTavily(await res.json());
+      } catch (e: any) {
+        this.log.warn(`tavily failed, falling back to duckduckgo: ${e?.message ?? e}`);
+      }
+    }
+    if (tavily.length >= 3) return mergeHits(tavily).slice(0, 8);
+
+    let ddg: SearchHit[] = [];
+    try {
+      const res = await this.get(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      ddg = parseDuckDuckGo(await res.text());
+    } catch (e: any) {
+      this.log.warn(`duckduckgo failed: ${e?.message ?? e}`);
+    }
+    return mergeHits(tavily, ddg).slice(0, 8);
+  }
+
+  /** The scraper's full output: text, headings and resolved links, for a page we already fetched. */
+  async scrape(url: string, ctx: Ctx) {
+    const page = await this.fetchPage(url, ctx, { fresh: true });
+    if (!page) return null;
+    try {
+      const res = await this.get(url);
+      return { url, ...extractReadable(await res.text(), url) };
+    } catch {
+      return { url, title: page.title, text: page.text, headings: [], links: [], lang: null };
+    }
+  }
+
   /** web_search. `personal` holds the applicant's name, phone, passport number: never sent out. */
   async search(query: string, ctx: Ctx, personal: string[] = []): Promise<{ title: string; url: string; snippet: string }[]> {
     // A refusal is not an empty result. Swallowing it made "this query carries personal data" look
     // identical to "the web had nothing", so a caller could never tell the guard had fired — least
     // of all an MCP client, which only ever sees the return value.
     await this.guards.assertCleanQuery(ctx, query, personal);
-    let results: { title: string; url: string; snippet: string }[] = [];
-    try {
-      if (config.searchProvider === 'tavily' && config.tavilyKey) {
-        const res = await this.get('https://api.tavily.com/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_key: config.tavilyKey, query, max_results: 6 }),
-        });
-        const j: any = await res.json();
-        results = (j.results ?? []).map((r: any) => ({ title: r.title, url: r.url, snippet: r.content?.slice(0, 300) ?? '' }));
-      } else {
-        const res = await this.get(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
-        const $ = cheerio.load(await res.text());
-        $('.result').each((_, el) => {
-          const a = $(el).find('a.result__a');
-          let href = a.attr('href') ?? '';
-          const m = href.match(/uddg=([^&]+)/);
-          if (m) href = decodeURIComponent(m[1]);
-          if (href.startsWith('http')) results.push({ title: a.text().trim(), url: href, snippet: $(el).find('.result__snippet').text().trim() });
-        });
-        results = results.slice(0, 8);
-      }
-    } catch (e: any) {
-      this.log.warn(`search failed: ${e?.message ?? e}`);
-    }
-    await this.trace.record('tool', 'web_search', { query, results: results.length }, ctx);
+    const hits = await this.searchProviders(query);
+    const results = hits.map((h) => ({ title: h.title, url: h.url, snippet: h.snippet }));
+    await this.trace.record('tool', 'web_search', { query, results: results.length, providers: [...new Set(hits.map((h) => h.provider))] }, ctx);
     return results;
   }
 
@@ -213,21 +258,6 @@ export class WebService {
   }
 }
 
-export function htmlToText(html: string): { title: string; text: string } {
-  const $ = cheerio.load(html);
-  const title = $('title').first().text().trim();
-  $('script, style, noscript, svg, iframe, nav, footer, header [role="navigation"], form, button').remove();
-  const blocks: string[] = [];
-  $('h1, h2, h3, h4, p, li, td, th, dt, dd, blockquote, figcaption, span, div').each((_, el) => {
-    const $el = $(el);
-    if ($el.children('p, li, div, h1, h2, h3, h4, table, ul, ol').length) return;
-    const t = $el.text().replace(/\s+/g, ' ').trim();
-    if (t) blocks.push(t);
-  });
-  const seen = new Set<string>();
-  const text = blocks.filter((b) => (seen.has(b) ? false : (seen.add(b), true))).join('\n').slice(0, 80_000);
-  return { title, text };
-}
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
@@ -237,3 +267,5 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
+
+export { htmlToText } from './scrape';
