@@ -67,23 +67,35 @@ export function Login() {
         </span>
       </div>
 
-      <section className="card w-full max-w-[420px] px-6 py-7">
-          <h2 className="display text-[26px] font-black leading-tight">{mode === 'register' ? 'Create your account' : 'Sign in'}</h2>
-          <p className="mt-1.5 text-[14px] text-muted">
-            {mode === 'demo' ? 'Pick a seeded persona, or use your own account.' : mode === 'register' ? 'Email and password. Your profile stays yours.' : 'With the email and password you signed up with.'}
+      <section className="card flex w-full max-w-[420px] flex-col px-6 py-7">
+          {/* What this is, before who you are. Someone landing here has been sent a link by a
+              recruiter or a cousin and has no idea what Educaro does; "Sign in" told them nothing. */}
+          {mode === 'demo' ? (
+            <p className="lead-say">Tell your story once. Get a real plan for Germany.</p>
+          ) : (
+            <h2 className="display text-[26px] font-black leading-tight">{mode === 'register' ? 'Create your account' : 'Sign in'}</h2>
+          )}
+          <p className="mt-2 max-w-[42ch] text-[14px] leading-relaxed text-muted">
+            {mode === 'demo'
+              ? 'Educaro reads your documents, finds what is missing, and does the paperwork with you. Open one of these to see it mid-way.'
+              : mode === 'register'
+                ? 'Email and password. Your profile stays yours.'
+                : 'With the email and password you signed up with.'}
           </p>
 
+          {/* A developer's problem, not the visitor's: it sits under the sign-in options rather
+              than between the promise and the choice, where it was outshouting both. */}
           {apiDown ? (
-            <div role="alert" className="mt-4 rounded-lg border border-warn/45 bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] px-3.5 py-3">
-              <p className="flex items-center gap-2 text-[13.5px] font-semibold">
-                <TriangleAlert size={15} className="flex-none text-warn" aria-hidden />
+            <details className="order-last mt-5 rounded-lg border border-line bg-surface-2/60 px-3.5 py-2.5">
+              <summary className="flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-muted">
+                <TriangleAlert size={14} className="flex-none text-warn" aria-hidden />
                 The Educaro server is not answering
-              </p>
-              <p className="mt-1 text-[13px] text-muted">
+              </summary>
+              <p className="mt-2 text-[13px] text-muted">
                 Start it with <span className="kbd">npm run dev:api</span>. For a run with no keys and no network,
                 <span className="kbd">npm run sandbox</span> serves the real product offline.
               </p>
-            </div>
+            </details>
           ) : null}
 
           {error ? (
@@ -94,34 +106,50 @@ export function Login() {
 
           {mode === 'demo' ? (
             <>
+              {/* The two real applicants are the product; an empty profile and the staff console
+                  are ways in for us. Sizing them the same made four equivalent rows and no entry
+                  point, so the people get the room and the tools get a line each. */}
               <ul className="mt-5 space-y-2">
-                {DEMOS.map((d) => (
+                {DEMOS.filter((d) => d.persona === 'ananya' || d.persona === 'rohan').map((d) => (
                   <li key={d.persona}>
                     <button
                       type="button"
-                      className="group flex w-full items-center gap-3.5 rounded-lg border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-ink disabled:opacity-60"
+                      className="persona group"
                       disabled={busy !== null}
                       onClick={() => run(d.persona, () => api.demo(d.persona))}
                     >
-                      <d.icon size={20} className={clsx('flex-none', d.tone)} aria-hidden />
+                      <d.icon size={22} className={clsx('flex-none', d.tone)} aria-hidden />
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[14.5px] font-semibold">{d.name}</span>
+                        <span className="block text-[15.5px] font-bold">{d.name}</span>
                         <span className="block text-[13px] text-muted">{d.sub}</span>
                       </span>
                       {busy === d.persona ? (
                         <span className="flex-none text-[12.5px] text-muted">Signing in…</span>
                       ) : (
-                        <ArrowRight size={17} className="flex-none text-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
+                        <ArrowRight size={17} className="flex-none text-muted transition-transform group-hover:translate-x-1" aria-hidden />
                       )}
                     </button>
                   </li>
                 ))}
               </ul>
-              <div className="mt-6 flex items-center gap-3">
-                <span className="h-px flex-1 bg-line" />
-                <span className="text-[12px] uppercase tracking-wider text-muted">or</span>
-                <span className="h-px flex-1 bg-line" />
-              </div>
+              <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+                {DEMOS.filter((d) => d.persona === 'fresh' || d.persona === 'staff').map((d) => (
+                  <li key={d.persona}>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-muted underline-offset-4 transition-colors hover:text-ink hover:underline disabled:opacity-60"
+                      disabled={busy !== null}
+                      onClick={() => run(d.persona, () => api.demo(d.persona))}
+                    >
+                      <d.icon size={15} className={clsx('flex-none', d.tone)} aria-hidden />
+                      {busy === d.persona ? 'Signing in…' : d.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {/* The rule alone separates the demo accounts from your own; an "OR" between them
+                  was a word doing a line's job. */}
+              <div className="mt-6 h-px bg-line" />
               <div className="mt-4 flex gap-2">
                 <Button className="flex-1" onClick={() => setMode('login')}>
                   Sign in with email

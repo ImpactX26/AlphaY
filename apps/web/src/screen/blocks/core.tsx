@@ -31,7 +31,7 @@ export function NextStepCard({ block }: { block: NextStepBlock }) {
         ) : null
       }
     >
-      {block.body ? <p className="display text-[17.5px] font-bold leading-snug">{block.body}</p> : null}
+      {block.body ? <p className="lead-say">{block.body}</p> : null}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {block.actions.map((action) =>
           action.kind === 'link' || action.kind === 'service' ? (
@@ -69,8 +69,8 @@ export function QuestionCard({ block }: { block: QuestionBlock }) {
   // A question is waiting on the applicant, so it stays framed: it is a thing to act on.
   return (
     <BlockFrame tone="accent" kicker={block.title ?? 'One question'}>
-      <p className="text-[15.5px] font-semibold leading-snug">{block.prompt}</p>
-      <p className="mt-1.5 text-[13.5px] text-muted">{block.why}</p>
+      <p className="lead-say">{block.prompt}</p>
+      <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-muted">{block.why}</p>
       {typing ? (
         <form
           className="mt-3 flex flex-col gap-2 sm:flex-row"

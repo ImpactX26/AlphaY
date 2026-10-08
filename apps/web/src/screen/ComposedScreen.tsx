@@ -88,6 +88,14 @@ const ELSEWHERE: Partial<Record<Block['type'], { to: string; page: string }>> = 
  */
 const FOLDABLE: Block['type'][] = ['letters', 'next_step'];
 
+/**
+ * Blocks that are genuinely waiting on the applicant, most urgent first.
+ *
+ * The first of these on the page gets the lead rule. A question outranks a next step because it
+ * blocks the agent: until it is answered, the plan underneath it is provisional.
+ */
+const ASKS: Block['type'][] = ['question', 'letters', 'next_step'];
+
 /** One line in the "also waiting" list, so three more asks cost three lines instead of three panels. */
 function waitingLabel(b: Block): string {
   switch (b.type) {
@@ -139,6 +147,16 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
     };
   }, [kept, focus, openId]);
 
+  // The one block the rule goes on: the most urgent thing actually waiting on them, in the order
+  // it appears. Null when nothing is waiting, so a screen with no ask has no marked block at all.
+  const firstAskId = useMemo(() => {
+    for (const type of ASKS) {
+      const hit = shown.find((b) => b.type === type);
+      if (hit) return hit.id;
+    }
+    return null;
+  }, [shown]);
+
   const movedOut = useMemo(() => {
     if (!screen || !focus) return [];
     // Keyed by path, not by label: two sections can share a page — `community` and `inbox` both
@@ -185,7 +203,13 @@ export function ComposedScreen({ screen: raw, loading, className, focus }: { scr
           {shown.map((block, i) => (
             <div
               key={block.id}
-              className={clsx(entering.has(block.id) && 'block-enter', moved.has(block.id) && 'block-updated')}
+              className={clsx(
+                entering.has(block.id) && 'block-enter',
+                moved.has(block.id) && 'block-updated',
+                // The single marked block on the page. `focus` keeps it to Home, where someone is
+                // deciding what to do; the staff read-only view wants every block equal.
+                focus && block.id === firstAskId && 'lead',
+              )}
               style={entering.has(block.id) ? ({ '--delay': `${Math.min(i, 8) * 55}ms` } as CSSProperties) : undefined}
             >
               <ErrorBoundary label={blockLabel(block.type)}>

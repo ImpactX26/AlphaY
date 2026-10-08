@@ -483,7 +483,85 @@
   }
 }
 
+/* The one thing waiting on you.
+   ----------------------------------------------------------------------------
+   Every block arriving as an equal tinted card is why the screen had no entry
+   point: a fee footnote and a letter to approve looked alike. The lead block
+   gets a rule down its left edge in the agent's own indigo — the agent is what
+   is asking — and that rule appears nowhere else on the page. Scarcity is the
+   whole mechanism; a second one would cost the first its meaning. */
+.lead {
+  position: relative;
+  padding-left: 18px;
+}
+.lead::before {
+  content: '';
+  position: absolute;
+  inset-block: 2px;
+  left: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--agent);
+  transform-origin: top;
+  animation: lead-draw 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+/* The lead's own sentence is the largest text on the page, so the eye lands on
+   the instruction rather than on whichever card happens to be first. */
+.lead-say {
+  font: 700 clamp(19px, 2.4vw, 23px) / 1.25 var(--f-display);
+  letter-spacing: -0.016em;
+  text-wrap: balance;
+  max-width: 34ch;
+}
+/* Inside the lead, the first answer is filled rather than outlined. Four identical outline pills
+   read as four optional things; one solid one reads as the way forward, and the rest stay
+   available beside it. Only the first — a row of solid buttons is a row of shouting. */
+.lead .qr:first-of-type:not([aria-pressed='true']):not(:disabled) {
+  background: var(--agent);
+  border-color: var(--agent);
+  color: var(--surface);
+}
+.lead .qr:first-of-type:hover:not([aria-pressed='true']):not(:disabled) {
+  background: color-mix(in srgb, var(--agent) 86%, var(--ink));
+}
+
+/* The two people you can open on the sign-in page. Wide enough to read as a choice between
+   two humans rather than four menu rows. */
+.persona {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+}
+.persona:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--agent) 55%, var(--line));
+  box-shadow: var(--lift);
+  transform: translateY(-1px);
+}
+.persona:disabled {
+  opacity: 0.6;
+}
+
 /* Motion. One orchestrated moment: the screen composing itself. */
+@keyframes lead-draw {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
 @keyframes block-in {
   from {
     opacity: 0;
