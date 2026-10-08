@@ -1,4 +1,4 @@
-import type { EmailDTO } from '@educaro/shared';
+import type { EmailDTO, Screen } from '@educaro/shared';
 import clsx from 'clsx';
 import { CalendarPlus, Inbox, Mail, MailCheck, MessageCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -15,6 +15,7 @@ import { BlocksOfType } from '../screen/ComposedScreen';
 import { READ_ONLY, ScreenActionsProvider } from '../screen/context';
 import { toast } from '../ui/Toast';
 import { CohortGroupsPanel } from './CohortGroupsPanel';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 const REPLY_LABEL: Record<NonNullable<EmailDTO['classified']>['kind'], { label: string; cls: string }> = {
   interview: { label: 'Interview invite', cls: 't-ver' },
@@ -150,7 +151,7 @@ export default function InboxPage() {
       {/* The cohort thread and the Discord link are the same conversation, so they sit together. */}
       <ScreenActionsProvider value={actions}>
         <CohortGroupsPanel />
-        <BlocksOfType screen={screen} types={['community']} className="mb-6" />
+        <CohortSection screen={screen} />
       </ScreenActionsProvider>
 
       <section className="card flex flex-wrap items-center justify-between gap-3 px-4 py-4">
@@ -173,6 +174,53 @@ export default function InboxPage() {
         <DiscordLinkButton applicantId={applicantId} />
       </section>
     </div>
+  );
+}
+
+/**
+ * The thread and the feed, side by side.
+ *
+ * A conversation is read and a feed is skimmed, and the API posts them to two different Discord
+ * channels for exactly that reason — putting them in one list means people mute both, and the thread
+ * is the half worth not muting. The thread leads because it is the one with people in it.
+ */
+function CohortSection({ screen }: { screen: Screen | undefined }) {
+  // The thread is a block the composer may not have sent. A tab bar over an empty panel is worse
+  // than no tab bar, so with no thread the feed stands alone and there is nothing to switch between.
+  const hasThread = (screen?.blocks ?? []).some((b) => b.type === 'community');
+  const [tab, setTab] = useState<'thread' | 'feed'>('thread');
+  const active = hasThread ? tab : 'feed';
+  return (
+    <section className="mb-6">
+      {hasThread ? (
+        <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Your cohort">
+          {(
+            [
+              ['thread', 'Your cohort'],
+              ['feed', 'New in Germany'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`cohort-tab-${id}`}
+              aria-selected={active === id}
+              aria-controls={`cohort-panel-${id}`}
+              onClick={() => setTab(id)}
+              className={clsx('qr', active === id && 'border-agent bg-[color-mix(in_srgb,var(--agent)_10%,transparent)] font-semibold text-agent')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <SectionTitle>New in Germany</SectionTitle>
+      )}
+      <div role={hasThread ? 'tabpanel' : undefined} id={`cohort-panel-${active}`} aria-labelledby={hasThread ? `cohort-tab-${active}` : undefined}>
+        {active === 'thread' ? <BlocksOfType screen={screen} types={['community']} /> : <AnnouncementsPanel />}
+      </div>
+    </section>
   );
 }
 

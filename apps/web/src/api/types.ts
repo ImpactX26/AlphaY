@@ -134,6 +134,7 @@ export interface Api {
   employerRatings(): Promise<EmployerRatingDTO[]>;
   employerReports(employer?: string): Promise<EmployerReportDTO[]>;
   community(): Promise<CommunityPostDTO[]>;
+  announcements(limit?: number): Promise<CommunityPostDTO[]>;
   postToCommunity(input: { text: string; applicantId: string }): Promise<CommunityPostDTO>;
   replyInCommunity(postId: string, text: string): Promise<CommunityPostDTO>;
 

@@ -36,6 +36,7 @@ export const qk = {
   employers: ['staff', 'employers'] as const,
   reports: ['staff', 'reports'] as const,
   community: () => ['community'] as const,
+  announcements: () => ['community', 'announcements'] as const,
   approval: (approvalId: string) => ['approval', approvalId] as const,
   pipeline: ['staff', 'pipeline'] as const,
   queue: ['staff', 'queue'] as const,
@@ -236,6 +237,25 @@ export function useRespondToGroup(id: Id) {
 }
 
 export const useStaffGroups = () => useQuery({ queryKey: qk.staffGroups, queryFn: () => api.staffGroups() });
+
+/**
+ * What is new in Germany this week: live openings from the Bundesagentur, new programmes, and any
+ * shortlist deadline closing soon. The API republishes it every Monday, so it is worth re-reading on
+ * a mount but not on every focus.
+ */
+export const useAnnouncements = (limit = 40) =>
+  useQuery({ queryKey: qk.announcements(), queryFn: () => api.announcements(limit), staleTime: 5 * 60_000 });
+
+/** A reply on one announcement or cohort post. */
+export function useReplyInCommunity(invalidate: 'community' | 'announcements' = 'community') {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { postId: string; text: string }) => api.replyInCommunity(input.postId, input.text),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: invalidate === 'announcements' ? qk.announcements() : qk.community() });
+    },
+  });
+}
 
 /**
  * The agent writes the actual application for one shortlisted target: a motivation letter for a

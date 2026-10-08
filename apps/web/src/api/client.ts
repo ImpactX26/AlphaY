@@ -228,6 +228,7 @@ export const httpApi: Api = {
   employerRatings: () => get<EmployerRatingDTO[]>('/staff/employers'),
   employerReports: (employer) => get<EmployerReportDTO[]>('/staff/reports', { employer }),
   community: () => get<CommunityPostDTO[]>('/community'),
+  announcements: (limit) => get<CommunityPostDTO[]>('/community/announcements', { limit }),
   postToCommunity: (input) => post<CommunityPostDTO>('/community', input),
   replyInCommunity: (postId, text) => post<CommunityPostDTO>(`/community/${seg(postId)}/reply`, { text }),
 
