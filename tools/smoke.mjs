@@ -251,6 +251,82 @@ async function main() {
   const stats = (await api('/staff/stats', { token: sT })).body;
   check('cost per applicant is tracked', Array.isArray(stats?.costPerApplicant), `$${stats?.costPerApplicant?.reduce((s, c) => s + c.costUsd, 0).toFixed(4) ?? '?'} total`);
 
+  // ---------------------------------------------------------------- living there
+  section('Where they would live, and what it is like');
+  const blocksOf = async (id, token) => ((await api(`/applicants/${id}/screen`, { token })).body?.blocks ?? []);
+  const rBlocks = await blocksOf(R, rT);
+  const block = (list, type) => list.find((b) => b.type === type);
+
+  const rentals = block(rBlocks, 'rentals');
+  check('rooms are found with a rent and a commute', Boolean(rentals?.listings?.length), `${rentals?.listings?.length ?? 0} listings in ${rentals?.city ?? '—'}`);
+  if (rentals?.listings?.length) {
+    check('every room says whether it fits the budget', rentals.listings.every((l) => typeof l.affordable === 'boolean'), `ceiling EUR ${rentals.budgetEur}`);
+    check('every room opens in a map', rentals.listings.every((l) => /^https:\/\/www\.google\.com\/maps/.test(l.mapsUrl ?? '')));
+    check('the commute is measured against something real', Boolean(rentals.anchor), rentals.anchor?.label);
+  }
+
+  const reality = block(rBlocks, 'reality_check');
+  check('the route gets an honest preview', Boolean(reality?.hard?.length), reality?.hard?.[0]?.stat?.slice(0, 60));
+  check('the preview says where its numbers came from', Boolean(reality?.source));
+
+  const finance = block(rBlocks, 'finance_plan');
+  check('money is planned over time, not just per month', Number(finance?.needBeforeTravelEur) > 0, `EUR ${finance?.needBeforeTravelEur} before travel across ${finance?.oneOff?.length} costs`);
+  check('each cost says when it lands', (finance?.oneOff ?? []).every((o) => o.whenMonth));
+
+  const help = block(rBlocks, 'help');
+  check('rights at work are on the screen', (help?.rights?.length ?? 0) >= 5, `${help?.rights?.length} rights`);
+
+  // ---------------------------------------------------------------- safety
+  section('Is this real?');
+  const fake = await api(`/applicants/${A}/check`, {
+    token: aT,
+    method: 'POST',
+    body: {
+      kind: 'agent',
+      name: 'Global Nurses Placement',
+      email: 'globalnurses.hiring@gmail.com',
+      url: 'http://global-nurses-germany.tk',
+      text: 'Only today, pay registration fee of 85000 INR via Western Union to confirm your seat. Employer will retain passport until contract completion. Probation period 12 months.',
+    },
+  });
+  check('an obvious scam is called one', fake.body?.verdict === 'high_risk', `${fake.body?.verdict} ${fake.body?.score}/100`);
+  check('it names why, not just a score', (fake.body?.signals ?? []).filter((s) => s.status === 'bad').length >= 3, `${fake.body?.signals?.length} signals`);
+  check('illegal contract clauses are flagged as illegal', (fake.body?.contractFlags ?? []).some((f) => f.severity === 'illegal'), (fake.body?.contractFlags ?? []).map((f) => f.clause).join('; ').slice(0, 80));
+
+  const real = await api(`/applicants/${R}/check`, { token: rT, method: 'POST', body: { kind: 'university', name: 'RWTH Aachen University', url: `${BASE}/api/mock/rwth-aachen-msc-data-science` } });
+  check('a real university is not called a scam', real.body?.verdict !== 'high_risk', `${real.body?.verdict} ${real.body?.score}/100`);
+
+  await api(`/applicants/${A}/report`, { token: aT, method: 'POST', body: { employer: 'Klinikum Koeln Mitte GmbH', category: 'hours', severity: 'serious', text: 'Rostered 12 days in a row, overtime never recorded.' } });
+  const ratings = (await api('/staff/employers', { token: sT })).body ?? [];
+  check('a private report reaches staff', ratings.some((e) => e.reports > 0), ratings.filter((e) => e.reports).map((e) => `${e.employer} ${e.rating}/5`).join(', '));
+  check('one report is not published as a rating', ratings.every((e) => e.confident === e.reports >= 3));
+
+  // ---------------------------------------------------------------- community
+  section('The cohort');
+  const posted = await api('/community', { token: aT, method: 'POST', body: { text: 'Has anyone done the Anerkennung in NRW? How long did the deficit notice take?' } });
+  check('an applicant can post to the cohort', Boolean(posted.body?.id), posted.body?.author);
+  const thread = await until('the agent to answer in the open', async () => {
+    const list = (await api('/community', { token: aT })).body ?? [];
+    const mine = list.find((p) => p.id === posted.body?.id);
+    return mine?.replies?.length ? mine : undefined;
+  }, 40_000);
+  check('the agent answers the cohort, not just the asker', Boolean(thread), thread?.replies?.[0]?.text?.slice(0, 70));
+  check('posts are first names only', !/\s[A-Z][a-z]+\s[A-Z][a-z]+/.test(posted.body?.author ?? ''), posted.body?.author);
+
+  const cohort = (await api(`/applicants/${R}/cohort`, { token: rT })).body;
+  check('peers and their timings are returned', Array.isArray(cohort?.steps) && cohort.steps.length > 0, `basis ${cohort?.basis}`);
+  check('a future step is not called "behind"', (cohort?.steps ?? []).every((st) => st.youAre !== 'behind' || st.medianWeeks > 0));
+
+  // ---------------------------------------------------------------- their own documents
+  section('Their own papers');
+  await api(`/applicants/${A}/chat`, { token: aT, method: 'POST', body: { text: 'what is my nursing council registration number?' } });
+  const answered = await until('an answer from the documents', async () => {
+    const msgs = (await api(`/applicants/${A}/chat`, { token: aT })).body ?? [];
+    const last = msgs[msgs.length - 1];
+    return last?.author === 'agent' ? last : undefined;
+  }, 60_000);
+  check('a question is answered from the uploaded page', /KNMC\/2021\/48217/.test(answered?.text ?? ''), (answered?.text ?? '').slice(0, 90));
+
   // ---------------------------------------------------------------- guards
   section('The guards hold');
   const mcpCall = async (name, argsObj) => {
