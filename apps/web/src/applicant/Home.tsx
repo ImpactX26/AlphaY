@@ -50,7 +50,7 @@ export function Home() {
   // No story yet: the first screen asks for one video and a pile of files. An applicant with nothing
   // composed yet must never land on a blank page, so the intake stands in whenever there are no blocks —
   // whatever the mode, and even if the screen endpoint 404s on a brand-new applicant.
-  const empty = !isLoading && !screen?.blocks.length;
+  const empty = !isLoading && !(Array.isArray(screen?.blocks) && screen.blocks.length > 0);
 
   return (
     <ScreenActionsProvider value={actions}>

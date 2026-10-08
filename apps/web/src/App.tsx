@@ -4,6 +4,7 @@ import { ApplicantShell } from './applicant/ApplicantShell';
 import { Home } from './applicant/Home';
 import { AuthProvider, HomeRedirect, RequireRole } from './auth/auth';
 import { Login } from './auth/Login';
+import { ErrorBoundary, ErrorCard } from './app/ErrorBoundary';
 import { NotFound } from './app/NotFound';
 import { RealtimeBridge } from './realtime/RealtimeBridge';
 import { StaffShell } from './staff/StaffShell';
@@ -30,7 +31,18 @@ const AuditPage = lazy(() => import('./staff/AuditPage'));
 
 export function App() {
   return (
-    <AuthProvider>
+    <ErrorBoundary
+      label="Educaro"
+      fallback={(reset, error) => (
+        <div className="mx-auto max-w-lg px-4 py-16">
+          <ErrorCard label="Educaro" error={error} onRetry={reset} />
+          <p className="mt-4 text-[13px] text-muted">
+            If this keeps happening, reload the page. Nothing you have uploaded or approved is lost.
+          </p>
+        </div>
+      )}
+    >
+      <AuthProvider>
       <RealtimeBridge />
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
@@ -76,6 +88,7 @@ export function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
-    </AuthProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

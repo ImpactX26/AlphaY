@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { CalendarCheck, FlaskConical, House, Inbox, ListChecks, MailX, Repeat, UserRound, Waypoints } from 'lucide-react';
 import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router';
+import { RouteBoundary } from '../app/RouteBoundary';
 import { isMock } from '../api/client';
 import { mockDemo } from '../api/mock';
 import { useApprovals, useQuestions } from '../api/queries';
@@ -110,7 +111,9 @@ export function ApplicantShell() {
 
       <main id="main" className="mx-auto w-full max-w-[1200px] px-4 pb-28 pt-5 sm:px-6 lg:pb-14 lg:pt-8">
         <Suspense fallback={<FullPageSpinner label="Loading" />}>
-          <Outlet />
+          <RouteBoundary>
+            <Outlet />
+          </RouteBoundary>
         </Suspense>
       </main>
 

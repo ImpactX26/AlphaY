@@ -1,8 +1,15 @@
 import type { Screen } from '@educaro/shared';
 import clsx from 'clsx';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { ErrorBoundary } from '../app/ErrorBoundary';
 import { Skeleton } from '../ui/misc';
 import { BlockRenderer } from './BlockRenderer';
+
+/** "requirement_matrix" reads as "Requirement matrix" when a block fails to draw. */
+function blockLabel(type: string): string {
+  const words = type.replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 /** Blocks the agent moved or added since the last render get a short enter animation. */
 function useBlockMotion(screen: Screen | undefined) {
@@ -39,7 +46,13 @@ function useBlockMotion(screen: Screen | undefined) {
   return { entering, moved };
 }
 
-export function ComposedScreen({ screen, loading, className }: { screen: Screen | undefined; loading?: boolean; className?: string }) {
+export function ComposedScreen({ screen: raw, loading, className }: { screen: Screen | undefined; loading?: boolean; className?: string }) {
+  // An API that is still being built can omit `blocks` or send a non-array. One normalisation here
+  // keeps every access below honest, instead of a `?.` on each one.
+  const screen = useMemo<Screen | undefined>(
+    () => (raw ? { ...raw, blocks: Array.isArray(raw.blocks) ? raw.blocks.filter((b) => b && typeof b.id === 'string') : [] } : undefined),
+    [raw],
+  );
   const { entering, moved } = useBlockMotion(screen);
 
   if (loading && !screen)
@@ -65,7 +78,9 @@ export function ComposedScreen({ screen, loading, className }: { screen: Screen 
               className={clsx(entering.has(block.id) && 'block-enter', moved.has(block.id) && 'block-updated')}
               style={entering.has(block.id) ? ({ '--delay': `${Math.min(i, 8) * 55}ms` } as CSSProperties) : undefined}
             >
-              <BlockRenderer block={block} />
+              <ErrorBoundary label={blockLabel(block.type)}>
+                <BlockRenderer block={block} />
+              </ErrorBoundary>
             </div>
           ))}
         </div>

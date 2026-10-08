@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Briefcase, CalendarRange, CheckCheck, Columns3, Mail, Megaphone, Menu as MenuIcon, ScrollText, Send, TextSearch } from 'lucide-react';
 import { type CSSProperties, Suspense, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
+import { RouteBoundary } from '../app/RouteBoundary';
 import { api, errorText } from '../api/client';
 import { usePipeline, useQueue, useSystemStatus } from '../api/queries';
 import type { ReplyKind } from '../api/types';
@@ -204,7 +205,9 @@ export function StaffShell() {
         </header>
         <main id="main" className="px-4 pb-16 pt-6 sm:px-6 lg:px-8">
           <Suspense fallback={<FullPageSpinner label="Loading" />}>
+            <RouteBoundary>
             <Outlet />
+          </RouteBoundary>
           </Suspense>
         </main>
       </div>
