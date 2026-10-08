@@ -361,3 +361,41 @@ export const communityPosts = pgTable(
   },
   (t) => [index('community_channel_idx').on(t.channel, t.createdAt)],
 );
+
+/**
+ * A private report about an employer, and the rating it feeds.
+ *
+ * Someone being treated badly in a country where they do not yet have the language, on a permit
+ * they believe is tied to the employer, will not complain publicly and often will not complain at
+ * all. A private channel is the only one they will use — and it is also the only way Educaro hears
+ * about a placement going wrong before it is lost.
+ *
+ * `visibility` is the promise: 'private' never leaves Educaro, and only the aggregate moves the
+ * employer's rating. The applicant is never shown to the employer.
+ */
+export const employerReports = pgTable('employer_reports', {
+  id: id(),
+  applicantId: uuid('applicant_id').references(() => applicants.id, { onDelete: 'set null' }),
+  employer: text('employer').notNull(),
+  openingId: uuid('opening_id'),
+  category: text('category').$type<'pay' | 'hours' | 'housing' | 'documents' | 'respect' | 'safety' | 'other'>().notNull().default('other'),
+  severity: text('severity').$type<'note' | 'concern' | 'serious'>().notNull().default('concern'),
+  text: text('text').notNull(),
+  visibility: text('visibility').$type<'private' | 'anonymised'>().notNull().default('private'),
+  status: text('status').$type<'new' | 'acknowledged' | 'resolved'>().notNull().default('new'),
+  createdAt: createdAt(),
+});
+
+/** Safety checks the applicant ran on something they were sent. Kept so staff can see patterns. */
+export const safetyChecks = pgTable('safety_checks', {
+  id: id(),
+  applicantId: uuid('applicant_id').references(() => applicants.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(),
+  subject: text('subject').notNull(),
+  url: text('url'),
+  verdict: text('verdict').notNull(),
+  score: integer('score').notNull(),
+  signals: jsonb('signals').$type<Record<string, unknown>[]>().notNull().default([]),
+  contractFlags: jsonb('contract_flags').$type<Record<string, unknown>[]>().notNull().default([]),
+  createdAt: createdAt(),
+});

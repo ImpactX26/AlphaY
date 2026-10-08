@@ -49,13 +49,15 @@ import { McpService } from './mcp/mcp.service';
 import { CommunityController } from './community/community.controller';
 import { CommunityService } from './community/community.service';
 import { InsightController } from './community/insight.controller';
+import { SafetyController } from './safety/safety.controller';
+import { SafetyService } from './safety/safety.service';
 
 /**
  * One module. Everything is a singleton and the services already know each other by constructor
  * injection, so wiring stays in one readable list rather than a tree of feature modules.
  */
 @Module({
-  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController, McpController, CommunityController, InsightController],
+  controllers: [AuthController, ApplicantController, StaffController, SystemController, MockWebController, CallController, McpController, CommunityController, InsightController, SafetyController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     BusService,
@@ -95,6 +97,7 @@ import { InsightController } from './community/insight.controller';
     StaffService,
     McpService,
     CommunityService,
+    SafetyService,
     DiscordService,
   ],
 })
