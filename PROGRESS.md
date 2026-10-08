@@ -3,15 +3,15 @@
 > Live board. Open it in VS Code and press **Ctrl+Shift+V** for a preview that refreshes on every save.
 > Both builders update their own section at every checkpoint. Legend: ✅ done · 🔨 in progress · ⏳ next · ⛔ blocked
 
-**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 19:30 IST
+**Build window:** 2026-10-08 11:30 → **2026-10-09 07:30 IST** (20 h) · last update: 2026-10-08 21:05 IST
 
 ## Checkpoints
 
 | When (IST) | Checkpoint | Status |
 |---|---|---|
 | 12:15 | Repo, infra (pgvector, Redis, Mailpit), shared contract, Claude B kickoff | ✅ |
-| 17:30 | **H6**: API spine (upload → truth map → agent loop → screen); web applicant flow in mock mode | 🔨 web ✅ |
-| 21:30 | **H10**: web ↔ API integrated; shortlist + matrix; gap plans to Educaro services | ⏳ |
+| 17:30 | **H6**: API spine (upload → truth map → agent loop → screen); web applicant flow in mock mode | ✅ |
+| 21:30 | **H10**: web ↔ API integrated; shortlist + matrix; gap plans to Educaro services | 🔨 |
 | 01:30 | **H14**: the full demo script runs end to end (letter → approve → send → reply → calendar) | ⏳ |
 | 05:30 | **H18**: wow features (Discord, copilot, employer matching, Germany mode) | ⏳ |
 | 07:30 | **H20**: polish, seeded personas rehearsed, tech.md written | ⏳ |
@@ -29,25 +29,31 @@
 ## Claude A: backend (`apps/api`, infra, seed)
 
 - ✅ Monorepo, docker-compose, shared contract (`packages/shared`), CLAUDE.md
-- ✅ DB schema (drizzle, pgvector), LLM gateway (Groq/OpenAI routing, cache, spend cap), trace, realtime
+- ✅ DB schema (drizzle, pgvector) pushed to Postgres; LLM gateway (Groq/OpenAI routing, prompt-hash cache, hard spend cap), trace, realtime
 - ✅ Media: PDF text, OCR, DOCX, Groq Whisper + local faster-whisper fallback
-- ✅ Code-only knowledge: CEFR, Bavarian grade formula, dates/names normalisation
+- ✅ Code-only knowledge: CEFR, modified Bavarian grade formula, Chancenkarte points, dates/names normalisation
 - ✅ Guards (6), facts with "no source, no save", truth map + question candidates
-- 🔨 Ingest pipeline: classify → extract → facts (rules first, LLM only when needed)
-- ⏳ Queues (BullMQ): ingest, agent loop (debounced, per-applicant lock), specialists
-- ⏳ Supervisor (LLM plan + rule fallback) + required-checks guard
-- ⏳ Specialists: route, exams, scout, money, life, recognition, visa, housing, jobs, writer, interview, fact-checker
-- ⏳ Screen composer (code fills blocks, LLM orders and writes)
-- ✅ HTTP API per contract + auth + demo logins (**built by B** — 27 routes, boots, guards verified)
-- ⏳ Shortlist → official page → requirement matrix
-- ⏳ Gap finder → fix-it plans routed to Educaro services; readiness; pipeline stages
-- ⏳ Mail: real mailbox (SMTP + IMAP) + safe mode + Mailpit mirror as tracker
-- ⏳ Approvals, writer letters, calendar invites (.ics), reply reading
-- ⏳ Own MCP server (tools over MCP), web tools (fetch, search, Overpass, BA jobs)
-- ⏳ Final pack + Lebenslauf (PDF/DOCX)
-- ⏳ Seed personas (Ananya, Rohan), programmes, openings
-- ⏳ Staff: pipeline, queue, copilot, matching, batch planner, broadcasts, stats
-- ⏳ Discord bot
+- ✅ Ingest pipeline: classify → extract → facts (rules first, a model only reads what rules cannot)
+- ✅ Queues (BullMQ): ingest, agent loop (debounced, per-applicant lock), specialists
+- ✅ Supervisor (LLM plan + rule fallback) + required-checks guard
+- ✅ Specialists: route, exams, scout, money, life, recognition, visa, housing, jobs, writer, interview, fact-checker
+- ✅ Screen composer (code fills blocks, the agent picks the order and writes the words)
+- ✅ HTTP API per contract + auth + demo logins — **A's controllers are now the only ones**; B's
+  thin shell served a strict subset and was superseded in the merge (see the merge commit)
+- ✅ Shortlist → official page → requirement matrix
+- ✅ Gap finder → fix-it plans routed to Educaro services; readiness; pipeline stages
+- ✅ Mail: real mailbox (SMTP + IMAP) + safe mode + Mailpit mirror as tracker
+- ✅ Approvals, writer letters, calendar invites (.ics), reply reading
+- ✅ Staff: pipeline, queue, copilot, employer matching, batch planner, broadcasts, mail tracker, stats
+- ✅ Final pack + Lebenslauf (PDF/DOCX)
+- ✅ `nest build` and `tsc --noEmit` both clean; schema pushed; infra up (pg :5433, redis :6379, Mailpit :8025)
+- 🔨 Seed personas (Ananya, Rohan) with **generated demo papers** — real PDFs carrying the planted
+  conflicts, so ingest and the truth map do real work on the demo files
+- ⏳ Mock source websites served by the API, so "open the page and quote it" works offline and the
+  same every time (replaces live educaro.de / university fetches during the demo)
+- ⏳ Own MCP server (tools over MCP), web tools (fetch, search, Overpass, BA jobs) behind it
+- ⏳ Discord bot (/status, /next, /ask, /link), cohort channel, college links posted to the channel
+- ⏳ Voice in the chat box (speak a question, not only the intro video)
 - ⏳ tech.md
 
 ## Claude B: frontend (`apps/web`)
@@ -68,8 +74,8 @@
   degrades to a labelled card instead of a white screen
 - ✅ **Built the API's HTTP layer** (`main.ts`, `app.module.ts`, `src/http/**`): 27 routes, auth
   guard + role rules, DTO mapping over A's services. `nest build` passes and the app boots.
-- ⏳ Swap mock mode for the real API — needs Postgres running (`docker compose up -d`,
-  `npm run db:push`) and A's seed, neither available on this machine (no Docker installed)
+- 🔨 Swap mock mode for the real API — Postgres, Redis and Mailpit are now up on A's machine and
+  the schema is pushed, so this is unblocked as soon as the seed lands
 
 **Run the web app on its own, with no backend:**
 ```bash
@@ -98,3 +104,15 @@ Mock mode can also be toggled from the sign-in page, so one build demos either w
   error boundaries contain it, and a new applicant whose screen 404s still gets the upload page.
   **Integration is blocked on A: `apps/api` has no `main.ts`, no modules and no controllers, so
   no endpoint exists to point at.** Four-endpoint unblock request filed in docs/requests.md.
+
+- 21:05 · A · **Backend done and merged with B's frontend.** The agent loop, twelve specialists,
+  six guards, ingest, mail, approvals and the whole staff command centre now compile and are wired
+  into one module; `tsc --noEmit` and `nest build` are clean and the drizzle schema is pushed to
+  Postgres. B had built a thin HTTP shell in the meantime; A's controllers serve every route it
+  did plus the agent, approval, mail-tracker and matching endpoints and are wired to the services
+  rather than touching the DB, so the shell was superseded in the merge (recoverable from the old
+  remote's history). Infra is up: Postgres :5433, Redis :6379, Mailpit :8025.
+- 21:05 · A · ⛔ **Push is blocked.** The repo moved to `github.com/ImpactX26/AlphaY` as asked, but
+  GitHub answers `403 Repository 'ImpactX26/AlphaY' is disabled. Please ask the owner to check
+  their account.` Fetch works, push does not. Everything is committed locally and will go up the
+  moment the repo is re-enabled — **the owner needs to sort this out on GitHub.**
