@@ -92,6 +92,15 @@ In Discord, run **`/status`**, then **`/next`**, then **`/ask how long until I c
 Same agent, same facts, no app to open. `#educaro-cohort` already has the ten source pages a plan
 cites, grouped by topic.
 
+If you have ten seconds more: **Inbox → New in Germany**, the tab beside her cohort thread. Real
+openings pulled from the Bundesagentur für Arbeit for the roles this cohort is actually taking, plus
+new programmes and any deadline closing inside eight weeks. It republishes itself every Monday, and
+each item can be replied to — the replies are where a cohort is worth having.
+
+> Everyone in that channel was running the same search alone, badly, in a language they are still
+> learning. The agent was already reading these sources to build individual plans; posting what is
+> new once, to all of them, costs nothing extra.
+
 ---
 
 ## Three more, if you have the time (90 s)
