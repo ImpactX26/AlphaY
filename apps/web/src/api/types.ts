@@ -114,6 +114,7 @@ export interface Api {
   requestGroup(id: string, groupId: string): Promise<CohortGroupDTO>;
   leaveGroup(id: string, groupId: string): Promise<{ ok: true }>;
   staffGroups(): Promise<StaffGroupDTO[]>;
+  draftApplication(shortlistId: string): Promise<ApprovalDTO>;
   tailorReport(id: string, shortlistId: string): Promise<TailorReportDTO>;
   draftTailored(id: string, input: { shortlistId: string; to?: string; note?: string }): Promise<TailorDraftDTO>;
   docStandards(): Promise<DocStandardDTO[]>;

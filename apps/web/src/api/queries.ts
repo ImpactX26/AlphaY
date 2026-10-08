@@ -237,6 +237,25 @@ export function useRespondToGroup(id: Id) {
 
 export const useStaffGroups = () => useQuery({ queryKey: qk.staffGroups, queryFn: () => api.staffGroups() });
 
+/**
+ * The agent writes the actual application for one shortlisted target: a motivation letter for a
+ * programme, a Bewerbung for an employer. It returns an approval and sends nothing — every sentence
+ * carries the facts behind it, and a human taps before anything leaves.
+ *
+ * The route is idempotent: a target that already has an approval waiting hands back the same one
+ * rather than writing a second letter, so tapping twice cannot produce two drafts.
+ */
+export function useDraftApplication(id: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (shortlistId: string) => api.draftApplication(shortlistId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.approvals(id ?? '') });
+      void qc.invalidateQueries({ queryKey: qk.screen(id ?? '') });
+    },
+  });
+}
+
 // ---------- a CV written for one target ----------
 
 export const useTailorReport = (id: Id, shortlistId: string | null) =>

@@ -187,6 +187,7 @@ export const httpApi: Api = {
   shortlist: (id) => get<ShortlistDTO[]>(`/applicants/${seg(id)}/shortlist`),
   addShortlist: (id, input) => post<ShortlistDTO>(`/applicants/${seg(id)}/shortlist`, input),
   removeShortlist: (shortlistId) => del<{ ok: true }>(`/shortlist/${seg(shortlistId)}`),
+  draftApplication: (shortlistId) => post<ApprovalDTO>(`/shortlist/${seg(shortlistId)}/draft`, {}),
   gaps: (id) => get<GapDTO[]>(`/applicants/${seg(id)}/gaps`),
   readiness: (id) => get<ReadinessDTO>(`/applicants/${seg(id)}/readiness`),
   approvals: (id) => get<ApprovalDTO[]>(`/applicants/${seg(id)}/approvals`),

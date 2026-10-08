@@ -59,6 +59,7 @@ export interface AuthResponse {
 // GET  /api/applicants/:id/shortlist          -> ShortlistDTO[]
 // POST /api/applicants/:id/shortlist          { programmeId? , openingId?, url? } -> ShortlistDTO (status 'checking', matrix arrives later)
 // DELETE /api/shortlist/:shortlistId          -> { ok: true }
+// POST /api/shortlist/:shortlistId/draft      -> ApprovalDTO  (the agent writes the application; idempotent, sends nothing)
 // GET  /api/applicants/:id/gaps               -> GapDTO[]
 // GET  /api/applicants/:id/readiness          -> ReadinessDTO
 // GET  /api/applicants/:id/approvals          -> ApprovalDTO[]

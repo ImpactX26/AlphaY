@@ -1,9 +1,10 @@
-import { Link2, ListChecks, Trash2 } from 'lucide-react';
+import { Link2, ListChecks, PenLine, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { api, errorText } from '../api/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { qk, useAddShortlist, useScreen, useShortlist } from '../api/queries';
+import { qk, useAddShortlist, useApprovals, useDraftApplication, useScreen, useShortlist } from '../api/queries';
 import { useApplicantId } from '../auth/auth';
+import { useNavigate } from 'react-router';
 import { hostOf } from '../lib/format';
 import { EXAM_STATUS, ITEM_STATUS, MATRIX_STATUS } from '../lib/tags';
 import { OpportunitiesCard } from '../screen/blocks/plan';
@@ -20,9 +21,23 @@ export default function ShortlistPage() {
   const qc = useQueryClient();
   const { data: shortlist, isLoading } = useShortlist(applicantId);
   const { data: screen } = useScreen(applicantId);
+  const { data: approvals } = useApprovals(applicantId);
   const add = useAddShortlist(applicantId);
+  const draft = useDraftApplication(applicantId);
+  const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [removing, setRemoving] = useState<string | null>(null);
+
+  // The writer stamps the shortlist it wrote for onto the approval, so a target that already has a
+  // letter waiting reads "Read the draft" rather than offering to write a second one.
+  const draftFor = useMemo(() => {
+    const byShortlist = new Map<string, string>();
+    for (const a of approvals ?? []) {
+      const sid = (a.payload as { shortlistId?: unknown }).shortlistId;
+      if (a.kind === 'email' && typeof sid === 'string' && a.status !== 'rejected') byShortlist.set(sid, a.id);
+    }
+    return byShortlist;
+  }, [approvals]);
 
   const opportunities = screen?.blocks.filter((b): b is Extract<typeof b, { type: 'opportunities' }> => b.type === 'opportunities') ?? [];
 
@@ -201,6 +216,32 @@ export default function ShortlistPage() {
                         ))}
                       </div>
                     ) : null}
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2.5 border-t border-line pt-3.5">
+                      <Button
+                        variant={draftFor.has(item.id) ? 'secondary' : 'primary'}
+                        icon={PenLine}
+                        loading={draft.isPending && draft.variables === item.id}
+                        onClick={() => {
+                          const existing = draftFor.get(item.id);
+                          if (existing) {
+                            navigate(`/app/approvals/${existing}`);
+                            return;
+                          }
+                          draft.mutate(item.id, {
+                            onSuccess: (approval) => navigate(`/app/approvals/${approval.id}`),
+                            onError: (err) => toast(errorText(err), 'error'),
+                          });
+                        }}
+                      >
+                        {draftFor.has(item.id) ? 'Read the draft' : item.kind === 'opening' ? 'Draft the application' : 'Draft the motivation letter'}
+                      </Button>
+                      <p className="min-w-0 flex-1 text-[12.5px] text-muted">
+                        {draftFor.has(item.id)
+                          ? 'Written and waiting for you. Nothing has been sent.'
+                          : 'The agent writes it from your Verified and You-said facts only, and shows the facts behind every sentence. Nothing is sent until you tap to approve.'}
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2.5 px-4 py-5 text-[13.5px] text-muted sm:px-5">
