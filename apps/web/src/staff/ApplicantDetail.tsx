@@ -1,7 +1,7 @@
 import { PIPELINE_LABEL, ROUTE_LABEL } from '@educaro/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { ArrowLeft, CalendarPlus, CheckCheck, KeyRound, Mail, MessagesSquare } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, CheckCheck, KeyRound, Mail, MessagesSquare, PlaneLanding } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, errorText } from '../api/client';
@@ -25,6 +25,7 @@ import { ScreenActionsProvider, useReadOnlyActions } from '../screen/context';
 import { TruthTable } from '../screen/blocks/core';
 import { watchApplicant } from '../realtime/socket';
 import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
 import { Avatar, EmptyState, Meter, SectionTitle, Skeleton } from '../ui/misc';
 import { Chip, RoleLabel, Tag } from '../ui/Tag';
 import { toast } from '../ui/Toast';
@@ -48,9 +49,17 @@ export default function ApplicantDetail() {
   const { data: brief } = useBrief(applicantId);
   const readOnly = useReadOnlyActions(applicantId);
   const [busy, setBusy] = useState<string | null>(null);
+  const [germany, setGermany] = useState(false);
+  const [city, setCity] = useState('');
+  const [address, setAddress] = useState('');
+  const [startDate, setStartDate] = useState('');
 
   // Staff join the applicant's room to see their screen, chat and trace live.
   useEffect(() => watchApplicant(applicantId), [applicantId]);
+
+  useEffect(() => {
+    if (germany) setCity((c) => c || applicant?.targetCity || '');
+  }, [germany, applicant?.targetCity]);
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: qk.applicantAll(applicantId) });
@@ -118,6 +127,16 @@ export default function ApplicantDetail() {
         >
           {brief?.bookedFor ? 'Rebook the consultant call' : 'Book a consultant call'}
         </Button>
+        {applicant.mode !== 'germany' ? (
+          <Button icon={PlaneLanding} onClick={() => setGermany(true)}>
+            Visa granted
+          </Button>
+        ) : (
+          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ok">
+            <PlaneLanding size={15} aria-hidden />
+            Germany mode{applicant.targetCity ? `, ${applicant.targetCity}` : ''}
+          </span>
+        )}
         <label className="ml-auto flex cursor-pointer items-center gap-2.5 text-[13.5px]">
           <KeyRound size={15} className="text-staff" aria-hidden />
           <span>
@@ -231,6 +250,52 @@ export default function ApplicantDetail() {
           </div>
         </section>
       ) : null}
+
+      <Dialog
+        open={germany}
+        onClose={() => setGermany(false)}
+        title="Visa granted?"
+        description="Their screen switches to Germany mode: what to pack, the first two weeks, places near the new address and real numbers."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setGermany(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              icon={PlaneLanding}
+              loading={busy === 'germany'}
+              disabled={!city.trim()}
+              onClick={() =>
+                act('germany', async () => {
+                  await api.germany(applicantId, { city: city.trim(), address: address.trim() || undefined, startDate: startDate || undefined });
+                  setGermany(false);
+                }, `${applicant.name.split(' ')[0]}’s screen is now set up for ${city.trim()}`)
+              }
+            >
+              Switch to Germany mode
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-3.5 px-5 py-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="label">City</span>
+            <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cologne" autoFocus />
+          </label>
+          <label className="block">
+            <span className="label">Start date</span>
+            <input className="input" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="label">
+              Address <span className="font-normal text-muted">(optional)</span>
+            </span>
+            <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Venloer Str. 1, 50823 Köln" />
+          </label>
+          <p className="text-[12.5px] text-muted sm:col-span-2">Places near the address come from OpenStreetMap. Nothing personal goes into the lookup.</p>
+        </div>
+      </Dialog>
 
       {tab === 'brief' ? (
         <section className="max-w-2xl">
