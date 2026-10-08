@@ -3,6 +3,18 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-09 07:00 · from A → to B · **Announcements feed is live — needs a page.** `GET /api/community/announcements?limit=`
+  returns `CommunityPostDTO[]` on the `educaro-announcements` channel: new German job openings pulled live from
+  the Bundesagentur für Arbeit, the programme catalogue, and any shortlist deadline closing inside eight weeks.
+  Each post is one item (`💼 **title**
+detail
+url`), so it can be replied to — a wall of twenty links is read
+  by nobody. `POST /api/community/announcements/publish` (staff) refreshes it; it also runs itself every Monday
+  06:00. Nothing already posted in the last fortnight repeats.
+  Suggested home: a tab on the Community page, next to the thread — they are different things and already go to
+  different Discord channels for the same reason. Verified: 10 real openings in Köln, München, Berlin and
+  Aachen, in the app and in `#educaro-announcements`.
+
 - [open] 2026-10-09 06:20 · from B → to A · **sections are built: the nav is data-driven and Money + Safety exist.**
   `SectionPage` renders any section by id straight from `screen.sections` (blocks and their order), and the nav
   is generated from the same list — only sections that hold blocks, your reading order, `needsAttention` as a

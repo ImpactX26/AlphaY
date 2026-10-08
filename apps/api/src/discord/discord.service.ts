@@ -24,6 +24,7 @@ import { TraceService } from '../trace/trace.service';
 import { ROUTE_LABEL, type Route } from '@educaro/shared';
 import { DISCORD_LINKS } from '../seed/catalogue';
 import { CommunityService } from '../community/community.service';
+import { ANNOUNCEMENTS } from '../community/announcements.service';
 
 const COHORT = 'educaro-cohort';
 
@@ -89,10 +90,13 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
       if (!p.channels || p.channels.includes('discord')) await this.dmApplicant(p.applicantId, `**${p.title}**\n${p.text}`);
     });
     this.bus.on('community_post', async (p) => {
-      const ch = await this.ensureCohort();
+      // The feed and the conversation live in different channels on purpose: put a wall of links
+      // next to the thread and people mute both, and the thread is the part worth not muting.
+      const ch = p.channel === ANNOUNCEMENTS ? await this.ensureChannel(ANNOUNCEMENTS, 'New programmes, jobs and deadlines in Germany') : await this.ensureCohort();
       if (!ch) return;
       // The bot is posting on someone's behalf, so the message says whose it is.
-      const sent = await ch.send(`**${p.author}:** ${p.text}`.slice(0, 1900)).catch(() => null);
+      const body = p.channel === ANNOUNCEMENTS ? p.text : `**${p.author}:** ${p.text}`;
+      const sent = await ch.send(body.slice(0, 1900)).catch(() => null);
       if (sent) this.mirrored.add(sent.id);
     });
 
@@ -172,14 +176,25 @@ export class DiscordService implements OnModuleInit, OnModuleDestroy {
     return `https://discord.com/api/oauth2/authorize?client_id=${appId}&permissions=76816&scope=bot%20applications.commands`;
   }
 
-  private async ensureCohort(): Promise<TextChannel | null> {
-    if (this.cohort) return this.cohort;
+  private readonly channels = new Map<string, TextChannel>();
+
+  /** Finds the channel or makes it. Cached, because a guild fetch per message is a rate limit. */
+  private async ensureChannel(name: string, topic: string): Promise<TextChannel | null> {
+    const cached = this.channels.get(name);
+    if (cached) return cached;
     const guild: Guild | undefined = config.discordGuildId
       ? await this.client?.guilds.fetch(config.discordGuildId).catch(() => undefined)
       : this.client?.guilds.cache.first();
     if (!guild) return null;
-    const existing = (await guild.channels.fetch()).find((c) => c?.name === COHORT && c.type === ChannelType.GuildText) as TextChannel | undefined;
-    this.cohort = existing ?? ((await guild.channels.create({ name: COHORT, type: ChannelType.GuildText, topic: 'Educaro cohort: links, deadlines and answers from the agent' })) as TextChannel);
+    const existing = (await guild.channels.fetch()).find((c) => c?.name === name && c.type === ChannelType.GuildText) as TextChannel | undefined;
+    const channel = existing ?? ((await guild.channels.create({ name, type: ChannelType.GuildText, topic })) as TextChannel);
+    this.channels.set(name, channel);
+    return channel;
+  }
+
+  private async ensureCohort(): Promise<TextChannel | null> {
+    if (this.cohort) return this.cohort;
+    this.cohort = await this.ensureChannel(COHORT, 'Educaro cohort: links, deadlines and answers from the agent');
     return this.cohort;
   }
 

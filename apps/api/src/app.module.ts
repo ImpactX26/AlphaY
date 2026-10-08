@@ -50,6 +50,7 @@ import { McpService } from './mcp/mcp.service';
 import { McpClientService } from './mcp/mcp-client.service';
 import { CommunityController } from './community/community.controller';
 import { CommunityService } from './community/community.service';
+import { AnnouncementsService } from './community/announcements.service';
 import { InsightController } from './community/insight.controller';
 import { SafetyController } from './safety/safety.controller';
 import { SafetyService } from './safety/safety.service';
@@ -101,6 +102,7 @@ import { SafetyService } from './safety/safety.service';
     McpService,
     McpClientService,
     CommunityService,
+    AnnouncementsService,
     SafetyService,
     DiscordService,
   ],

@@ -9,8 +9,9 @@ import { StateService } from './state.service';
 import { runChecks } from './checks';
 import { AgentEventsService } from './events.service';
 import { daysUntil, midSentence } from '../knowledge/normalize';
+import { AnnouncementsService } from '../community/announcements.service';
 
-type Tick = { kind: 'deadlines' | 'recheck' | 'stalled' };
+type Tick = { kind: 'deadlines' | 'recheck' | 'stalled' | 'announce' };
 
 /**
  * The agent when nobody is looking.
@@ -33,6 +34,7 @@ export class TimersService implements OnModuleInit {
     private readonly events: AgentEventsService,
     private readonly bus: BusService,
     private readonly trace: TraceService,
+    private readonly announcements: AnnouncementsService,
   ) {}
 
   async onModuleInit() {
@@ -41,7 +43,8 @@ export class TimersService implements OnModuleInit {
     await this.every('deadlines', '0 7 * * *'); // 07:00 UTC, before the Indian working day ends
     await this.every('recheck', '0 3 * * 1'); // Monday 03:00 UTC
     await this.every('stalled', '0 9 * * *');
-    this.log.log('deadline pings, weekly re-check and stalled-file nudges scheduled');
+    await this.every('announce', '0 6 * * 1'); // Monday morning, before the Indian working day gets going
+    this.log.log('deadline pings, weekly re-check, stalled-file nudges and the Monday announcements scheduled');
   }
 
   private async every(kind: Tick['kind'], pattern: string) {
@@ -56,6 +59,10 @@ export class TimersService implements OnModuleInit {
   private async tick(kind: Tick['kind']): Promise<void> {
     if (kind === 'deadlines') return this.deadlines();
     if (kind === 'recheck') return this.recheck();
+    if (kind === 'announce') {
+      await this.announcements.publish();
+      return;
+    }
     return this.stalled();
   }
 
