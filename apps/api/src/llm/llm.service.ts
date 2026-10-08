@@ -114,6 +114,31 @@ export class LlmService implements OnModuleInit {
     return !!(this.groq || this.openai);
   }
 
+  /**
+   * Embeddings, when there is an OpenAI key and only then.
+   *
+   * Groq serves no embedding model, so this is the one capability with no free tier behind it —
+   * which is exactly why retrieval must not depend on it. text-embedding-3-small costs about two
+   * cents per million tokens, so indexing one applicant's five documents is a rounding error, but
+   * the caller still has to work without it.
+   *
+   * 384 dimensions to match the column that is already in the schema.
+   */
+  async embed(texts: string[]): Promise<number[][] | null> {
+    if (!this.openaiOk() || !texts.length) return null;
+    try {
+      const res = await this.openai!.client.embeddings.create({ model: 'text-embedding-3-small', input: texts.slice(0, 96), dimensions: 384 });
+      // Embeddings are cheap but not free, and the spend cap is a hard rule rather than a target.
+      const cost = ((res.usage?.total_tokens ?? 0) / 1_000_000) * 0.02;
+      this.openaiSpent += cost;
+      await this.trace.record('llm', 'embed', { chunks: texts.length, tokens: res.usage?.total_tokens ?? 0 }, { costUsd: cost });
+      return res.data.map((d) => d.embedding as number[]);
+    } catch (e: any) {
+      this.log.warn(`embeddings unavailable: ${e?.message}`);
+      return null;
+    }
+  }
+
   private openaiOk() {
     return !!this.openai && this.openaiSpent < config.openaiBudgetUsd;
   }
