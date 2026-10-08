@@ -1,0 +1,333 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  jsonb,
+  boolean,
+  integer,
+  real,
+  vector,
+  index,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
+
+const id = () => uuid('id').primaryKey().defaultRandom();
+const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
+
+export const users = pgTable('users', {
+  id: id(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  role: text('role').$type<'applicant' | 'staff' | 'employer'>().notNull(),
+  name: text('name').notNull(),
+  discordUserId: text('discord_user_id'),
+  createdAt: createdAt(),
+});
+
+export const applicants = pgTable('applicants', {
+  id: id(),
+  userId: uuid('user_id').references(() => users.id),
+  name: text('name').notNull(),
+  email: text('email'),
+  subtitle: text('subtitle'),
+  homeCity: text('home_city'),
+  route: text('route'),
+  routeAlternatives: jsonb('route_alternatives').$type<string[]>().notNull().default([]),
+  routeReasons: jsonb('route_reasons').$type<string[]>().notNull().default([]),
+  targetCity: text('target_city'),
+  stage: text('stage').notNull().default('new_story'),
+  stageReason: text('stage_reason'),
+  mode: text('mode').$type<'onboarding' | 'planning' | 'germany'>().notNull().default('onboarding'),
+  staffSecondKey: boolean('staff_second_key').notNull().default(false),
+  submittedAt: timestamp('submitted_at', { withTimezone: true }),
+  approvedByStaffAt: timestamp('approved_by_staff_at', { withTimezone: true }),
+  germanyAddress: text('germany_address'),
+  startDate: text('start_date'),
+  cohortChannel: text('cohort_channel'),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const files = pgTable(
+  'files',
+  {
+    id: id(),
+    applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+    originalName: text('original_name').notNull(),
+    mime: text('mime').notNull(),
+    size: integer('size').notNull(),
+    storagePath: text('storage_path').notNull(),
+    kind: text('kind').notNull().default('other'),
+    kindLabel: text('kind_label'),
+    status: text('status').$type<'queued' | 'reading' | 'done' | 'unclear'>().notNull().default('queued'),
+    confidence: real('confidence'),
+    text: text('text'),
+    extracted: jsonb('extracted').$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('files_applicant_idx').on(t.applicantId)],
+);
+
+export const facts = pgTable(
+  'facts',
+  {
+    id: id(),
+    applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    label: text('label').notNull(),
+    value: text('value').notNull(),
+    tag: text('tag').$type<'verified' | 'said' | 'web' | 'ai'>().notNull(),
+    sourceKind: text('source_kind').$type<'video' | 'cv' | 'document' | 'web' | 'agent' | 'applicant'>().notNull(),
+    sourceRef: text('source_ref'),
+    sourceUrl: text('source_url'),
+    quote: text('quote'),
+    active: boolean('active').notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [index('facts_applicant_key_idx').on(t.applicantId, t.key)],
+);
+
+export const questions = pgTable('questions', {
+  id: id(),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  prompt: text('prompt').notNull(),
+  why: text('why').notNull(),
+  options: jsonb('options').$type<string[]>().notNull().default([]),
+  factKey: text('fact_key'),
+  status: text('status').$type<'open' | 'answered' | 'dismissed'>().notNull().default('open'),
+  answer: text('answer'),
+  answeredAt: timestamp('answered_at', { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+export const chatMessages = pgTable('chat_messages', {
+  id: id(),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  author: text('author').$type<'applicant' | 'agent' | 'staff' | 'system'>().notNull(),
+  channel: text('channel').$type<'web' | 'email' | 'discord'>().notNull().default('web'),
+  text: text('text').notNull(),
+  createdAt: createdAt(),
+});
+
+/** Catalogue of programmes the scout has found (seeded with real ones, grows as the scout searches). */
+export const programmes = pgTable('programmes', {
+  id: id(),
+  title: text('title').notNull(),
+  university: text('university').notNull(),
+  city: text('city').notNull(),
+  url: text('url').notNull().unique(),
+  degree: text('degree').notNull(),
+  language: text('language').notNull(),
+  field: text('field').notNull(),
+  data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: createdAt(),
+});
+
+/** Openings posted by Educaro staff for employer clients. */
+export const openings = pgTable('openings', {
+  id: id(),
+  employer: text('employer').notNull(),
+  employerEmail: text('employer_email').notNull(),
+  title: text('title').notNull(),
+  city: text('city').notNull(),
+  route: text('route').notNull(),
+  germanLevel: text('german_level').notNull(),
+  startDate: text('start_date').notNull(),
+  needsRecognition: boolean('needs_recognition').notNull().default(false),
+  description: text('description').notNull(),
+  keywords: jsonb('keywords').$type<string[]>().notNull().default([]),
+  status: text('status').notNull().default('open'),
+  createdAt: createdAt(),
+});
+
+export const shortlist = pgTable('shortlist', {
+  id: id(),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<'programme' | 'opening'>().notNull(),
+  refId: uuid('ref_id'),
+  title: text('title').notNull(),
+  subtitle: text('subtitle').notNull(),
+  url: text('url').notNull(),
+  status: text('status').$type<'checking' | 'ready' | 'gaps'>().notNull().default('checking'),
+  requirements: jsonb('requirements').$type<Record<string, unknown>>(),
+  matrix: jsonb('matrix').$type<Record<string, unknown>>(),
+  gapCount: integer('gap_count').notNull().default(0),
+  createdAt: createdAt(),
+});
+
+export const gaps = pgTable('gaps', {
+  id: id(),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),
+  title: text('title').notNull(),
+  what: text('what').notNull(),
+  where: text('where').notNull(),
+  howLong: text('how_long').notNull(),
+  cost: text('cost').notNull(),
+  links: jsonb('links').$type<{ label: string; url: string }[]>().notNull().default([]),
+  serviceId: text('service_id'),
+  shortlistId: uuid('shortlist_id'),
+  priority: integer('priority').notNull().default(50),
+  status: text('status').$type<'open' | 'planned' | 'done'>().notNull().default('open'),
+  seenAt: timestamp('seen_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex('gaps_applicant_key_idx').on(t.applicantId, t.key)]);
+
+export const approvals = pgTable('approvals', {
+  id: id(),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<'email' | 'discord' | 'event' | 'submit' | 'broadcast' | 'employer_profile'>().notNull(),
+  title: text('title').notNull(),
+  payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+  status: text('status').$type<'pending' | 'approved' | 'rejected' | 'sent'>().notNull().default('pending'),
+  needsApplicant: boolean('needs_applicant').notNull().default(true),
+  needsStaff: boolean('needs_staff').notNull().default(false),
+  applicantApprovedAt: timestamp('applicant_approved_at', { withTimezone: true }),
+  staffApprovedAt: timestamp('staff_approved_at', { withTimezone: true }),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+export const emails = pgTable('emails', {
+  id: id(),
+  applicantId: uuid('applicant_id').references(() => applicants.id, { onDelete: 'cascade' }),
+  approvalId: uuid('approval_id'),
+  direction: text('direction').$type<'out' | 'in'>().notNull(),
+  messageId: text('message_id').notNull().unique(),
+  inReplyTo: text('in_reply_to'),
+  threadKey: text('thread_key').notNull(),
+  fromAddr: text('from_addr').notNull(),
+  toAddr: text('to_addr').notNull(),
+  subject: text('subject').notNull(),
+  text: text('text').notNull(),
+  classified: jsonb('classified').$type<Record<string, unknown>>(),
+  createdAt: createdAt(),
+});
+
+export const calendarEvents = pgTable('calendar_events', {
+  id: id(),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  kind: text('kind').$type<'deadline' | 'exam' | 'task' | 'event' | 'interview'>().notNull(),
+  startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+  durationMin: integer('duration_min').notNull().default(60),
+  location: text('location'),
+  description: text('description'),
+  sent: boolean('sent').notNull().default(false),
+  createdAt: createdAt(),
+});
+
+export const screens = pgTable('screens', {
+  applicantId: uuid('applicant_id').primaryKey().references(() => applicants.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull().default(0),
+  data: jsonb('data').$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Latest output of each specialist per applicant. The composer reads from here. */
+export const specialistOutputs = pgTable(
+  'specialist_outputs',
+  {
+    id: id(),
+    applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+    specialist: text('specialist').notNull(),
+    runId: text('run_id'),
+    output: jsonb('output').$type<Record<string, unknown>>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('spec_out_applicant_spec_idx').on(t.applicantId, t.specialist)],
+);
+
+/** Every page the agent really opened. The source guard checks web facts against this log. */
+export const sources = pgTable(
+  'sources',
+  {
+    id: id(),
+    runId: text('run_id').notNull(),
+    applicantId: uuid('applicant_id'),
+    url: text('url').notNull(),
+    title: text('title'),
+    text: text('text').notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('sources_run_url_idx').on(t.runId, t.url)],
+);
+
+/** Shared page cache so the same official page is not fetched twice within a day. */
+export const pageCache = pgTable('page_cache', {
+  url: text('url').primaryKey(),
+  title: text('title'),
+  text: text('text').notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const traces = pgTable(
+  'traces',
+  {
+    id: id(),
+    applicantId: uuid('applicant_id'),
+    runId: text('run_id'),
+    kind: text('kind').notNull(),
+    name: text('name').notNull(),
+    detail: jsonb('detail').$type<Record<string, unknown>>().notNull().default({}),
+    costUsd: real('cost_usd').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index('traces_applicant_idx').on(t.applicantId, t.createdAt)],
+);
+
+/** Every LLM response keyed by a hash of model + prompt. Replays cost nothing. */
+export const llmCache = pgTable('llm_cache', {
+  key: text('key').primaryKey(),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  task: text('task').notNull(),
+  response: jsonb('response').$type<unknown>().notNull(),
+  tokensIn: integer('tokens_in').notNull().default(0),
+  tokensOut: integer('tokens_out').notNull().default(0),
+  costUsd: real('cost_usd').notNull().default(0),
+  createdAt: createdAt(),
+});
+
+export const docChunks = pgTable(
+  'doc_chunks',
+  {
+    id: id(),
+    applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+    fileId: uuid('file_id'),
+    text: text('text').notNull(),
+    embedding: vector('embedding', { dimensions: 384 }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('doc_chunks_applicant_idx').on(t.applicantId)],
+);
+
+export const matches = pgTable('matches', {
+  id: id(),
+  openingId: uuid('opening_id').notNull().references(() => openings.id, { onDelete: 'cascade' }),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  score: real('score').notNull(),
+  reasons: jsonb('reasons').$type<string[]>().notNull().default([]),
+  germanProfile: jsonb('german_profile').$type<Record<string, unknown>>(),
+  consent: boolean('consent').notNull().default(false),
+  status: text('status').$type<'ranked' | 'profile_ready' | 'sent' | 'interview'>().notNull().default('ranked'),
+  createdAt: createdAt(),
+});
+
+export const broadcasts = pgTable('broadcasts', {
+  id: id(),
+  topic: text('topic').notNull(),
+  status: text('status').$type<'draft' | 'approved' | 'sent'>().notNull().default('draft'),
+  messages: jsonb('messages').$type<{ applicantId: string; name: string; text: string }[]>().notNull().default([]),
+  createdAt: createdAt(),
+});
+
+export const interviewSessions = pgTable('interview_sessions', {
+  id: id(),
+  applicantId: uuid('applicant_id').notNull().references(() => applicants.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<'visa' | 'employer' | 'university'>().notNull(),
+  turns: jsonb('turns').$type<{ role: 'coach' | 'applicant'; text: string; score?: number; feedback?: string }[]>().notNull().default([]),
+  status: text('status').$type<'active' | 'done'>().notNull().default('active'),
+  createdAt: createdAt(),
+});

@@ -1,0 +1,17 @@
+{
+  "name": "educaro",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "infra": "docker compose up -d",
+    "build:shared": "npm run build -w @educaro/shared",
+    "dev:shared": "npm run dev -w @educaro/shared",
+    "dev:api": "npm run dev -w @educaro/api",
+    "dev:web": "npm run dev -w @educaro/web",
+    "db:push": "npm run db:push -w @educaro/api",
+    "seed": "npm run seed -w @educaro/api"
+  }
+}

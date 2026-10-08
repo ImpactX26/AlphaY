@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Educaro Applicant Flow v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one vertical spine of numbered stages (same role-tag language as v1); inside each stage, straight orthogonal wires only: stems, buses, chains, and a right-angle loop bracket. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eceff4; --ink:#151a24; --muted:#586174; --line:#d3d9e2; --wire:#363f51;
+  --applicant:#0c7683; --agent:#2f42c0; --rules:#4a5366; --staff:#7a389f; --outside:#b3304f; --loop:#9c5a00;
+  --ok:#1a7743; --warn:#965700; --bad:#b0261c;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans","Segoe UI",Roboto,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,"Courier New",monospace;
+  --r:8px; --g:14px; --rail:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1117; --surface:#161b24; --surface-2:#1e2430; --ink:#e6e9ef; --muted:#9aa3b4; --line:#2c3341; --wire:#8a94a7;
+    --applicant:#46c1cf; --agent:#93a0ff; --rules:#aab3c3; --staff:#cb98ea; --outside:#f07a95; --loop:#e5a443;
+    --ok:#52c48c; --warn:#e3a640; --bad:#f2786d; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161b24; --surface-2:#1e2430; --ink:#e6e9ef; --muted:#9aa3b4; --line:#2c3341; --wire:#8a94a7;
+  --applicant:#46c1cf; --agent:#93a0ff; --rules:#aab3c3; --staff:#cb98ea; --outside:#f07a95; --loop:#e5a443;
+  --ok:#52c48c; --warn:#e3a640; --bad:#f2786d; color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:44px 88px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+p{margin:0}
+ul{margin:0;padding-left:18px}
+li{margin:2px 0}
+a{color:var(--agent)}
+a:focus-visible{outline:2px solid var(--agent);outline-offset:2px;border-radius:2px}
+code,.mono{font-family:var(--f-mono);font-size:12.5px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* hero */
+.hero{display:grid;gap:14px;max-width:820px}
+.eyebrow{font:600 12px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hero h1{font-size:clamp(30px,5vw,44px);font-weight:800;line-height:1.05;letter-spacing:-.01em}
+.lead{font-size:17px;line-height:1.55;max-width:68ch}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:6px}
+.legend .role{font-size:11px}
+
+/* role labels */
+.role{display:inline-flex;align-items:center;gap:7px;font:700 11px/1 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--rc,var(--muted))}
+.role::before{content:"";width:9px;height:9px;border-radius:2px;background:currentColor;flex:none}
+.r-applicant{--rc:var(--applicant)} .r-agent{--rc:var(--agent)} .r-rules{--rc:var(--rules)} .r-staff{--rc:var(--staff)} .r-outside{--rc:var(--outside)}
+
+/* section headings */
+.sec{font-size:24px;font-weight:800;margin-top:64px;margin-bottom:6px;letter-spacing:-.005em}
+.sec-sub{color:var(--muted);max-width:70ch;margin-bottom:22px}
+
+/* cards */
+.card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+.card h3{font-size:15.5px;font-weight:700;line-height:1.3;margin:9px 0 5px}
+.card p,.card li{font-size:14px;color:var(--ink)}
+.card .note{font-size:13px;color:var(--muted);margin-top:8px}
+.card.wide{padding:16px 18px}
+
+/* grids */
+.grid{display:grid;gap:var(--g)}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.stack{display:flex;flex-direction:column;gap:16px}
+.seq{display:flex;flex-direction:column}
+
+/* chips and tags */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;font:500 12px/1 var(--f-body);padding:5px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);white-space:nowrap}
+.chip.c-applicant{color:var(--applicant);border-color:color-mix(in srgb,var(--applicant) 45%,transparent);background:color-mix(in srgb,var(--applicant) 9%,transparent)}
+.chip.c-agent{color:var(--agent);border-color:color-mix(in srgb,var(--agent) 45%,transparent);background:color-mix(in srgb,var(--agent) 9%,transparent)}
+.chip.c-outside{color:var(--outside);border-color:color-mix(in srgb,var(--outside) 45%,transparent);background:color-mix(in srgb,var(--outside) 9%,transparent)}
+.chip.c-staff{color:var(--staff);border-color:color-mix(in srgb,var(--staff) 45%,transparent);background:color-mix(in srgb,var(--staff) 9%,transparent)}
+.chip.c-loop{color:var(--loop);border-color:color-mix(in srgb,var(--loop) 50%,transparent);background:color-mix(in srgb,var(--loop) 10%,transparent)}
+.tag{display:inline-flex;align-items:center;gap:5px;font:600 11.5px/1 var(--f-body);padding:4px 8px;border-radius:4px;white-space:nowrap;border:1px solid transparent}
+.t-ver{color:var(--ok);background:color-mix(in srgb,var(--ok) 11%,transparent);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.t-said{color:var(--applicant);background:color-mix(in srgb,var(--applicant) 11%,transparent);border-color:color-mix(in srgb,var(--applicant) 35%,transparent)}
+.t-web{color:var(--agent);background:color-mix(in srgb,var(--agent) 11%,transparent);border-color:color-mix(in srgb,var(--agent) 35%,transparent)}
+.t-ai{color:var(--staff);background:color-mix(in srgb,var(--staff) 11%,transparent);border-color:color-mix(in srgb,var(--staff) 35%,transparent)}
+.t-bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+.t-warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 11%,transparent);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.tool{display:inline-flex;align-items:center;gap:5px;font:500 12px/1 var(--f-mono);padding:5px 7px;border-radius:4px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);white-space:nowrap}
+.tool.new::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--outside)}
+
+/* v1 to v2 */
+.diff{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.diff-row{display:grid;grid-template-columns:minmax(0,1fr) 34px minmax(0,1.35fr);align-items:center;padding:11px 16px;border-top:1px solid var(--line)}
+.diff-row:first-child{border-top:0}
+.diff-row.head{background:var(--surface-2);font:700 11px/1 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.diff-row .was{color:var(--muted);font-size:14px}
+.diff-row .now{font-size:14px;font-weight:500}
+.arrow-r{height:2px;background:var(--wire);position:relative;margin-right:8px}
+.arrow-r::after{content:"";position:absolute;right:-7px;top:-4px;border-left:7px solid var(--wire);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.diff-row.head .arrow-r{visibility:hidden}
+
+/* journey spine */
+.journey{position:relative}
+.journey::before{content:"";position:absolute;left:17px;top:18px;bottom:12px;width:2px;background:var(--wire)}
+.stage{position:relative;padding-left:58px}
+.stage-head{display:flex;gap:16px;align-items:flex-start;margin-left:-58px;margin-bottom:16px}
+.num{flex:0 0 36px;height:36px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font:800 15px/1 var(--f-display);position:relative;z-index:1;box-shadow:0 0 0 5px var(--bg)}
+.stage-head h2{font-size:21px;font-weight:800;line-height:1.2;padding-top:6px}
+.stage-head p{color:var(--muted);font-size:14px;margin-top:3px;max-width:72ch}
+.handoff{position:relative;padding:18px 0 18px 58px;color:var(--muted);font-size:13.5px}
+.handoff b{color:var(--ink);font-weight:600}
+.handoff::before{content:"";position:absolute;left:12px;top:calc(50% - 4px);border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid var(--wire)}
+.terminal{position:relative;padding-left:58px;min-height:24px;display:flex;align-items:center;font:700 14px/1.3 var(--f-display)}
+.terminal::before{content:"";position:absolute;left:9px;top:calc(50% - 9px);width:18px;height:18px;border-radius:3px;background:var(--ink);box-shadow:0 0 0 5px var(--bg)}
+
+/* straight wires */
+.stem{position:relative;height:22px;flex:none}
+.stem::before{content:"";position:absolute;left:calc(50% - 1px);top:0;bottom:0;width:2px;background:var(--wire)}
+.stem.to::after{content:"";position:absolute;left:calc(50% - 6px);bottom:-1px;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--wire)}
+.stem.label span{position:absolute;left:calc(50% + 10px);top:3px;font-size:12px;color:var(--muted);white-space:nowrap}
+
+.fan{--n:3;position:relative}
+.fan > .row{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:var(--g)}
+.fan.down > .row{padding-top:20px}
+.fan.up > .row{padding-bottom:20px}
+.fan.down::before,.fan.up::after{content:"";position:absolute;height:2px;background:var(--wire);
+  left:calc((100% - (var(--n) - 1) * var(--g)) / (2 * var(--n)));right:calc((100% - (var(--n) - 1) * var(--g)) / (2 * var(--n)))}
+.fan.down::before{top:0}
+.fan.up::after{bottom:0}
+.fan.down > .row > *::before{content:"";position:absolute;left:calc(50% - 1px);top:-21px;height:20px;width:2px;background:var(--wire)}
+.fan.up > .row > *::after{content:"";position:absolute;left:calc(50% - 1px);bottom:-21px;height:20px;width:2px;background:var(--wire)}
+
+.chain{display:flex;align-items:stretch}
+.chain > .card{flex:1 1 0}
+.chain > .link{flex:0 0 28px;position:relative}
+.chain > .link::before{content:"";position:absolute;left:0;right:6px;top:calc(50% - 1px);height:2px;background:var(--wire)}
+.chain > .link::after{content:"";position:absolute;right:0;top:calc(50% - 6px);border-left:8px solid var(--wire);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.chain .card h3{margin-top:8px;font-size:14.5px}
+.chain .card p{font-size:13.5px}
+
+/* agent loop */
+.loop{position:relative;border:1.5px solid var(--loop);border-radius:10px;background:color-mix(in srgb,var(--loop) 5%,var(--bg));padding:24px 62px 20px 18px}
+.loop-label{position:absolute;top:-10px;left:14px;background:var(--bg);padding:0 8px;font:700 11px/20px var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--loop)}
+.loop-return{position:absolute;right:20px;width:42px;top:56px;bottom:52px;border:2px solid var(--loop);border-left:0}
+.loop-return::before{content:"";position:absolute;left:-2px;top:-7px;border-right:9px solid var(--loop);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.loop-return span{position:absolute;right:6px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font:700 10px/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--loop)}
+.loop .card{border-color:color-mix(in srgb,var(--line) 70%,var(--loop))}
+
+/* specialists */
+.spec h3{margin-top:6px}
+.spec .src{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-top:1px solid var(--line);vertical-align:top}
+thead th{border-top:0;background:var(--surface-2);font:700 11px/1.2 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td .tag{margin-top:1px}
+.caption{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+/* mock screens */
+.mocks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.mock{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;min-width:0;display:flex;flex-direction:column}
+.m-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:800 12px/1 var(--f-display);color:var(--surface);background:var(--applicant);flex:none}
+.m-who{min-width:0;line-height:1.25}
+.m-who b{display:block;font-size:14px}
+.m-who span{font-size:12px;color:var(--muted)}
+.m-route{margin-left:auto}
+.m-body{padding:14px;display:grid;gap:10px}
+.m-say{font:700 16.5px/1.35 var(--f-display)}
+.m-card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:4px}
+.m-k{font:700 10.5px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.m-card p{font-size:13.5px}
+.qr{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.qr span{border:1px solid var(--agent);color:var(--agent);border-radius:999px;padding:5px 10px;font-size:12px;line-height:1}
+.ticks{list-style:none;padding:0;display:grid;gap:5px;font-size:13px}
+.ticks li{display:flex;justify-content:space-between;gap:10px;margin:0}
+.m-foot{margin-top:auto;padding:8px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+
+/* readiness meters */
+.meters{display:grid;gap:7px;margin-top:10px}
+.meter{display:grid;grid-template-columns:92px minmax(0,1fr) 38px;gap:8px;align-items:center;font-size:12.5px}
+.bar{height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;width:var(--v);background:var(--ink)}
+.bar i.lo{background:var(--warn)}
+.meter span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+
+.formula{font:500 13px/1.5 var(--f-mono);background:var(--surface-2);border-radius:6px;padding:10px 12px;margin-top:8px;overflow-x:auto}
+.band{border:1px solid var(--line);border-radius:var(--r);background:color-mix(in srgb,var(--agent) 7%,var(--surface));padding:14px 18px;font-size:14px}
+.band b{font-weight:700}
+
+/* architecture */
+.layer-title{font:700 11px/1 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.guard-list{list-style:none;padding:0;display:grid;gap:6px;margin-top:8px;counter-reset:g}
+.guard-list li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:13.5px;margin:0;counter-increment:g}
+.guard-list li::before{content:counter(g);font:700 11px/20px var(--f-display);width:20px;height:20px;border-radius:4px;background:var(--surface-2);text-align:center;color:var(--rules)}
+.toolgroup{display:grid;gap:6px;margin-top:10px}
+.toolgroup .k{font-size:12px;color:var(--muted);font-weight:600}
+.toolgroup .chips{margin-top:0}
+
+/* build plan + demo */
+.tier h3{font-size:16px}
+.tier ul{margin-top:8px}
+.tier li{font-size:14px}
+.demo{list-style:none;padding:0;margin:0;display:grid;gap:0;counter-reset:d;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.demo li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:11px 16px;border-top:1px solid var(--line);margin:0;font-size:14px;counter-increment:d}
+.demo li:first-child{border-top:0}
+.demo li b{font:700 12px/1.6 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.sources{font-size:13px;color:var(--muted);display:grid;gap:4px;margin-top:10px}
+
+/* responsive */
+@media (max-width:900px){
+  .g4,.g5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mocks{grid-template-columns:minmax(0,1fr)}
+  /* fans switch to a straight left rail */
+  .stem::before{left:calc(var(--rail) - 1px)}
+  .stem.to::after{left:calc(var(--rail) - 6px)}
+  .stem.label span{left:calc(var(--rail) + 10px)}
+  .fan::before,.fan::after{display:none}
+  .fan > .row{grid-template-columns:minmax(0,1fr);padding:0 0 0 18px !important;margin-left:calc(var(--rail) - 1px);border-left:2px solid var(--wire)}
+  .fan > .row > *::after{display:none}
+  .fan > .row > *::before{content:"";position:absolute;left:-19px;top:22px;width:18px;height:2px;background:var(--wire)}
+  .fan.up:not(.down) > .row > *::before{content:"";position:absolute;left:-19px;top:22px;width:18px;height:2px;background:var(--wire)}
+  .chain{flex-direction:column}
+  .chain > .link{flex-basis:26px}
+  .chain > .link::before{left:calc(var(--rail) - 1px);right:auto;top:0;bottom:6px;width:2px;height:auto}
+  .chain > .link::after{left:calc(var(--rail) - 6px);right:auto;top:auto;bottom:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--wire);border-bottom:0}
+}
+@media (max-width:760px){
+  .g2,.g3{grid-template-columns:minmax(0,1fr)}
+  .diff-row{grid-template-columns:minmax(0,1fr);gap:6px}
+  .diff-row .arrow-r{display:none}
+  .diff-row .was::after{content:" \2193";color:var(--wire)}
+  .diff-row.head{display:none}
+}
+@media (max-width:560px){
+  .wrap{padding-inline:16px}
+  .g4,.g5{grid-template-columns:minmax(0,1fr)}
+  .journey::before{left:13px}
+  .stage{padding-left:42px}
+  .stage-head{margin-left:-42px;gap:12px}
+  .num{flex-basis:28px;height:28px;font-size:13px}
+  .stage-head h2{font-size:18px;padding-top:3px}
+  .handoff,.terminal{padding-left:42px}
+  .handoff::before{left:8px}
+  .terminal::before{left:6px;width:16px;height:16px;top:calc(50% - 8px)}
+  .loop{padding:22px 50px 18px 12px}
+  .loop-return{right:14px;width:36px}
+  .demo li{grid-template-columns:minmax(0,1fr);gap:2px}
+}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">ImpactX'26 · Agentic AI track · Sponsor: Educaro Deutschland</p>
+  <h1>Educaro Applicant Flow v2</h1>
+  <p class="lead">The applicant talks and uploads. The agent builds the profile, checks it against the real requirements of the university or employer they pick, fixes gaps with Educaro's own courses and services, and sends applications once they approve. It stays with them through their first weeks in Germany. Educaro staff run the same agent from the other side.</p>
+  <div class="legend" aria-label="Who does each step">
+    <span class="role r-applicant">Applicant</span>
+    <span class="role r-agent">AI agent</span>
+    <span class="role r-rules">Fixed rules in code</span>
+    <span class="role r-staff">Educaro staff</span>
+    <span class="role r-outside">Outside world: mail, Discord, universities, employers</span>
+  </div>
+  <div class="chips" style="margin-top:2px" aria-label="Field tags">
+    <span class="tag t-ver">Verified</span><span class="tag t-said">You said</span><span class="tag t-web">Web-sourced</span><span class="tag t-ai">AI-generated</span>
+    <span class="small muted" style="align-self:center">Every field keeps one of these four tags, as in v1.</span>
+  </div>
+</header>
+
+<h2 class="sec">What changes from v1</h2>
+<p class="sec-sub">The v1 skeleton stays: one profile, tags on every field, proof-checked saves, a loop that never rejects. These are the parts that change.</p>
+<div class="diff">
+  <div class="diff-row head"><span>v1</span><span class="arrow-r"></span><span>v2</span></div>
+  <div class="diff-row"><span class="was">Two forms, then uploads</span><span class="arrow-r"></span><span class="now">One intro video and a document drop. The agent asks only what it cannot find.</span></div>
+  <div class="diff-row"><span class="was">Video transcribed, then stored</span><span class="arrow-r"></span><span class="now">Video, CV and documents cross-checked against each other in a truth map.</span></div>
+  <div class="diff-row"><span class="was">Same results panel for everyone</span><span class="arrow-r"></span><span class="now">The agent writes each applicant's screen. A nurse and an engineer see different apps.</span></div>
+  <div class="diff-row"><span class="was">General requirement checks</span><span class="arrow-r"></span><span class="now">Shortlist a university or employer and get its exact exams, grades, papers and deadlines.</span></div>
+  <div class="diff-row"><span class="was">Final pack is the last step</span><span class="arrow-r"></span><span class="now">The agent drafts and sends applications after a human approves, then reads the replies.</span></div>
+  <div class="diff-row"><span class="was">Generic next step</span><span class="arrow-r"></span><span class="now">Every gap routes to a real Educaro service: course, ÖSD exam, Anerkennung, program, consultant.</span></div>
+  <div class="diff-row"><span class="was">Ends at Submit</span><span class="arrow-r"></span><span class="now">Continues into Germany: SIM, bank, Anmeldung, food, community, first payslip.</span></div>
+  <div class="diff-row"><span class="was">Web chat only, read-only admin</span><span class="arrow-r"></span><span class="now">Discord, email and calendar too. Staff get a command centre with a copilot and employer matching.</span></div>
+</div>
+
+<h2 class="sec">Applicant journey</h2>
+<p class="sec-sub">Nine stages. Stage 5 is the agent; it runs underneath every stage after it.</p>
+
+<div class="journey">
+
+  <!-- 1 -->
+  <section class="stage" id="s1">
+    <div class="stage-head"><span class="num">1</span><div><h2>Sign in</h2><p>Basic multi-user login with roles, enough to show a commercial product.</p></div></div>
+    <div class="grid g3">
+      <div class="card"><span class="role r-applicant">Applicant</span><h3>Sign up or log in</h3><p>Email and password, or Google. Each applicant sees only their own profile. Linking Discord is one optional click.</p></div>
+      <div class="card"><span class="role r-staff">Educaro staff</span><h3>Staff log in</h3><p>Separate role. Opens the command centre, not the applicant app.</p></div>
+      <div class="card"><span class="role r-outside">Employer partner</span><h3>Employer log in <span class="chip" style="margin-left:4px">later</span></h3><p>Sees only candidates that staff have shared, and only after the candidate agrees.</p></div>
+    </div>
+  </section>
+  <div class="handoff"><b>No forms.</b> The first screen asks for one video and a pile of files.</div>
+
+  <!-- 2 -->
+  <section class="stage" id="s2">
+    <div class="stage-head"><span class="num">2</span><div><h2>Tell your story</h2><p>A short video and a document drop replace both v1 forms.</p></div></div>
+    <div class="grid g3">
+      <div class="card"><span class="role r-applicant">Applicant</span><h3>Intro video, 1 to 3 minutes</h3>
+        <p>The screen shows four prompts while they record or upload:</p>
+        <ul><li>Who are you?</li><li>What have you studied and worked on?</li><li>Why Germany?</li><li>Where do you want to be in two years?</li></ul>
+        <p class="note">English, Hindi, Malayalam or Tamil all work. The transcript keeps the original and an English version.</p></div>
+      <div class="card"><span class="role r-applicant">Applicant</span><h3>Drop every document</h3>
+        <ul><li>CV, any format</li><li>Degree, 10th and 12th marksheets, semester transcripts</li><li>Experience letters, payslips</li><li>Language certificates: IELTS, Goethe, ÖSD, telc</li><li>Passport</li></ul>
+        <p class="note">Any order, any file name. Phone photos are fine.</p></div>
+      <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Sort and transcribe</h3>
+        <p>Each file is classified on arrival, for example "CBSE class 12 marksheet" or "experience letter". Only the video's audio is transcribed. The picture is stored and never analysed.</p>
+        <p class="note">Files stay on Educaro's server. Nothing personal goes into web searches.</p></div>
+    </div>
+  </section>
+  <div class="handoff"><b>Every sentence and every file becomes a claim with a source.</b></div>
+
+  <!-- 3 -->
+  <section class="stage" id="s3">
+    <div class="stage-head"><span class="num">3</span><div><h2>Cross-check what they said, wrote and proved</h2><p>Three sources merge into one truth map. This is where the video earns its place.</p></div></div>
+    <div class="seq">
+      <div class="fan up" style="--n:3">
+        <div class="row">
+          <div class="card"><span class="role r-agent">AI agent</span><h3>Video transcript</h3><p>What they said: goal, motivation, family in Germany, preferred city, timeline.</p><div class="chips"><span class="tag t-said">You said</span></div></div>
+          <div class="card"><span class="role r-agent">AI agent</span><h3>CV</h3><p>What they wrote: jobs, dates, skills, claimed language levels.</p><div class="chips"><span class="tag t-said">You said</span></div></div>
+          <div class="card"><span class="role r-agent">AI agent</span><h3>Documents</h3><p>What they proved: degree, grades, employer dates, certificates, passport name.</p><div class="chips"><span class="tag t-ver">Verified</span></div></div>
+        </div>
+      </div>
+      <div class="stem to"></div>
+      <div class="card wide"><span class="role r-rules">Fixed rules in code</span><h3>Truth map</h3>
+        <p>Every fact gets one status. Only a document makes a fact Verified. A conflict becomes one polite question, never an accusation.</p>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Fact</th><th>Video says</th><th>CV says</th><th>Document says</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>GNM nursing diploma</td><td>"my nursing diploma"</td><td>GNM, 2021</td><td>Certificate and marksheets</td><td><span class="tag t-ver">Verified</span></td></tr>
+            <tr><td>Experience, Aster Medcity</td><td>"about three years"</td><td>2021 to 2023</td><td>Letter: Jul 2021 to Aug 2024</td><td><span class="tag t-bad">Conflict</span> CV is a year short. Ask once, then fix the CV.</td></tr>
+            <tr><td>German level</td><td>"I finished A2"</td><td>A1</td><td>None</td><td><span class="tag t-warn">No proof yet</span> Ask for the certificate or plan the exam.</td></tr>
+            <tr><td>Name</td><td></td><td>Ananya Nair</td><td>Passport ANANYA NAIR, diploma ANANYA P.</td><td><span class="tag t-bad">Conflict</span> Flag before the embassy does. Plan a same-person affidavit.</td></tr>
+            <tr><td>Why Germany</td><td>"My sister lives in Cologne. I want elderly care."</td><td></td><td></td><td><span class="tag t-said">You said</span> Used for route and city.</td></tr>
+          </tbody>
+        </table></div>
+        <p class="caption">Example applicant: Ananya Nair, GNM nurse from Kochi. Rows like these appear live while the files are read.</p>
+      </div>
+      <div class="stem to"></div>
+      <div class="card wide"><span class="role r-agent">AI agent</span><h3>Pick the route</h3>
+        <p>The agent proposes the most likely route with its reasons. If two are close, it asks, and it can keep both open.</p>
+        <div class="chips"><span class="chip">Study (Bachelor or Master)</span><span class="chip">Ausbildung</span><span class="chip">Nursing with Anerkennung</span><span class="chip">Skilled job</span><span class="chip">Opportunity Card (Chancenkarte)</span></div>
+      </div>
+    </div>
+  </section>
+  <div class="handoff"><b>The agent writes the applicant's screen.</b></div>
+
+  <!-- 4 -->
+  <section class="stage" id="s4">
+    <div class="stage-head"><span class="num">4</span><div><h2>A screen written for one person</h2><p>The agent picks blocks from a fixed React library and writes the words in them. Two applicants never see the same screen.</p></div></div>
+    <div class="stack">
+      <div class="mocks">
+        <div class="mock" aria-label="Example screen for Ananya">
+          <div class="m-bar"><span class="avatar">AN</span><span class="m-who"><b>Ananya Nair</b><span>GNM nurse · Kochi</span></span><span class="m-route chip c-applicant">Educaro Nursing Program</span></div>
+          <div class="m-body">
+            <p class="m-say">Ananya, your diploma can be recognised in Germany. German is your long pole: you need B1, then B2 for nursing.</p>
+            <div class="m-card"><span class="m-k">Your next step</span><p>Join an Educaro online B1 batch, then sit the ÖSD B1 exam at Educaro's own exam centre.</p><div class="qr"><span>Show batches</span><span>Why B1 first?</span></div></div>
+            <div class="m-card"><span class="m-k">One question</span><p>Your experience letter says Jul 2021 to Aug 2024. Your CV says 2023. Which is right?</p><div class="qr"><span>The letter. Fix my CV</span><span>Let me explain</span></div></div>
+            <div class="m-card"><span class="m-k">Papers</span><ul class="ticks"><li>GNM diploma <span class="tag t-ver">Verified</span></li><li>Nursing council registration <span class="tag t-warn">Missing</span></li><li>German B1 <span class="tag t-ai">Planned</span></li></ul></div>
+          </div>
+          <div class="m-foot">Example screen. Your sister lives in Cologne, so partner employers near Cologne show first.</div>
+        </div>
+        <div class="mock" aria-label="Example screen for Rohan">
+          <div class="m-bar"><span class="avatar" style="background:var(--agent)">RM</span><span class="m-who"><b>Rohan Mehta</b><span>B.Tech CS · Pune</span></span><span class="m-route chip c-agent">Master's in Germany</span></div>
+          <div class="m-body">
+            <p class="m-say">Rohan, your 8.2 CGPA is 1.9 on the German scale. Start APS verification this week. Every application waits for it.</p>
+            <div class="m-card"><span class="m-k">Your next step</span><p>Book APS document verification. It takes about 3 to 4 weeks.</p><div class="chips" style="margin-top:4px"><span class="tag t-web">Web-sourced</span></div></div>
+            <div class="m-card"><span class="m-k">Shortlist</span><ul class="ticks"><li>MSc Data Science · Aachen <span class="tag t-warn">2 gaps</span></li><li>MSc Informatics · Munich <span class="tag t-warn">1 gap</span></li><li>MSc Autonomous Systems · Darmstadt <span class="tag t-ver">Ready</span></li></ul></div>
+            <div class="m-card"><span class="m-k">One question</span><p>Your CV lists IELTS 7.0, but I can't see the test report. Can you upload it?</p><div class="qr"><span>Upload report</span><span>Not taken yet</span></div></div>
+          </div>
+          <div class="m-foot">Example screen. Munich rent is far above Aachen's. A budget comparison is one tap away.</div>
+        </div>
+      </div>
+      <div class="grid g3">
+        <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Fixed blocks, free words</h3><p>The agent fills a typed JSON layout from a set list: next step, question, checklist, shortlist, budget, map, timeline. React renders it. The agent cannot produce UI that breaks.</p></div>
+        <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Questions that earn their place</h3><p>Two open at most. Each says why it is asked. Tap an answer, type, or send a voice note. Never asked if a document already answers it.</p></div>
+        <div class="card"><span class="role r-agent">AI agent</span><h3>Their language, German terms explained</h3><p>English by default, Hindi or Malayalam on request. German words such as Anmeldung or Anerkennung stay, with a one-line meaning the first time.</p></div>
+      </div>
+    </div>
+  </section>
+  <div class="handoff"><b>Every answer, upload, email reply, Discord message or deadline wakes the agent.</b></div>
+
+  <!-- 5 -->
+  <section class="stage" id="s5">
+    <div class="stage-head"><span class="num">5</span><div><h2>The agent loop</h2><p>This is the harness. It repeats until nothing is open, or every gap has a plan the applicant has seen.</p></div></div>
+    <div class="stack">
+      <div class="loop">
+        <span class="loop-label">Repeats after every event</span>
+        <div class="seq">
+          <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Wake up and read the state</h3><p>Profile so far, truth map, checks still open, shortlist, pending approvals.</p>
+            <div class="chips"><span class="chip">New upload</span><span class="chip">Chat answer</span><span class="chip">Email reply</span><span class="chip">Discord message</span><span class="chip">Deadline timer</span><span class="chip">Weekly re-check of official pages</span></div></div>
+          <div class="stem to"></div>
+          <div class="card"><span class="role r-agent">AI agent</span><h3>Supervisor plans the next most useful move</h3><p>Picks one or more of the five moves below, and loads the skill for this applicant's route.</p></div>
+          <div class="fan down up" style="--n:5">
+            <div class="row">
+              <div class="card"><span class="role r-applicant">Applicant</span><h3>Ask</h3><p>Question cards, two at a time.</p></div>
+              <div class="card"><span class="role r-agent">AI agent</span><h3>Read documents</h3><p>Unclear scan? It asks instead of guessing.</p></div>
+              <div class="card"><span class="role r-agent">AI agent</span><h3>Run specialists</h3><p>Twelve, in parallel. Listed below.</p></div>
+              <div class="card"><span class="role r-agent">AI agent</span><h3>Rewrite the screen</h3><p>Moves the most urgent block to the top.</p></div>
+              <div class="card"><span class="role r-outside">Outside world</span><h3>Act outside</h3><p>Drafts mail, Discord posts, invites. Waits for approval.</p></div>
+            </div>
+          </div>
+          <div class="stem to"></div>
+          <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Save, with proof</h3><p>Every web fact needs a link the agent really opened in this session, or the save is rejected. Each field keeps its tag.</p>
+            <div class="chips"><span class="tag t-ver">Verified</span><span class="tag t-said">You said</span><span class="tag t-web">Web-sourced</span><span class="tag t-ai">AI-generated</span></div></div>
+          <div class="stem to"></div>
+          <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Check the requirements</h3><p>If the agent skipped a required check, the server sends it back to do it.</p>
+            <div class="chips"><span class="chip">All papers present?</span><span class="chip">Eligible for this route?</span><span class="chip">Language high enough?</span><span class="chip">APS done?</span><span class="chip">Money proof?</span><span class="chip">Deadline safe?</span></div></div>
+          <div class="fan down" style="--n:2">
+            <div class="row">
+              <div class="card"><span class="role r-agent">AI agent</span><h3>Gap found</h3><p>Never a rejection. It builds a fix-it plan: what, where, how long, what it costs, with links, routed to an Educaro service where one exists.</p><p class="note">Example: A2 today, B1 needed. Educaro online B1 course, then ÖSD B1 at Educaro.</p><div class="chips"><span class="chip c-loop">loops back</span></div></div>
+              <div class="card"><span class="role r-applicant">Applicant</span><h3>New answer, upload or correction</h3><p>The applicant replies, fixes a field or adds a document, on the web, by email or on Discord.</p><div class="chips"><span class="chip c-loop">loops back</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="loop-return" aria-hidden="true"><span>Back to the top</span></div>
+      </div>
+
+      <div>
+        <p class="layer-title">The twelve specialists</p>
+        <div class="grid g4">
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Route</h3><p>Picks study, Ausbildung, nursing, skilled job or Opportunity Card. Scores the Chancenkarte points grid (6 of 14 needed) in code.</p><p class="src">make-it-in-germany.com, anabin</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Exams and language</h3><p>Which exams are done, pending or not needed. Compares CEFR levels. Says where and when to book.</p><p class="src">Goethe, ÖSD, IELTS, TestDaF, APS India</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>University scout</h3><p>Finds programmes that fit. On shortlist, builds the requirement matrix in stage 6.</p><p class="src">DAAD programme database, university pages, uni-assist</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Jobs and Ausbildung</h3><p>Matches Educaro partner openings first, then public listings.</p><p class="src">Educaro openings, Bundesagentur für Arbeit job search</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Recognition</h3><p>Anerkennung route: which authority, Kenntnisprüfung or adaptation course, how long.</p><p class="src">anerkennung-in-deutschland.de, educaro Akademie</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Visa and papers</h3><p>Likely visa type, document checklist, appointment route, and risks such as a permit tied to one employer.</p><p class="src">German missions in India, VFS</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Money</h3><p>Monthly budget, blocked account or salary, net pay after tax, scholarships.</p><p class="src">Federal Foreign Office, DAAD scholarships</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Housing</h3><p>Shared flat or studio, realistic rent by district, scam warnings, and the landlord form Anmeldung needs.</p><p class="src">City rent indices, housing portals</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Life in Germany</h3><p>SIM, bank, insurance, Anmeldung, transport, Indian groceries, temples, community, winter clothes.</p><p class="src">OpenStreetMap, city websites</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Writer</h3><p>Lebenslauf, Europass CV, Motivationsschreiben, Anschreiben, emails. Uses only Verified and You said facts.</p><p class="src">Profile only, no web</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Interview coach</h3><p>Mock visa and employer interviews in English or German, scored against the profile.</p><p class="src">Profile, interview question banks</p></div>
+          <div class="card spec"><span class="role r-agent">Specialist</span><h3>Fact-checker</h3><p>Re-opens every cited link, rejects claims the page does not support, flags rules that changed.</p><p class="src">Every source the others used</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="handoff"><b>The applicant shortlists a university or an employer.</b></div>
+
+  <!-- 6 -->
+  <section class="stage" id="s6">
+    <div class="stage-head"><span class="num">6</span><div><h2>Shortlist one, get its exact requirements</h2><p>The agent reads the programme's or employer's own page, lists every exam and paper it needs, and compares them with the profile.</p></div></div>
+    <div class="seq">
+      <div class="chain">
+        <div class="card"><span class="role r-applicant">Applicant</span><h3>Taps "Shortlist"</h3><p>On a programme or opening the scout suggested, or pastes any link.</p></div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="card"><span class="role r-agent">AI agent</span><h3>Opens the official page</h3><p>Pulls admission rules, exams, deadlines, fees and the programme's keywords.</p></div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Compares</h3><p>Grade conversion, CEFR levels, test scores, days to deadline.</p></div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="card"><span class="role r-agent">AI agent</span><h3>Matrix and plan</h3><p>Every gap gets a fix-it plan, and the loop picks it up.</p></div>
+      </div>
+      <div class="stem to"></div>
+      <div class="card wide"><span class="role r-rules">Requirement matrix</span><h3>MSc Data Science · Aachen, for Rohan</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Requirement</th><th>Programme needs</th><th>Rohan has</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Bachelor</td><td>Computer science or related</td><td>B.Tech CS, degree certificate</td><td><span class="tag t-ver">Meets</span></td></tr>
+            <tr><td>Grade</td><td>German 2.5 or better</td><td>1.9, from CGPA 8.2</td><td><span class="tag t-ver">Meets</span></td></tr>
+            <tr><td>English</td><td>IELTS 6.5</td><td>IELTS 7.0 claimed, no report</td><td><span class="tag t-warn">Upload report</span></td></tr>
+            <tr><td>APS certificate</td><td>Required for Indian degrees</td><td>Not started</td><td><span class="tag t-bad">Start now</span></td></tr>
+            <tr><td>Application route</td><td>Through uni-assist</td><td>Pack can be prepared</td><td><span class="tag t-web">Web-sourced</span></td></tr>
+            <tr><td>Deadline</td><td>Winter intake</td><td>Counted down on his screen</td><td><span class="tag t-web">Web-sourced</span></td></tr>
+          </tbody>
+        </table></div>
+        <p class="caption">Values are examples. The agent fills each row from the programme's own page and Rohan's documents, and links every row to its source.</p>
+      </div>
+      <div class="stem to"></div>
+      <div class="grid g3">
+        <div class="card"><span class="role r-agent">Exams this shortlist needs</span><h3>Done, pending, not needed</h3>
+          <div class="chips"><span class="tag t-warn">IELTS: proof pending</span><span class="tag t-bad">APS: not started</span><span class="tag t-ver">GRE: not needed</span><span class="tag t-ver">TestDaF: not needed</span></div>
+          <p class="note">German is not needed for an English-taught course. The agent still suggests A1 for daily life.</p></div>
+        <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Grade on the German scale</h3><p>Modified Bavarian formula, computed in code, never by the model.</p>
+          <div class="formula">1 + 3 × (10 − 8.2) ÷ (10 − 4) = 1.9</div>
+          <p class="note">Best grade 10, pass mark 4 on this university's scale.</p></div>
+        <div class="card"><span class="role r-agent">AI agent</span><h3>Gap plan, routed to Educaro</h3><p>APS first, then the IELTS report, then the uni-assist pack. For an Ausbildung place the same matrix shows German B1 and the Educaro course that gets there.</p></div>
+      </div>
+    </div>
+  </section>
+  <div class="handoff"><b>Nothing left open, or every gap has a plan the applicant has seen.</b></div>
+
+  <!-- 7 -->
+  <section class="stage" id="s7">
+    <div class="stage-head"><span class="num">7</span><div><h2>Outcome and the next step inside Educaro</h2><p>A clear result, a readiness score, and a route into one of Educaro's own services.</p></div></div>
+    <div class="stack">
+      <div class="grid g3">
+        <div class="card"><span class="role r-rules">Fixed rules in code</span><h3>Qualification outcome</h3>
+          <div class="chips"><span class="tag t-ver">Ready</span><span class="tag t-warn">Ready after the plan</span><span class="tag t-web">Better route found</span></div>
+          <p class="note">There is no plain "rejected". If this route doesn't fit, the agent shows the one that does, for example Ausbildung instead of a Master's.</p></div>
+        <div class="card"><span class="role r-rules">Readiness for Ananya</span><h3>70% ready</h3>
+          <div class="meters">
+            <div class="meter"><span>Papers</span><span class="bar"><i style="--v:90%"></i></span><span>90%</span></div>
+            <div class="meter"><span>Eligibility</span><span class="bar"><i style="--v:100%"></i></span><span>100%</span></div>
+            <div class="meter"><span>German</span><span class="bar"><i class="lo" style="--v:40%"></i></span><span>40%</span></div>
+            <div class="meter"><span>Money</span><span class="bar"><i style="--v:70%"></i></span><span>70%</span></div>
+            <div class="meter"><span>Visa papers</span><span class="bar"><i class="lo" style="--v:50%"></i></span><span>50%</span></div>
+          </div>
+          <p class="note">Example. Computed from the checks, not guessed by the model.</p></div>
+        <div class="card"><span class="role r-agent">AI agent</span><h3>Next step in the Educaro ecosystem</h3>
+          <div class="chips"><span class="chip c-staff">Nursing Program</span><span class="chip c-staff">Ausbildung program</span><span class="chip c-staff">Study guidance</span><span class="chip c-staff">Skilled worker placement</span><span class="chip c-staff">German course A1 to B2</span><span class="chip c-staff">ÖSD exam at Educaro</span><span class="chip c-staff">Anerkennung via educaro Akademie</span><span class="chip c-staff">Consultant call</span></div></div>
+      </div>
+      <div class="band"><b>Final pack, PDF and DOCX:</b> profile summary, truth map, checklist, gap plans, shortlist matrices, budget, roadmap, Lebenslauf and the list of sources, in one download.</div>
+    </div>
+  </section>
+  <div class="handoff"><b>Applicant presses Submit to Educaro.</b> A staff member approves it in the command centre. The agent never approves itself.</div>
+
+  <!-- 8 -->
+  <section class="stage" id="s8">
+    <div class="stage-head"><span class="num">8</span><div><h2>Apply on their behalf, after they approve</h2><p>The writer drafts each application from verified facts and the target's own keywords. Nothing leaves without a human tap.</p></div></div>
+    <div class="seq">
+      <div class="chain">
+        <div class="card"><span class="role r-agent">AI agent</span><h3>Writer drafts</h3><p>Motivation letter built on the programme's own words: "machine learning", "research project", "statistics". Every claim links to a fact.</p><div class="chips"><span class="tag t-ai">AI-generated</span></div></div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="card"><span class="role r-applicant">Applicant</span><h3>Reviews</h3><p>Keywords highlighted, sources beside each sentence. Edit anything. Nothing is sent yet.</p></div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="card"><span class="role r-outside">Outside world</span><h3>Approve and send</h3><p>Sent from Educaro's mail, with the applicant in CC and as reply-to.</p></div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="card"><span class="role r-outside">Outside world</span><h3>Reply arrives</h3><p>Replies land back in the same thread inside Educaro.</p></div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="card"><span class="role r-agent">AI agent</span><h3>Reads the reply</h3><p>Interview invite: calendar plus mock interview. Missing paper: new task. Rejection: next on the shortlist.</p></div>
+      </div>
+      <div class="stem to"></div>
+      <div class="grid g3">
+        <div class="card"><span class="role r-agent">University with a portal</span><h3>Pack and fill guide</h3><p>Most German universities take applications through uni-assist or their own portal. The agent prepares every file and a field-by-field guide. The applicant submits.</p></div>
+        <div class="card"><span class="role r-outside">Employer or Ausbildung place</span><h3>Bewerbung by email</h3><p>The German standard: Anschreiben, Lebenslauf and certificates in one PDF. Educaro partner openings go through staff matching in the command centre.</p></div>
+        <div class="card"><span class="role r-staff">Educaro staff</span><h3>Second key</h3><p>Staff can require their own approval for any outgoing application, per applicant or per route.</p></div>
+      </div>
+    </div>
+  </section>
+  <div class="handoff"><b>Visa granted.</b> The same screen switches to Germany mode.</div>
+
+  <!-- 9 -->
+  <section class="stage" id="s9">
+    <div class="stage-head"><span class="num">9</span><div><h2>Germany mode</h2><p>The one-stop part. Built for their city, their address and their start date.</p></div></div>
+    <div class="grid g3">
+      <div class="card"><span class="role r-agent">Before the flight</span><h3>Pack and prepare</h3><p>Winter clothing list for their city, papers to carry in hand luggage, insurance and blocked account or job contract confirmed, address for the first night.</p></div>
+      <div class="card"><span class="role r-agent">First two weeks</span><h3>Get set up</h3><p>Anmeldung at the Bürgeramt with the landlord's form, SIM card, bank account, health insurance card, transport ticket. The tax ID arrives by post after Anmeldung.</p></div>
+      <div class="card"><span class="role r-agent">Food and community</span><h3>Feel at home</h3><p>Indian grocery shops, restaurants, temples, gurdwaras and churches near the new address, from OpenStreetMap. Their city's Discord channel.</p></div>
+      <div class="card"><span class="role r-agent">Money</span><h3>Real numbers now</h3><p>Budget updated with real rent and salary. The first payslip explained line by line.</p></div>
+      <div class="card"><span class="role r-staff">Educaro staff</span><h3>Integration companion</h3><p>Educaro already has integration companions. One is assigned by name and receives the agent's brief.</p></div>
+      <div class="card"><span class="role r-agent">At work or university</span><h3>Fit in</h3><p>What the first day looks like, German workplace habits, and an invite to Educaro's intercultural workshop.</p></div>
+    </div>
+  </section>
+  <div class="terminal">First payslip, first winter, still the same screen.</div>
+</div>
+
+<!-- Channels -->
+<h2 class="sec">One agent, every channel</h2>
+<p class="sec-sub">Same profile, same tags, same approval rules everywhere. A message on Discord wakes the same loop as a chat on the web.</p>
+<div class="grid g4">
+  <div class="card"><span class="role r-applicant">Web app</span><h3>The main screen</h3><p>The composed screen with chat beside it. Updates live while the agent works.</p></div>
+  <div class="card"><span class="role r-outside">Discord</span><h3>Bot and community</h3>
+    <ul><li><code>/status</code>, <code>/next</code>, <code>/ask</code></li><li>Auto-joins a cohort channel such as <code>#koeln-pflege-sep27</code></li><li>Deadline pings</li><li>Buddy match with Educaro alumni in that city</li><li>Staff office hours in a voice channel</li></ul></div>
+  <div class="card"><span class="role r-outside">Email</span><h3>Digest and replies</h3><p>A weekly "three things this week" mail. Replying to any Educaro mail reaches the agent too.</p></div>
+  <div class="card"><span class="role r-outside">Calendar</span><h3>Invites, not reminders</h3><p>Calendar invites for exam dates, deadlines, interviews, consultant calls and the Anmeldung appointment.</p></div>
+</div>
+
+<!-- Admin -->
+<h2 class="sec">Educaro side: the command centre</h2>
+<p class="sec-sub">Staff get the same agent, pointed at the whole pipeline. Educaro's paying customers are employers, so matching candidates to openings sits at the centre.</p>
+<div class="seq">
+  <div class="card wide"><span class="role r-rules">Fixed rules in code</span><h3>Every applicant event lands here</h3><p>Uploads, conflicts, gap plans, approvals, replies, deadlines. Nothing a staff member needs is hidden in a chat log.</p></div>
+  <div class="stem to"></div>
+  <div class="card wide"><span class="role r-staff">Educaro staff</span><h3>Pipeline board</h3><p>The agent moves each applicant between columns and writes why. Staff can drag them back.</p>
+    <div class="chips"><span class="chip">New story</span><span class="chip">Profiling</span><span class="chip">Gap plan</span><span class="chip">Ready</span><span class="chip">Matched</span><span class="chip">Applied</span><span class="chip">Visa</span><span class="chip">Arrived</span></div></div>
+  <div class="fan down" style="--n:4">
+    <div class="row">
+      <div class="card"><span class="role r-staff">Educaro staff</span><h3>Staff copilot</h3><p>Ask in plain words, get a generated view.</p>
+        <ul class="small"><li>"Nurses with B1 who can start September 2027"</li><li>"Deadlines in the next 14 days"</li><li>"Conflicts nobody has checked"</li></ul></div>
+      <div class="card"><span class="role r-agent">AI agent</span><h3>Employer matching</h3><p>Openings from Educaro's employer clients, matched to ready candidates. Steps below.</p></div>
+      <div class="card"><span class="role r-staff">Educaro staff</span><h3>Approval queue</h3>
+        <ul class="small"><li>Outgoing applications</li><li>Low-confidence document reads</li><li>Conflicts explained but not proved</li><li>Questions the agent must not answer alone, such as a visa refusal</li></ul></div>
+      <div class="card"><span class="role r-agent">AI agent</span><h3>Consultant handoff</h3><p>One-page brief: who they are, route, open gaps, what the agent tried, three questions to ask. Books the call and tells the applicant.</p></div>
+    </div>
+  </div>
+  <div class="stem to label"><span>Employer matching, step by step</span></div>
+  <div class="chain">
+    <div class="card"><span class="role r-staff">Staff</span><h3>Opening posted</h3><p>"Pflegefachkraft, Cologne, start Sept 2027, B2."</p></div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="card"><span class="role r-rules">Rules</span><h3>Hard filter</h3><p>Route, language level, start date, recognition status.</p></div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="card"><span class="role r-agent">Agent</span><h3>Ranked list</h3><p>Fit explained in two lines per person, with sources.</p></div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="card"><span class="role r-agent">Agent</span><h3>German profile</h3><p>One page, anonymised until the candidate agrees.</p></div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="card"><span class="role r-staff">Staff</span><h3>Approve and send</h3><p>Mailed to the employer from Educaro.</p></div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="card"><span class="role r-outside">Outside</span><h3>Interview booked</h3><p>On the employer's mail, the candidate's screen and Discord.</p></div>
+  </div>
+  <div class="stem"></div>
+  <div class="grid g4">
+    <div class="card"><span class="role r-staff">Batch planner</span><h3>Plan courses and exam seats</h3><p>Counts who needs A2, B1 or B2 by which month, so Educaro can plan course batches and ÖSD seats.</p></div>
+    <div class="card"><span class="role r-staff">Broadcasts</span><h3>One message per person</h3><p>New openings or a changed rule: the agent picks who it affects, writes each person their own note, staff approve the batch.</p></div>
+    <div class="card"><span class="role r-staff">Rules studio</span><h3>Edit requirements <span class="chip" style="margin-left:4px">later</span></h3><p>Staff change requirements per route or employer. The checks update without a code change.</p></div>
+    <div class="card"><span class="role r-staff">Trace and audit</span><h3>Everything, in order</h3><p>Every plan, tool call, source link, approval and email, with cost per applicant.</p></div>
+  </div>
+</div>
+
+<!-- Architecture -->
+<h2 class="sec">Harness, skills and MCP</h2>
+<p class="sec-sub">Top to bottom, the path of one event. Your own code holds the applicant's data; only web lookups leave the server.</p>
+<div class="seq">
+  <div class="card wide"><p class="layer-title">Where people meet the agent</p>
+    <div class="chips" style="margin-top:0"><span class="chip c-applicant">Applicant app · React + TS</span><span class="chip c-staff">Command centre · React + TS</span><span class="chip c-outside">Discord bot · discord.js</span><span class="chip c-outside">Email in and out</span><span class="chip c-outside">Calendar invites</span></div></div>
+  <div class="stem to"></div>
+  <div class="card wide"><span class="role r-rules">Fixed rules in code</span><h3>NestJS API and event queue</h3><p>Auth and roles. Every event becomes a job on a queue (BullMQ on Redis). WebSockets push screen changes live.</p></div>
+  <div class="stem to"></div>
+  <div class="card wide"><span class="role r-agent">Harness</span><h3>Supervisor, specialists, guards, skills</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div><p class="small">The supervisor plans, the twelve specialists run in parallel as queue jobs, and each loads the skill it needs. The guards are plain code the model cannot talk its way past:</p>
+        <ol class="guard-list">
+          <li>No source, no save. Web facts need a link opened in this session.</li>
+          <li>Required checks cannot be skipped.</li>
+          <li>CVs and letters use only Verified and You said facts.</li>
+          <li>Nothing leaves the system without a human tap.</li>
+          <li>Two questions at a time, never one a document already answers.</li>
+          <li>Names, passport numbers and phone numbers never go into web searches.</li>
+        </ol></div>
+      <div><p class="layer-title" style="margin-top:2px">Skills, loaded per applicant</p>
+        <div class="chips" style="margin-top:0">
+          <span class="tool">route-nursing</span><span class="tool">route-ausbildung</span><span class="tool">route-study-india</span><span class="tool">route-skilled-job</span><span class="tool">chancenkarte-points</span><span class="tool">grade-conversion</span><span class="tool">lebenslauf-de</span><span class="tool">letters-de</span><span class="tool">arrival-kit</span><span class="tool">interview-prep</span>
+        </div>
+        <p class="note">Each skill is a short instruction pack: rules, sources to trust, pitfalls. <code>route-study-india</code> covers APS, uni-assist, Studienkolleg and the blocked account.</p></div>
+    </div>
+  </div>
+  <div class="fan down up" style="--n:2">
+    <div class="row">
+      <div class="card"><span class="role r-rules">Your own MCP server</span><h3>Educaro tools</h3>
+        <div class="toolgroup"><span class="k">Profile</span><div class="chips"><span class="tool">get_profile</span><span class="tool">set_goal</span><span class="tool new">save_fact</span><span class="tool new">get_truth_map</span></div></div>
+        <div class="toolgroup"><span class="k">Uploads</span><div class="chips"><span class="tool new">classify_upload</span><span class="tool">extract_document</span><span class="tool new">transcribe_media</span></div></div>
+        <div class="toolgroup"><span class="k">Checks</span><div class="chips"><span class="tool">run_gap_finder</span><span class="tool">compare_cefr</span><span class="tool new">convert_grade</span><span class="tool new">chancenkarte_points</span><span class="tool new">readiness_score</span></div></div>
+        <div class="toolgroup"><span class="k">Agents and screen</span><div class="chips"><span class="tool">run_specialist</span><span class="tool">ask_user_question</span><span class="tool new">compose_screen</span></div></div>
+        <div class="toolgroup"><span class="k">Outputs</span><div class="chips"><span class="tool">generate_resume</span><span class="tool new">draft_letter</span><span class="tool new">build_final_pack</span><span class="tool">save_* from v1</span></div></div>
+        <div class="toolgroup"><span class="k">Outbound, behind the approval guard</span><div class="chips"><span class="tool new">request_approval</span><span class="tool new">send_email</span><span class="tool new">read_replies</span><span class="tool new">post_discord</span><span class="tool new">create_event</span></div></div>
+        <div class="toolgroup"><span class="k">Educaro</span><div class="chips"><span class="tool new">route_to_service</span><span class="tool new">match_openings</span><span class="tool new">book_consultant</span></div></div>
+        <p class="note">A red dot marks a tool that is new in v2.</p></div>
+      <div class="card"><span class="role r-outside">Outside, through MCP</span><h3>Web and public data</h3>
+        <div class="toolgroup"><span class="k">Research</span><div class="chips"><span class="tool">web_search</span><span class="tool">web_fetch</span></div></div>
+        <div class="toolgroup"><span class="k">Places</span><div class="chips"><span class="tool new">places_nearby</span></div><p class="small muted">OpenStreetMap Overpass. Free, no key. Groceries, temples, Bürgeramt.</p></div>
+        <div class="toolgroup"><span class="k">Jobs</span><div class="chips"><span class="tool new">job_search</span></div><p class="small muted">Bundesagentur für Arbeit job search API.</p></div>
+        <div class="toolgroup"><span class="k">Delivery</span><div class="chips"><span class="chip">SMTP or Resend</span><span class="chip">Discord API</span><span class="chip">.ics files</span></div><p class="small muted">Wrapped by your own outbound tools so the guard always runs.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="stem to"></div>
+  <div class="card wide"><span class="role r-rules">Data</span><h3>PostgreSQL holds everything</h3><p>Profile facts with tag and source, truth map, shortlist, approvals, the full trace. pgvector for document chunks. Object storage for files and video.</p></div>
+</div>
+
+<!-- Build plan -->
+<h2 class="sec">The 24-hour cut</h2>
+<p class="sec-sub">Build the spine first, so the demo works end to end by hour 14. Then add the wow, in order.</p>
+<div class="grid g3">
+  <div class="card tier"><span class="role r-rules">Must ship</span><h3>The demo spine</h3><ul>
+    <li>Video upload and transcript</li><li>Document drop, sorting, extraction</li><li>Truth map with conflicts</li><li>Composed screen and question cards for two personas</li><li>Four specialists: exams, university scout, money, life in Germany</li><li>Shortlist and requirement matrix</li><li>Letter draft, approve, send to a demo inbox</li><li>Outcome, Educaro routing, final pack</li><li>Admin board and trace</li></ul></div>
+  <div class="card tier"><span class="role r-agent">If time allows</span><h3>The wow</h3><ul>
+    <li>Discord bot with cohort channel and deadline ping</li><li>Reading replies: interview invite to calendar</li><li>Staff copilot queries</li><li>Employer matching chain</li><li>Germany mode with OpenStreetMap places</li></ul>
+    <p class="note">Point every outgoing mail at a team-controlled inbox. Never mail a real admissions office or employer from a prototype.</p></div>
+  <div class="card tier"><span class="role r-staff">After the hackathon</span><h3>Say it in the pitch</h3><ul>
+    <li>Sending from the applicant's own Gmail</li><li>Voice mock interviews</li><li>WhatsApp</li><li>Rules studio</li><li>Employer portal</li></ul></div>
+</div>
+
+<h2 class="sec">The demo, in three minutes</h2>
+<p class="sec-sub">One scripted path that shows every agentic moment. Seed both personas before the judges arrive.</p>
+<ol class="demo">
+  <li><b>0:00</b><span>Ananya uploads a 90-second video and seven files. Her screen starts empty and fills while the files are read.</span></li>
+  <li><b>0:25</b><span>The truth map lights up: the experience conflict and the name mismatch. The agent asks exactly two questions.</span></li>
+  <li><b>0:50</b><span>Her screen composes itself. Switch to Rohan: a completely different screen from the same app.</span></li>
+  <li><b>1:10</b><span>Rohan shortlists a programme. The matrix shows APS missing, and the plan appears with links.</span></li>
+  <li><b>1:35</b><span>Ananya's German gap routes to an Educaro B1 course and an ÖSD exam at Educaro.</span></li>
+  <li><b>1:55</b><span>The agent drafts a Bewerbung to a partner employer, keywords highlighted. She approves, and the mail lands in the inbox on the projector.</span></li>
+  <li><b>2:20</b><span>A reply with an interview invite arrives. It goes into her calendar and pings her phone on Discord.</span></li>
+  <li><b>2:40</b><span>Switch to the command centre: her card has moved to Matched, and the trace shows every source the agent opened.</span></li>
+</ol>
+
+<h2 class="sec" style="font-size:16px;margin-top:48px">Sources</h2>
+<div class="sources">
+  <span>Educaro services, India programs, ÖSD exam centre, Akademie and Anerkennung: <a href="https://www.educaro.de/india/" target="_blank" rel="noopener">educaro.de/india</a>, <a href="https://www.educaro.de/fachkrafte/" target="_blank" rel="noopener">educaro.de/fachkrafte</a>, <a href="https://www.educaro.de/sprachkurse/" target="_blank" rel="noopener">educaro.de/sprachkurse</a>, <a href="https://www.educaro.de/anerkennung/" target="_blank" rel="noopener">educaro.de/anerkennung</a></span>
+  <span>APS mandatory for Indian degrees since November 2022: <a href="https://www.expatrio.com/about-germany/aps-india" target="_blank" rel="noopener">expatrio.com/about-germany/aps-india</a></span>
+  <span>Chancenkarte, 6 of 14 points: <a href="https://visaatlas.org/from/indian/to/germany/chancenkarte" target="_blank" rel="noopener">visaatlas.org</a>, official portal make-it-in-germany.com</span>
+</div>
+
+</main>
+</body>
+</html>
