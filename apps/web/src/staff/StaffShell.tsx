@@ -7,7 +7,7 @@ import { RouteBoundary } from '../app/RouteBoundary';
 import { api, errorText } from '../api/client';
 import { usePipeline, useQueue, useSystemStatus } from '../api/queries';
 import type { ReplyKind } from '../api/types';
-import { Logo, MockBadge, ThemeToggle, UserMenu } from '../app/chrome';
+import { Logo, ThemeToggle, UserMenu } from '../app/chrome';
 import { formatUsd } from '../lib/format';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
@@ -196,7 +196,6 @@ export function StaffShell() {
               <Logo to="/staff" sub="Command centre" />
             </div>
             <div className="ml-auto flex items-center gap-1.5">
-              <MockBadge />
               <span className="hidden sm:block">
                 <SimulateReply defaultApplicantId={detailId} key={detailId ?? 'none'} />
               </span>

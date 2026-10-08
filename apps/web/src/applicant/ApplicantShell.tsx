@@ -1,14 +1,12 @@
 import type { SectionId } from '@educaro/shared';
 import clsx from 'clsx';
-import { CalendarCheck, FlaskConical, House, Inbox, MailX, Repeat, ShieldCheck, UserRound, Wallet, Waypoints } from 'lucide-react';
+import { House, Inbox, ShieldCheck, UserRound, Wallet, Waypoints } from 'lucide-react';
 import { Suspense, useMemo } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { RouteBoundary } from '../app/RouteBoundary';
-import { isMock } from '../api/client';
-import { mockDemo } from '../api/mock';
 import { useApprovals, useQuestions, useScreen } from '../api/queries';
 import { navSections } from '../screen/sections';
-import { AgentPill, Logo, MenuItem, MockBadge, ThemeToggle, UserMenu } from '../app/chrome';
+import { AgentPill, Logo, ThemeToggle, UserMenu } from '../app/chrome';
 import { useApplicantId } from '../auth/auth';
 import { FullPageSpinner } from '../ui/Spinner';
 
@@ -100,48 +98,9 @@ export function ApplicantShell() {
             ))}
           </nav>
           <div className="ml-auto flex min-w-0 items-center gap-1.5">
-            <MockBadge />
             <AgentPill applicantId={applicantId} className="hidden max-w-[260px] md:inline-flex" />
             <ThemeToggle />
             <UserMenu
-              extra={
-                isMock
-                  ? (close) => (
-                      <div className="border-b border-line pb-1.5">
-                        <p className="flex items-center gap-1.5 px-3.5 pb-1 pt-2 text-[12px] font-semibold text-loop">
-                          <FlaskConical size={13} aria-hidden /> Demo tools
-                        </p>
-                        <MenuItem
-                          icon={Repeat}
-                          onClick={() => {
-                            close();
-                            mockDemo.replayIntake(applicantId);
-                          }}
-                        >
-                          Replay the intake live
-                        </MenuItem>
-                        <MenuItem
-                          icon={CalendarCheck}
-                          onClick={() => {
-                            close();
-                            mockDemo.employerReply(applicantId, 'interview');
-                          }}
-                        >
-                          Simulate an interview invite
-                        </MenuItem>
-                        <MenuItem
-                          icon={MailX}
-                          onClick={() => {
-                            close();
-                            mockDemo.employerReply(applicantId, 'missing_paper');
-                          }}
-                        >
-                          Simulate a missing-paper reply
-                        </MenuItem>
-                      </div>
-                    )
-                  : undefined
-              }
             />
           </div>
         </div>

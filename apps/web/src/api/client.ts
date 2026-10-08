@@ -35,8 +35,7 @@ import type {
   TruthRow,
 } from '@educaro/shared';
 import { ApiError } from './errors';
-import { mockApi, mockLinks } from './mock';
-import { isMock, tokenStore } from './token';
+import { tokenStore } from './token';
 import type { Api, UploadProgress } from './types';
 
 export { ApiError, errorText } from './errors';
@@ -219,7 +218,7 @@ export const httpApi: Api = {
   systemStatus: () => get<SystemStatusDTO>('/system/status'),
 };
 
-export const api: Api = isMock ? mockApi : httpApi;
+export const api: Api = httpApi;
 
 /** Links for <a>, <img> and <video>: the token travels as ?token= because tags cannot send headers. */
 function tokenUrl(path: string, query?: Query): string {
@@ -227,10 +226,8 @@ function tokenUrl(path: string, query?: Query): string {
 }
 
 export const links = {
-  file: (fileId: string): string | null => (isMock ? mockLinks.file(fileId) : tokenUrl(`/files/${seg(fileId)}/raw`)),
-  finalPack: (id: string, format: 'pdf' | 'docx'): string =>
-    isMock ? mockLinks.document(id, 'final-pack', format) : tokenUrl(`/applicants/${seg(id)}/final-pack`, { format }),
-  lebenslauf: (id: string, format: 'pdf' | 'docx'): string =>
-    isMock ? mockLinks.document(id, 'lebenslauf', format) : tokenUrl(`/applicants/${seg(id)}/lebenslauf`, { format }),
-  ics: (eventId: string): string => (isMock ? mockLinks.ics(eventId) : tokenUrl(`/calendar/${seg(eventId)}/ics`)),
+  file: (fileId: string): string | null => tokenUrl(`/files/${seg(fileId)}/raw`),
+  finalPack: (id: string, format: 'pdf' | 'docx'): string => tokenUrl(`/applicants/${seg(id)}/final-pack`, { format }),
+  lebenslauf: (id: string, format: 'pdf' | 'docx'): string => tokenUrl(`/applicants/${seg(id)}/lebenslauf`, { format }),
+  ics: (eventId: string): string => tokenUrl(`/calendar/${seg(eventId)}/ics`),
 };

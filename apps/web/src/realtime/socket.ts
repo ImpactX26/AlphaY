@@ -1,8 +1,6 @@
 import type { ServerMessage } from '@educaro/shared';
 import { useSyncExternalStore } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { mockBus } from '../api/mockBus';
-import { isMock } from '../api/token';
 
 type Listener = (msg: ServerMessage) => void;
 export type ConnectionState = 'connecting' | 'live' | 'offline';
@@ -28,11 +26,7 @@ function dispatch(msg: ServerMessage): void {
 export function connectRealtime(token: string | null): void {
   disconnectRealtime();
   if (!token) return;
-  if (isMock) {
-    stopMock = mockBus.subscribe(dispatch);
-    setConnection('live');
-    return;
-  }
+
   setConnection('connecting');
   const s = io({ auth: { token }, transports: ['websocket', 'polling'], reconnectionDelayMax: 5000 });
   s.on('connect', () => {

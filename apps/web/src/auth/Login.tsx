@@ -1,14 +1,13 @@
 import type { DemoPersona } from '@educaro/shared';
 import clsx from 'clsx';
-import { ArrowRight, FlaskConical, GraduationCap, Headset, Sparkles, Stethoscope, TriangleAlert } from 'lucide-react';
+import { ArrowRight, GraduationCap, Headset, Sparkles, Stethoscope, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
-import { api, errorText, isMock, setMockMode } from '../api/client';
+import { api, errorText } from '../api/client';
 import { useSystemStatus } from '../api/queries';
 import { ThemeToggle } from '../app/chrome';
 import { Button } from '../ui/Button';
 import { FullPageSpinner } from '../ui/Spinner';
-import { Tag } from '../ui/Tag';
 import { homeFor, useAuth } from './auth';
 
 const DEMOS: { persona: DemoPersona; name: string; sub: string; icon: typeof Stethoscope; tone: string }[] = [
@@ -34,7 +33,7 @@ export function Login() {
   if (me) return <Navigate to={(location.state as { from?: string } | null)?.from ?? homeFor(me.role)} replace />;
 
   // Demo insurance: a dead API should never be a dead screen.
-  const apiDown = !isMock && status.isError;
+  const apiDown = status.isError;
 
   const run = async (label: string, call: () => Promise<Parameters<typeof signIn>[0]>) => {
     setBusy(label);
@@ -64,11 +63,6 @@ export function Login() {
           <span className="display text-[19px] font-black">Educaro</span>
         </span>
         <span className="flex items-center gap-2">
-          {isMock ? (
-            <Tag s={{ label: 'Demo data', cls: 't-warn' }} title="Mock mode: nothing is sent to a server">
-              <FlaskConical size={12} aria-hidden /> Demo data
-            </Tag>
-          ) : null}
           <ThemeToggle />
         </span>
       </div>
@@ -85,10 +79,10 @@ export function Login() {
                 <TriangleAlert size={15} className="flex-none text-warn" aria-hidden />
                 The Educaro server is not answering
               </p>
-              <p className="mt-1 text-[13px] text-muted">Start it with <span className="kbd">npm run dev:api</span>, or carry on with demo data in the browser.</p>
-              <Button size="sm" variant="primary" className="mt-2.5" icon={FlaskConical} onClick={() => setMockMode(true)}>
-                Use demo data
-              </Button>
+              <p className="mt-1 text-[13px] text-muted">
+                Start it with <span className="kbd">npm run dev:api</span>. For a run with no keys and no network,
+                <span className="kbd">npm run sandbox</span> serves the real product offline.
+              </p>
             </div>
           ) : null}
 
@@ -176,25 +170,7 @@ export function Login() {
             </form>
           )}
 
-          <p className="mt-8 text-[12.5px] text-muted">
-            {isMock ? (
-              <>
-                Running on demo data, with no server.{' '}
-                <button type="button" className="font-semibold underline underline-offset-2" onClick={() => setMockMode(false)}>
-                  Use the live API instead
-                </button>
-                .
-              </>
-            ) : (
-              <>
-                Connected to the Educaro API.{' '}
-                <button type="button" className="font-semibold underline underline-offset-2" onClick={() => setMockMode(true)}>
-                  Switch to demo data
-                </button>{' '}
-                if the server is not running.
-              </>
-            )}
-          </p>
+          <p className="mt-8 text-[12.5px] text-muted">Connected to the Educaro API.</p>
       </section>
     </div>
   );
