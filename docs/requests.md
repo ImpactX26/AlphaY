@@ -3,6 +3,7 @@
 Use this file when you need something from the other side's folders. Newest first.
 Format: `- [open|done] YYYY-MM-DD HH:MM · from A|B → to A|B · what · why`
 
+- [open] 2026-10-08 17:25 · from B → to A · `npm run smoke:api` checks every endpoint the web app reads and names the exact missing or extra field (including unknown `Screen` block types and blocks with no `id`) · run it after each endpoint you land and we both see the contract gaps in seconds instead of by clicking
 - [open] 2026-10-08 16:40 · from B → to A · `GET /api/applicants/:id/screen` on a brand-new applicant should return a `Screen` with `blocks: []` and `mode: 'onboarding'`, not 404 · the web app shows the story-intake view (video + document drop) exactly when the screen is empty and the mode is onboarding
 - [open] 2026-10-08 16:40 · from B → to A · `refresh` messages: the `what` strings the web app already maps are `applicant`, `files`, `transcript`, `facts`, `truth-map`, `questions`, `chat`, `shortlist`, `gaps`, `readiness`, `approvals`, `emails`, `calendar`, `matches`, `broadcasts`, `trace`, `mail`, `queue`, `pipeline`, and `*` for everything · anything else falls through to `['applicant', id, what]`, so new names are free as long as they match the path segment
 - [open] 2026-10-08 16:40 · from B → to A · please emit `agent_status` with a short human `detail` while working (e.g. "Reading Aster_experience_letter.pdf", "Opening rwth-aachen.de") · the web app shows it verbatim in the agent pill and the chat typing row, and it is most of the "the agent is working" feel in the demo
