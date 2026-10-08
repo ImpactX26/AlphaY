@@ -33,6 +33,21 @@ export function useRecorder(kind: 'audio' | 'video' = 'audio', maxSeconds?: numb
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const supported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
 
+  /**
+   * Why not, in words the person can act on.
+   *
+   * getUserMedia only exists in a secure context, so opening the app on a phone over the laptop's
+   * IP — exactly what anyone does when they want to record with a real camera — makes
+   * navigator.mediaDevices undefined and the record button vanish with no explanation. "It is not
+   * working" is the only possible conclusion, and it is the wrong one.
+   */
+  const unsupportedReason =
+    supported || typeof window === 'undefined'
+      ? null
+      : !window.isSecureContext
+        ? `Your browser only allows the ${kind === 'video' ? 'camera' : 'microphone'} on a secure page. Open this on http://localhost:5173 or over https, or upload a file instead.`
+        : `This browser cannot record ${kind === 'video' ? 'video' : 'audio'}. Upload a file instead.`;
+
   const cleanup = useCallback(() => {
     if (timer.current) clearInterval(timer.current);
     timer.current = null;
@@ -102,5 +117,5 @@ export function useRecorder(kind: 'audio' | 'video' = 'audio', maxSeconds?: numb
     return blob.size ? { blob, extension: extensionFor(blob.type), seconds: elapsed } : null;
   }, [cleanup, kind]);
 
-  return { state, seconds, error, stream, supported, start, stop, cancel: cleanup };
+  return { state, seconds, error, stream, supported, unsupportedReason, start, stop, cancel: cleanup };
 }

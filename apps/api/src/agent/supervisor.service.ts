@@ -15,6 +15,7 @@ import { classifyIntent, REPLY_SYSTEM } from './intent';
 import { describeWeather, fetchWeather } from '../web/weather';
 import { targetCity } from './specialists/living';
 import { TraceService } from '../trace/trace.service';
+import { RetrievalService } from '../profile/retrieval.service';
 
 const LOOP_NAMES = ['route', 'exams', 'scout', 'jobs', 'recognition', 'visa', 'money', 'housing', 'life', 'factcheck'] as const;
 
@@ -54,11 +55,34 @@ export class SupervisorService {
     private readonly llm: LlmService,
     private readonly skills: SkillsService,
     private readonly trace: TraceService,
+    private readonly retrieval: RetrievalService,
   ) {}
 
   async plan(state: ApplicantState, report: CheckReport, events: AgentEvent[], candidates: QuestionCandidate[], required: SpecialistName[], runId: string): Promise<{ plan: Plan; by: 'agent' | 'rules' | 'rules+reply' }> {
     const slots = Math.max(0, MAX_OPEN_QUESTIONS - state.questions.filter((q) => q.status === 'open').length);
     const route = state.applicant.route as Route | null;
+
+    // Somebody asking a question has not changed anything about their file, so there is nothing new
+    // to plan: the route is set, the gaps are the same gaps, and the specialists would return what
+    // they returned a minute ago. Running the full planning prompt anyway costs about 2,600 tokens
+    // against a 8,000-per-minute limit, and when that limit bites it takes the answer with it —
+    // which is how a reviewer ends up reading the same canned sentence five times.
+    //
+    // So a plain question skips the plan and buys only the reply, which is a tenth of the size.
+    // Anything that actually changes the file — an upload, an answered question, a reply from an
+    // employer, a route still undecided — plans as before.
+    if (this.questionOnly(state, events)) {
+      const reply = await this.replyTo(state, report, events, runId);
+      const plan = this.rulesPlan(state, report, events, candidates, required, slots);
+      plan.specialists = [];
+      plan.ask = [];
+      plan.outside = [];
+      plan.summary = 'Answered a question; nothing in the file changed, so no new plan was needed.';
+      if (reply) plan.reply = reply;
+      await this.trace.record('plan', 'supervisor_skipped', { why: 'question only', answered: Boolean(reply) }, { applicantId: state.applicant.id, runId });
+      return { plan, by: reply ? 'rules+reply' : 'rules' };
+    }
+
     const skill = route ? await this.skills.load(ROUTES[route].skill) : '';
     const user = [
       `ALLOWED NEW QUESTIONS: ${slots}`,
@@ -118,6 +142,7 @@ export class SupervisorService {
       `THEIR FACTS:\n${facts.join('\n') || 'nothing on file yet'}`,
       intent.focus === 'process' ? 'They are asking how something works in Germany, not about their own file. Answer the mechanism, then tie it to their situation in one clause.' : '',
       intent.focus === 'weather' ? await this.weatherFor(state) : '',
+      await this.fromTheirPapers(state, text),
       `QUESTION: ${text}`,
     ]
       .filter(Boolean)
@@ -143,6 +168,35 @@ export class SupervisorService {
     const w = await fetchWeather(city.name, city.lat, city.lon);
     return `WEATHER (live, use these exact numbers and do not invent any):
 ${describeWeather(w, state.applicant.homeCity)}`;
+  }
+
+
+  /**
+   * The passage from their own documents, when the answer is on a page they uploaded.
+   *
+   * Without this the agent has the facts we extracted and not the sentence they were written in, so
+   * a question like "what did my experience letter actually say about my ward" gets a guess or a
+   * shrug — in the one case where the answer is certainly on file.
+   */
+  private async fromTheirPapers(state: ApplicantState, question: string): Promise<string> {
+    const hits = await this.retrieval.search(state.applicant.id, question, 3).catch(() => []);
+    if (!hits.length) return '';
+    return [
+      'FROM THEIR OWN DOCUMENTS (quote these exactly if you use them, and name the document):',
+      ...hits.map((h) => `- ${h.fileName}: "${h.text.slice(0, 600)}"`),
+    ].join('\n');
+  }
+
+
+  /** Only a chat message, on a file that is already planned and has nothing outstanding. */
+  private questionOnly(state: ApplicantState, events: AgentEvent[]): boolean {
+    if (!events.length) return false;
+    if (!events.every((e) => e.type === 'chat' || e.type === 'discord')) return false;
+    if (!state.applicant.route) return false; // no route yet: the file genuinely needs planning
+    const text = String([...events].reverse().find((e) => e.type === 'chat' || e.type === 'discord')?.detail?.text ?? '');
+    const intent = classifyIntent(text);
+    // An action request ("book me a call", "draft it") is a move, not a question.
+    return ['acknowledgement', 'greeting', 'plan_question', 'process_question', 'weather_question', 'off_topic', 'unclear', 'personal_statement'].includes(intent.intent);
   }
 
   private rulesPlan(state: ApplicantState, report: CheckReport, events: AgentEvent[], candidates: QuestionCandidate[], required: SpecialistName[], slots: number): Plan {

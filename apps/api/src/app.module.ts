@@ -15,6 +15,7 @@ import { WebService } from './web/web.service';
 import { FactsService } from './profile/facts.service';
 import { QuestionsService } from './profile/questions.service';
 import { ChatService } from './profile/chat.service';
+import { RetrievalService } from './profile/retrieval.service';
 
 import { IngestService } from './ingest/ingest.service';
 
@@ -72,6 +73,7 @@ import { SafetyService } from './safety/safety.service';
     FactsService,
     QuestionsService,
     ChatService,
+    RetrievalService,
 
     IngestService,
 

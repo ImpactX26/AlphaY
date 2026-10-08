@@ -191,6 +191,12 @@ function VideoStep() {
                   Record in the browser
                 </Button>
               ) : null}
+              {!recorder.supported && recorder.unsupportedReason ? (
+                <p className="w-full flex items-start gap-2 rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] px-3 py-2 text-[13px]">
+                  <CircleAlert size={15} className="mt-0.5 flex-none text-warn" aria-hidden />
+                  {recorder.unsupportedReason}
+                </p>
+              ) : null}
               <Button size="lg" icon={FileUp} onClick={() => fileInput.current?.click()} loading={progress !== null}>
                 Upload a video file
               </Button>

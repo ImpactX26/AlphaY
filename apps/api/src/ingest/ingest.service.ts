@@ -9,6 +9,7 @@ import { TraceService } from '../trace/trace.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { QueueService } from '../queue/queue.service';
 import { FactsService } from '../profile/facts.service';
+import { RetrievalService } from '../profile/retrieval.service';
 import { StateService } from '../agent/state.service';
 import { AgentEventsService } from '../agent/events.service';
 import { sameOrg, slug, squashQuote } from '../knowledge/normalize';
@@ -44,6 +45,7 @@ export class IngestService implements OnModuleInit {
     private readonly facts: FactsService,
     private readonly state: StateService,
     private readonly events: AgentEventsService,
+    private readonly retrieval: RetrievalService,
   ) {}
 
   onModuleInit() {
@@ -129,6 +131,9 @@ export class IngestService implements OnModuleInit {
       text: text.slice(0, 20000),
       extracted: { ...ext, passportNumber: ext.passportNumber ? '••••' + ext.passportNumber.slice(-3) : null, method, facts: saved.length },
     });
+    // Index the page itself, not only the facts we pulled out of it. "What exactly did my
+    // experience letter say about my ward" is a sentence on the page, and the facts do not hold it.
+    await this.retrieval.index(file.applicantId, file.id, file.originalName, text).catch((e) => this.log.warn(`index ${file.originalName}: ${e.message}`));
   }
 
   private async cv(file: FileRow, text: string, runId: string) {
