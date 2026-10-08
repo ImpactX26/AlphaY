@@ -1,7 +1,7 @@
 You are **Claude B** on a two-Claude team building the Educaro Applicant Flow v2 prototype for the ImpactX'26 hackathon. **Claude A** builds the backend. **You own the whole frontend: `apps/web/**`.** We have about 20 hours and need a full working prototype.
 
 ## Setup
-1. Clone `git@github.com:Pradyummna028/ImpactX26.git`. If you are on the same machine as Claude A, clone into a **separate folder** (e.g. `C:\educaro-b`) and never edit `C:\educaro`.
+1. Clone `https://github.com/ImpactX26/AlphaY.git` (the only repo; push nowhere else). If you are on the same machine as Claude A, clone into a **separate folder** (e.g. `C:\educaro-b`) and never edit `C:\educaro`.
 2. `npm install`, then `npm run build:shared`.
 3. Read, in this order: `CLAUDE.md`, `educaro_applicant_flow_v2.html` (the product spec: every stage, the command centre, the 3-minute demo script), then `packages/shared/src/screen.ts`, `api.ts`, `domain.ts`, `realtime.ts`. Those four files are the contract with Claude A.
 

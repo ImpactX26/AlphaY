@@ -24,8 +24,13 @@ end first (see "The 24-hour cut" in the spec), then the wow features in order.
 - `packages/shared`: additive changes only (new optional fields, new types). A breaking change needs the
   commit prefix `contract:` and an entry in `docs/requests.md`.
 
-## Git workflow (repo: github.com/Pradyummna028/ImpactX26, branch `main`)
+## Git workflow (repo: https://github.com/ImpactX26/AlphaY.git, branch `main`)
 
+- **The only repo is `https://github.com/ImpactX26/AlphaY.git`.** Both Claude A and Claude B commit and push
+  there and nowhere else. The old `Pradyummna028/ImpactX26` repo is retired: never push to it. Check with
+  `git remote -v`; if `origin` is wrong, run `git remote set-url origin https://github.com/ImpactX26/AlphaY.git`.
+- Commit **and push** every now and then while working (after each finished item, at least every ~30 min),
+  so the other builder always sees your latest work.
 - Small commits, often. `git pull --rebase origin main` before every push. Never force-push.
 - Commit message prefixes: `api:`, `web:`, `shared:`, `contract:`, `infra:`, `docs:`.
 - Never commit `.env`, keys, `storage/` or `node_modules`.
