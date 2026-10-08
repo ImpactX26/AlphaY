@@ -1,6 +1,6 @@
 import { PIPELINE_LABEL } from '@educaro/shared';
 import clsx from 'clsx';
-import { Briefcase, CalendarRange, CheckCheck, Columns3, Mail, Megaphone, Menu as MenuIcon, ScrollText, Send, TextSearch } from 'lucide-react';
+import { Briefcase, CalendarRange, CheckCheck, Columns3, Mail, Megaphone, Menu as MenuIcon, Radar, ScrollText, Send, TextSearch } from 'lucide-react';
 import { type CSSProperties, Suspense, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { RouteBoundary } from '../app/RouteBoundary';
@@ -22,6 +22,7 @@ const NAV = [
   { to: '/staff/planner', label: 'Batch planner', icon: CalendarRange, end: false },
   { to: '/staff/broadcasts', label: 'Broadcasts', icon: Megaphone, end: false },
   { to: '/staff/mail', label: 'Mail tracker', icon: Mail, end: false },
+  { to: '/staff/sources', label: 'Watched sources', icon: Radar, end: false },
   { to: '/staff/audit', label: 'Trace and audit', icon: ScrollText, end: false },
 ] as const;
 

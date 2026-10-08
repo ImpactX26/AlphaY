@@ -505,5 +505,61 @@ export interface StaffGroupDTO {
   createdAt: string;
 }
 
+// ---------- watched sources (admin) ----------
+// GET    /api/staff/watch                  -> WatchedSourceDTO[]
+// POST   /api/staff/watch  { label, url }  -> WatchedSourceDTO[]
+// DELETE /api/staff/watch/:id              -> WatchedSourceDTO[]
+// POST   /api/staff/watch/:id/active       -> WatchedSourceDTO[]
+// POST   /api/staff/watch/:id/check        -> WatchCheckDTO
+// POST   /api/staff/watch/:id/simulate     -> WatchCheckDTO   (demo stand-ins only)
+// POST   /api/staff/watch/check-all        -> WatchedSourceDTO[]
+
+export type RequirementDirection = 'easier' | 'harder' | 'added' | 'removed' | 'changed';
+
+export interface RequirementChangeDTO {
+  key: string;
+  label: string;
+  direction: RequirementDirection;
+  before: number | null;
+  after: number | null;
+  beforeText: string | null;
+  afterText: string | null;
+  summary: string;
+}
+
+export interface SourceChangeDTO {
+  id: string;
+  headline: string;
+  changes: RequirementChangeDTO[];
+  /** Who we told, and why each of them was on the list. */
+  notified: { applicantId: string; name: string; why: string }[];
+  createdAt: string;
+}
+
+export interface WatchedSourceDTO {
+  id: string;
+  kind: 'university' | 'government' | 'employer';
+  label: string;
+  url: string;
+  route: string | null;
+  active: boolean;
+  intervalMinutes: number;
+  lastCheckedAt: string | null;
+  lastChangedAt: string | null;
+  lastError: string | null;
+  /** What we understood the page to say at the last read. */
+  requirements: { key: string; label: string; shown: string; raw: string }[];
+  changes: SourceChangeDTO[];
+  /** Only set for the demo stand-ins, which carry more than one version. */
+  demoVersion: number | null;
+  demoVersions: number | null;
+}
+
+export interface WatchCheckDTO {
+  changed: boolean;
+  changes: RequirementChangeDTO[];
+  notified: { applicantId: string; name: string; why: string }[];
+}
+
 // Re-exported elsewhere in the package; imported here so the endpoint comments above type-check in editors.
 export type _ContractRefs = [ApprovalDTO, FactDTO, QuestionDTO, TraceDTO, TruthRow, ChatMessageDTO, Screen];

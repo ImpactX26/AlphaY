@@ -434,6 +434,54 @@ export const cohortMembers = pgTable(
   (t) => [uniqueIndex('cohort_members_group_applicant').on(t.groupId, t.applicantId)],
 );
 
+/**
+ * Pages Educaro watches on everyone's behalf.
+ *
+ * A jury asked what an uploaded document is checked against, and the honest answer is: a rule on a
+ * page somebody wrote, which changes without telling anyone. When RWTH drops its IELTS band from
+ * 6.5 to 6.0, the people affected are precisely the ones who were told "not yet" — and they are the
+ * least likely to re-read the page they were already rejected against. Same for a ministry changing
+ * a visa threshold, and same for an employer easing a German requirement.
+ *
+ * So staff keep a list, the list is polled, and the parsed requirements are compared against the
+ * last reading. `snapshot` is what we understood last time, not the page: storing the HTML would
+ * make every navigation tweak look like a policy change.
+ */
+export const watchedSources = pgTable('watched_sources', {
+  id: id(),
+  kind: text('kind').$type<'university' | 'government' | 'employer'>().notNull().default('university'),
+  label: text('label').notNull(),
+  url: text('url').notNull().unique(),
+  /** The programme or opening this page governs, when it governs exactly one. */
+  programmeId: uuid('programme_id'),
+  openingId: uuid('opening_id'),
+  /** Who should hear about a change here, when it is not implied by a shortlist. */
+  route: text('route'),
+  active: boolean('active').notNull().default(true),
+  intervalMinutes: integer('interval_minutes').notNull().default(360),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+  lastChangedAt: timestamp('last_changed_at', { withTimezone: true }),
+  /** Hash of the extracted text, to skip the diff when nothing moved at all. */
+  lastHash: text('last_hash'),
+  /** What we understood the requirements to be at the last read. */
+  snapshot: jsonb('snapshot').$type<Record<string, unknown>[]>().notNull().default([]),
+  lastError: text('last_error'),
+  createdAt: createdAt(),
+});
+
+/** One detected movement on a watched page, and who was told about it. */
+export const sourceChanges = pgTable('source_changes', {
+  id: id(),
+  sourceId: uuid('source_id').notNull().references(() => watchedSources.id, { onDelete: 'cascade' }),
+  /** 'easier' if anything eased — that is the headline people are waiting for. */
+  headline: text('headline').notNull(),
+  changes: jsonb('changes').$type<Record<string, unknown>[]>().notNull().default([]),
+  /** Applicants we told, and why each of them was on the list. */
+  notified: jsonb('notified').$type<Record<string, unknown>[]>().notNull().default([]),
+  notifiedAt: timestamp('notified_at', { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
 /** Safety checks the applicant ran on something they were sent. Kept so staff can see patterns. */
 export const safetyChecks = pgTable('safety_checks', {
   id: id(),

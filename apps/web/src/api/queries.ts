@@ -29,6 +29,7 @@ export const qk = {
   checks: (id: string) => ['applicant', id, 'checks'] as const,
   groups: (id: string) => ['applicant', id, 'groups'] as const,
   staffGroups: ['staff', 'groups'] as const,
+  watch: ['staff', 'watch'] as const,
   employers: ['staff', 'employers'] as const,
   reports: ['staff', 'reports'] as const,
   community: () => ['community'] as const,
@@ -232,6 +233,40 @@ export function useRespondToGroup(id: Id) {
 }
 
 export const useStaffGroups = () => useQuery({ queryKey: qk.staffGroups, queryFn: () => api.staffGroups() });
+
+// ---------- watched sources ----------
+
+export const useWatchedSources = () => useQuery({ queryKey: qk.watch, queryFn: () => api.watchedSources() });
+
+/**
+ * Every write here returns the whole list, so the cache is replaced rather than invalidated: a
+ * re-fetch would re-run the read and a slow page would make the row flicker back to its old state.
+ */
+function sourceMutation<TArgs>(fn: (args: TArgs) => Promise<import('@educaro/shared').WatchedSourceDTO[]>) {
+  return () => {
+    const qc = useQueryClient();
+    return useMutation({ mutationFn: fn, onSuccess: (list) => qc.setQueryData(qk.watch, list) });
+  };
+}
+
+export const useAddSource = sourceMutation((input: Parameters<typeof api.addSource>[0]) => api.addSource(input));
+export const useRemoveSource = sourceMutation((id: string) => api.removeSource(id));
+export const useSetSourceActive = sourceMutation(({ id, active }: { id: string; active: boolean }) => api.setSourceActive(id, active));
+export const useCheckAllSources = sourceMutation(() => api.checkAllSources());
+
+/** A single check returns what moved, so the list is refetched rather than replaced. */
+function checkMutation(fn: (id: string) => Promise<import('@educaro/shared').WatchCheckDTO>) {
+  return () => {
+    const qc = useQueryClient();
+    return useMutation({
+      mutationFn: fn,
+      onSuccess: () => void qc.invalidateQueries({ queryKey: qk.watch }),
+    });
+  };
+}
+
+export const useCheckSource = checkMutation((id: string) => api.checkSource(id));
+export const useSimulateSource = checkMutation((id: string) => api.simulateSource(id));
 
 // ---------- staff ----------
 

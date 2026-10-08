@@ -10,8 +10,9 @@ import { runChecks } from './checks';
 import { AgentEventsService } from './events.service';
 import { daysUntil, midSentence } from '../knowledge/normalize';
 import { AnnouncementsService } from '../community/announcements.service';
+import { WatchService } from '../watch/watch.service';
 
-type Tick = { kind: 'deadlines' | 'recheck' | 'stalled' | 'announce' };
+type Tick = { kind: 'deadlines' | 'recheck' | 'stalled' | 'announce' | 'watch' };
 
 /**
  * The agent when nobody is looking.
@@ -35,6 +36,7 @@ export class TimersService implements OnModuleInit {
     private readonly bus: BusService,
     private readonly trace: TraceService,
     private readonly announcements: AnnouncementsService,
+    private readonly watch: WatchService,
   ) {}
 
   async onModuleInit() {
@@ -44,7 +46,17 @@ export class TimersService implements OnModuleInit {
     await this.every('recheck', '0 3 * * 1'); // Monday 03:00 UTC
     await this.every('stalled', '0 9 * * *');
     await this.every('announce', '0 6 * * 1'); // Monday morning, before the Indian working day gets going
-    this.log.log('deadline pings, weekly re-check, stalled-file nudges and the Monday announcements scheduled');
+    // Hourly, which only means "ask each source whether its own interval has elapsed" — the page a
+    // university edits twice a year does not need reading every hour, and being polled that often
+    // by us is not a thing we should do to them either.
+    await this.every('watch', '7 * * * *');
+    // Seeding and a first read happen in the background: a database that is not up yet must not
+    // stop the API from booting, and the first read is the baseline, so it notifies nobody.
+    void this.watch
+      .ensureSeeded()
+      .then(() => this.watch.checkDue())
+      .catch((e) => this.log.warn(`watch seed: ${e.message}`));
+    this.log.log('deadline pings, weekly re-check, stalled-file nudges, watched sources and the Monday announcements scheduled');
   }
 
   private async every(kind: Tick['kind'], pattern: string) {
@@ -57,6 +69,10 @@ export class TimersService implements OnModuleInit {
   }
 
   private async tick(kind: Tick['kind']): Promise<void> {
+    if (kind === 'watch') {
+      await this.watch.checkDue();
+      return;
+    }
     if (kind === 'deadlines') return this.deadlines();
     if (kind === 'recheck') return this.recheck();
     if (kind === 'announce') {

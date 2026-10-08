@@ -1,4 +1,6 @@
 import type {
+  WatchCheckDTO,
+  WatchedSourceDTO,
   CohortGroupDTO,
   CohortGroupsDTO,
   StaffGroupDTO,
@@ -108,6 +110,13 @@ export interface Api {
   requestGroup(id: string, groupId: string): Promise<CohortGroupDTO>;
   leaveGroup(id: string, groupId: string): Promise<{ ok: true }>;
   staffGroups(): Promise<StaffGroupDTO[]>;
+  watchedSources(): Promise<WatchedSourceDTO[]>;
+  addSource(input: { kind?: WatchedSourceDTO['kind']; label: string; url: string; route?: string; intervalMinutes?: number }): Promise<WatchedSourceDTO[]>;
+  removeSource(id: string): Promise<WatchedSourceDTO[]>;
+  setSourceActive(id: string, active: boolean): Promise<WatchedSourceDTO[]>;
+  checkSource(id: string): Promise<WatchCheckDTO>;
+  checkAllSources(): Promise<WatchedSourceDTO[]>;
+  simulateSource(id: string): Promise<WatchCheckDTO>;
   check(id: string, input: SafetyCheckInput): Promise<SafetyCheckDTO>;
   checks(id: string): Promise<SafetyCheckSummaryDTO[]>;
   report(id: string, input: ReportInput): Promise<{ id: string; status: string; createdAt: string }>;

@@ -40,6 +40,8 @@ import type {
   TraceDTO,
   TranscriptDTO,
   TruthRow,
+  WatchCheckDTO,
+  WatchedSourceDTO,
 } from '@educaro/shared';
 import { ApiError } from './errors';
 import { tokenStore } from './token';
@@ -201,6 +203,13 @@ export const httpApi: Api = {
   requestGroup: (id, groupId) => post<CohortGroupDTO>(`/applicants/${seg(id)}/groups/${seg(groupId)}/request`),
   leaveGroup: (id, groupId) => del<{ ok: true }>(`/applicants/${seg(id)}/groups/${seg(groupId)}`),
   staffGroups: () => get<StaffGroupDTO[]>('/staff/groups'),
+  watchedSources: () => get<WatchedSourceDTO[]>('/staff/watch'),
+  addSource: (input) => post<WatchedSourceDTO[]>('/staff/watch', input),
+  removeSource: (id) => del<WatchedSourceDTO[]>(`/staff/watch/${seg(id)}`),
+  setSourceActive: (id, active) => post<WatchedSourceDTO[]>(`/staff/watch/${seg(id)}/active`, { active }),
+  checkSource: (id) => post<WatchCheckDTO>(`/staff/watch/${seg(id)}/check`),
+  checkAllSources: () => post<WatchedSourceDTO[]>('/staff/watch/check-all'),
+  simulateSource: (id) => post<WatchCheckDTO>(`/staff/watch/${seg(id)}/simulate`),
   check: (id, input) => post<SafetyCheckDTO>(`/applicants/${seg(id)}/check`, input),
   checks: (id) => get<SafetyCheckSummaryDTO[]>(`/applicants/${seg(id)}/checks`),
   report: (id, input) => post<{ id: string; status: string; createdAt: string }>(`/applicants/${seg(id)}/report`, input),

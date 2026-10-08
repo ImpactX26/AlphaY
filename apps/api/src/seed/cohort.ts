@@ -26,15 +26,28 @@ interface Peer {
   startDate: string;
   /** Weeks ago their file opened, so "how long did this take" has something real to measure. */
   weeksAgo: number;
+  /**
+   * Language, grade and experience, because the source watcher has to measure somebody.
+   *
+   * Without these every peer is unmeasurable, `meets()` can say nothing about them, and a page
+   * easing its requirements notifies an empty list — the feature runs correctly and looks broken.
+   * The numbers are chosen so each branch of that notification has a real person in it: Karthik
+   * clears RWTH only after it eases, Joseph clears the ministry's German threshold only after it
+   * drops to B1, and the same Joseph falls below Klinikum Köln once it raises its bar to B2.
+   */
+  english?: string;
+  german?: string;
+  grade?: string;
+  experience?: string;
 }
 
 const PEERS: Peer[] = [
-  { name: 'Meenakshi Pillai', email: 'meenakshi@demo.educaro.local', subtitle: 'B.Sc. Nursing, 3 years', homeCity: 'Thrissur', route: 'nursing', targetCity: 'Cologne', stage: 'visa', startDate: '2027-03-01', weeksAgo: 34 },
-  { name: 'Joseph Varghese', email: 'joseph@demo.educaro.local', subtitle: 'GNM nurse, 6 years', homeCity: 'Kottayam', route: 'nursing', targetCity: 'Cologne', stage: 'matched', startDate: '2027-09-01', weeksAgo: 22 },
-  { name: 'Anjali Menon', email: 'anjali@demo.educaro.local', subtitle: 'GNM nurse, 2 years', homeCity: 'Kochi', route: 'ausbildung', targetCity: 'Aachen', stage: 'ready', startDate: '2027-10-01', weeksAgo: 15 },
-  { name: 'Karthik Iyer', email: 'karthik@demo.educaro.local', subtitle: 'B.Tech ECE, CGPA 8.6', homeCity: 'Chennai', route: 'study', targetCity: 'Aachen', stage: 'applied', startDate: '2027-10-01', weeksAgo: 26 },
-  { name: 'Priya Raghavan', email: 'priya@demo.educaro.local', subtitle: 'B.Tech IT, CGPA 7.9', homeCity: 'Coimbatore', route: 'study', targetCity: 'Darmstadt', stage: 'gap_plan', startDate: '2027-10-01', weeksAgo: 9 },
-  { name: 'Nikhil Sharma', email: 'nikhil@demo.educaro.local', subtitle: 'B.Tech CS, CGPA 8.4', homeCity: 'Jaipur', route: 'study', targetCity: 'Munich', stage: 'arrived', startDate: '2026-10-01', weeksAgo: 48 },
+  { name: 'Meenakshi Pillai', email: 'meenakshi@demo.educaro.local', subtitle: 'B.Sc. Nursing, 3 years', homeCity: 'Thrissur', route: 'nursing', targetCity: 'Cologne', stage: 'visa', startDate: '2027-03-01', weeksAgo: 34, german: 'B2', experience: '3 years' },
+  { name: 'Joseph Varghese', email: 'joseph@demo.educaro.local', subtitle: 'GNM nurse, 6 years', homeCity: 'Kottayam', route: 'nursing', targetCity: 'Cologne', stage: 'matched', startDate: '2027-09-01', weeksAgo: 22, german: 'B1', experience: '6 years' },
+  { name: 'Anjali Menon', email: 'anjali@demo.educaro.local', subtitle: 'GNM nurse, 2 years', homeCity: 'Kochi', route: 'ausbildung', targetCity: 'Aachen', stage: 'ready', startDate: '2027-10-01', weeksAgo: 15, german: 'B1', experience: '2 years' },
+  { name: 'Karthik Iyer', email: 'karthik@demo.educaro.local', subtitle: 'B.Tech ECE, CGPA 8.6', homeCity: 'Chennai', route: 'study', targetCity: 'Aachen', stage: 'applied', startDate: '2027-10-01', weeksAgo: 26, english: 'IELTS 6.0', german: 'A2', grade: 'CGPA 8.6 / 10 (German 2.6)', experience: '1 year' },
+  { name: 'Priya Raghavan', email: 'priya@demo.educaro.local', subtitle: 'B.Tech IT, CGPA 7.9', homeCity: 'Coimbatore', route: 'study', targetCity: 'Darmstadt', stage: 'gap_plan', startDate: '2027-10-01', weeksAgo: 9, english: 'IELTS 6.5', german: 'A1', grade: 'CGPA 7.9 / 10 (German 2.4)', experience: '1 year' },
+  { name: 'Nikhil Sharma', email: 'nikhil@demo.educaro.local', subtitle: 'B.Tech CS, CGPA 8.4', homeCity: 'Jaipur', route: 'study', targetCity: 'Munich', stage: 'arrived', startDate: '2026-10-01', weeksAgo: 48, english: 'IELTS 7.5', german: 'B1', grade: 'CGPA 8.4 / 10 (German 1.7)', experience: '2 years' },
 ];
 
 /** Questions a cohort actually asks, and the kind of answer that only comes from someone who went. */
@@ -96,6 +109,21 @@ export async function seedCohort(log: { log: (m: string) => void }) {
       createdAt: opened,
       updatedAt: opened,
     });
+
+    // The facts the source watcher measures them against. `said` rather than `verified`: these come
+    // from what each peer told us, which is exactly the status a claim has before a document backs
+    // it, and the watcher is explicit that an unmeasured field never counts as a failure.
+    const [row] = await db.select().from(schema.applicants).where(eq(schema.applicants.userId, user.id));
+    const claims: { key: string; label: string; value: string }[] = [
+      p.english ? { key: 'language.english', label: 'English', value: p.english } : null,
+      p.german ? { key: 'language.german', label: 'German', value: p.german } : null,
+      p.grade ? { key: 'education.grade', label: 'Final grade', value: p.grade } : null,
+      p.experience ? { key: 'experience.total', label: 'Experience', value: p.experience } : null,
+    ].filter(Boolean) as { key: string; label: string; value: string }[];
+    for (const c of claims) {
+      await db.insert(schema.facts).values({ applicantId: row.id, key: c.key, label: c.label, value: c.value, tag: 'said', sourceKind: 'applicant', sourceRef: 'Intake call' });
+    }
+
     made += 1;
   }
   log.log(`${made} cohort members, so "people like you" and the arrival group have somebody in them`);
