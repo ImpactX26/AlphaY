@@ -94,6 +94,65 @@ cites, grouped by topic.
 
 ---
 
+## Three more, if you have the time (90 s)
+
+These are the ones a jury has not seen before. Pick one, not all three.
+
+### "Someone sent me this. Is it real?"
+
+The strongest 30 seconds in the build. Paste a realistic fake offer into the check — a `.tk` domain,
+a gmail address on a company letterhead, Western Union, "only today", a fee before any contract.
+
+It comes back **0 out of 100, high risk**, naming each signal, *and* flags three clauses from the
+same message — the employer keeping the passport and a twelve-month probation are not merely unfair,
+they are unenforceable in Germany. The agent then says so in chat rather than leaving it on a page.
+
+Then run the same check against RWTH: **85 out of 100, looks legitimate.** The point is that it
+discriminates, not that it is suspicious of everything.
+
+> Indian applicants are the most defrauded group in this entire process. The checks that settle it
+> are boring and cheap. Nobody runs them because nobody tells you which ones matter.
+
+### The honest preview
+
+On any applicant's screen, scroll to **what this route is actually like**: shift patterns, pay after
+tax and rent, money sent home — and *"8 in 10 alumni say the first three months were the hardest,
+and it was the language at speed on a ward, not the exam."*
+
+> Everything else an applicant reads is written by somebody who wants them to go, us included. So
+> people cost the visa and not the first winter. This is a strange thing for a company that gets
+> paid when people go — and it is the reason to believe the rest of the screen.
+
+### Where they would actually live
+
+The **rooms** block: twelve places across real districts, each with the rent, the commute to the
+hospital or campus, and whether it fits *her* budget. Tap one and Google Maps opens with
+public-transport directions from that room to that workplace.
+
+> A room 80 euros cheaper and 50 minutes each way is not cheaper. It is two hours of a nursing
+> shift, five days a week, in a country where she cannot yet make that time back socially.
+
+---
+
+## If it all goes wrong on the night
+
+```bash
+npm run sandbox
+```
+
+The whole product with no keys, no outbound network, stand-in sources and Mailpit only. Everything
+still works; only the written copy drops to templates. Say so out loud if you use it — the fallbacks
+being real is the point, not an excuse.
+
+```bash
+npm run smoke
+```
+
+70 end-to-end checks against the live API in about two minutes. Run it before you present. Then
+`npm run seed` to put the demo data back, because the smoke test writes.
+
+---
+
 ## If something is asked
 
 **"Is this calling an LLM for everything?"**
@@ -114,8 +173,10 @@ quote is found on it. The sources it cites during the demo are served from `/api
 point `url` at the real page in the catalogue and the identical code path runs.
 
 **"What is not finished?"**
-The MCP server exposes the tools but the harness still calls them in-process. pgvector is wired and
-the chunk table exists, but retrieval is not used in the flow yet. Those are the two honest gaps.
+The MCP server is a real server and the guards travel with its tools, but our own harness still
+calls them in-process rather than over the protocol. Retrieval over the applicant's documents is
+lexical (BM25) rather than embedded — deliberate for five short documents full of rare exact tokens,
+but it is not what the pgvector column was put there for. Those are the two honest gaps.
 
 ---
 
