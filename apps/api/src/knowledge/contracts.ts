@@ -378,9 +378,9 @@ export function contractKind(text: string): ContractKind {
 export function looksLikeContract(text: string): boolean {
   const t = text ?? '';
   if (t.length < 400) return false;
-  // No `` before `§`: a space followed by `§` is non-word to non-word, so the boundary never
+  // No `\b` before `§`: a space followed by `§` is non-word to non-word, so the boundary never
   // matches and this returned false on every real German contract it was given.
-  const structure = tolerant(/(§\s*\d|klausel|clause|vereinbar\w*|vertrag|schließen folgenden|terms and conditions|hereby agrees)/i);
+  const structure = tolerant(/(§\s*\d|\bklausel\b|\bclause\b|vereinbar\w*|\bvertrag\b|schließen folgenden|terms and conditions|hereby agrees)/i);
   return [WORK_RE, RENTAL_RE, structure].filter((re) => new RegExp(re.source, re.flags.replace('g', '')).test(t)).length >= 2;
 }
 

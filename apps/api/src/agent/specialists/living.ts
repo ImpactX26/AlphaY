@@ -5,6 +5,7 @@ import { seededPlaces } from '../../knowledge/places';
 import { commuteMinutes, listingsFor } from '../../knowledge/rentals';
 import { directionsUrl, mapsUrl } from '../../knowledge/maps';
 import { bestFact, type ApplicantState } from '../state.service';
+import { PRIMARY_GROUPS } from '../../knowledge/place-groups';
 import { cite, type Kit, type SpecialistResult } from './kit';
 
 /** The city this applicant is planning around: Germany address, shortlist, family, preference, then default. */
@@ -121,22 +122,6 @@ export async function housingSpecialist(kit: Kit): Promise<SpecialistResult> {
   };
 }
 
-const PLACE_GROUPS: { kind: string; label: string; filters: string[] }[] = [
-  {
-    kind: 'grocery',
-    label: 'Indian and Asian groceries',
-    filters: ['["shop"]["cuisine"~"indian|asian",i]', '["shop"]["origin"~"indian|asian",i]', '["shop"~"supermarket|convenience|deli|greengrocer|food"]["name"~"India|Indian|Asia|Desi|Bazaar|Spice|Masala",i]'],
-  },
-  { kind: 'restaurant', label: 'Indian restaurants', filters: ['["amenity"~"restaurant|fast_food"]["cuisine"~"indian",i]'] },
-  { kind: 'temple', label: 'Temples and gurdwaras', filters: ['["amenity"="place_of_worship"]["religion"~"hindu|sikh"]'] },
-  { kind: 'church', label: 'Churches with Indian services', filters: ['["amenity"="place_of_worship"]["denomination"~"syro|malankara|orthodox|catholic",i]["name"~"Indian|Malayalam|Syro|Kerala|St. Thomas",i]'] },
-  {
-    kind: 'buergeramt',
-    label: 'Bürgeramt (Anmeldung)',
-    filters: ['["amenity"="townhall"]["name"~"Bürgeramt|Bürgerbüro|Bürgerservice|Kundenzentrum",i]', '["office"="government"]["government"="public_service"]'],
-  },
-];
-
 /** Life in Germany: places near the new address from OpenStreetMap, plus the arrival checklist. */
 export async function lifeSpecialist(kit: Kit): Promise<SpecialistResult> {
   const city = targetCity(kit.state);
@@ -146,7 +131,7 @@ export async function lifeSpecialist(kit: Kit): Promise<SpecialistResult> {
   const radius = addr ? 4000 : 6000;
   const groups = [];
   let liveHits = 0;
-  for (const g of PLACE_GROUPS) {
+  for (const g of PRIMARY_GROUPS) {
     let places = await kit.web.placesNearby(center.lat, center.lon, g.filters, radius, { runId: kit.runId, applicantId: kit.applicantId });
     liveHits += places.length;
     // Overpass is free, often busy, and on some networks blocked outright. An empty map reads as

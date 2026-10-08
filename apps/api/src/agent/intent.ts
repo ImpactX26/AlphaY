@@ -24,6 +24,7 @@ export type Intent =
   | 'upload_intent' // they are telling us a document is coming
   | 'personal_statement' // they are telling us a fact about themselves
   | 'weather_question' // what is it like there — a real question for someone leaving Kerala
+  | 'places_question' // is there an Indian shop / a station / a Bürgeramt near where I am going
   | 'off_topic'
   | 'unclear';
 
@@ -32,7 +33,7 @@ export interface IntentResult {
   /** A reply we can give in code. Null means it is worth a model call. */
   cannedReply: string | null;
   /** Hint for the focused prompt when a model is worth it. */
-  focus: 'plan' | 'process' | 'weather' | 'none';
+  focus: 'plan' | 'process' | 'weather' | 'places' | 'none';
 }
 
 // Acknowledgements arrive combined — "ok thanks", "yes got it", "alright perfect" — and matching
@@ -55,6 +56,21 @@ const PROCESS =
 const ACTION = /\b(book|schedule|arrange|draft|write|send|apply|submit|upload|download|print|call me|connect|link)\b/i;
 const UPLOAD = /\b(i (will|'ll)? ?(upload|send|attach|share)|here (is|are) my|attaching|uploaded|sending you)\b/i;
 const STATEMENT = /\b(i (am|have|did|was|work|studied|finished|passed|hold|got|live|speak)|my (name|sister|brother|husband|wife|father|mother|degree|diploma|experience|german|english) )\b/i;
+
+/**
+ * "Is there an Indian restaurant near me?"
+ *
+ * This went to the model as a `personal_statement`, because "do I **have** an Indian restaurant
+ * near me" matches `i have` — so the one question whose answer this product actually holds, a list
+ * of real places with real distances, got a generic sentence instead. It has to be tested before
+ * STATEMENT, and before PROCESS, where "restaurant" sits next to words like rent and insurance.
+ *
+ * Matching is a place word plus a nearness word, so "I work in a restaurant" stays a statement.
+ */
+const PLACE_WORD =
+  /\b(restaurant|indian food|indian shop|asian shop|grocer\w*|groceries|supermarket|spice shop|masala|temple|mandir|gurdwara|mosque|church|station|bahnhof|u-?bahn|s-?bahn|tram|bus stop|police|polizei|hospital|clinic|krankenhaus|doctor|arzt|pharmacy|apotheke|hostel|gym|post office|library|bürgeramt|buergeramt|burgeramt|rathaus|ausländerbehörde|auslanderbehorde)\b/i;
+const NEARNESS = /\b(near|nearby|close to|closest|nearest|around here|in the area|walking distance|how far|where (is|are|can i find)|is there|are there|any good)\b/i;
+const PLACES_DIRECT = /\b(indian (restaurants?|shops?|stores?|grocer\w*|food)|asian (shops?|stores?|supermarkets?))\b/i;
 
 /** Things that are plainly not what this product is for. Short list on purpose: a false positive here is rude. */
 const WEATHER = /\b(weather|forecast|temperature|how cold|how warm|climate|winter|summer|snow|rain|daylight|dark at)\b/i;
@@ -82,6 +98,10 @@ export function classifyIntent(text: string): IntentResult {
       cannedReply: 'That one is outside what I can help with — I only know your move to Germany. Ask me about your documents, your German, the costs or what happens next.',
       focus: 'none',
     };
+  }
+  // Before STATEMENT and PROCESS on purpose: see the note on PLACE_WORD.
+  if (PLACES_DIRECT.test(t) || (PLACE_WORD.test(t) && NEARNESS.test(t))) {
+    return { intent: 'places_question', cannedReply: null, focus: 'places' };
   }
   if (UPLOAD.test(t)) {
     return { intent: 'upload_intent', cannedReply: 'Drop it in and I will read it. If it proves something you have told me, I will mark that Verified.', focus: 'none' };

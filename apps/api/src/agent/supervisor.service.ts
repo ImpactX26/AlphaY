@@ -16,6 +16,9 @@ import { describeWeather, fetchWeather } from '../web/weather';
 import { targetCity } from './specialists/living';
 import { TraceService } from '../trace/trace.service';
 import { RetrievalService } from '../profile/retrieval.service';
+import { WebService } from '../web/web.service';
+import { groupsForQuestion } from '../knowledge/place-groups';
+import { seededPlaces } from '../knowledge/places';
 
 const LOOP_NAMES = ['route', 'exams', 'scout', 'jobs', 'recognition', 'visa', 'money', 'housing', 'life', 'factcheck'] as const;
 
@@ -56,6 +59,7 @@ export class SupervisorService {
     private readonly skills: SkillsService,
     private readonly trace: TraceService,
     private readonly retrieval: RetrievalService,
+    private readonly web: WebService,
   ) {}
 
   async plan(state: ApplicantState, report: CheckReport, events: AgentEvent[], candidates: QuestionCandidate[], required: SpecialistName[], runId: string): Promise<{ plan: Plan; by: 'agent' | 'rules' | 'rules+reply' }> {
@@ -142,6 +146,7 @@ export class SupervisorService {
       `THEIR FACTS:\n${facts.join('\n') || 'nothing on file yet'}`,
       intent.focus === 'process' ? 'They are asking how something works in Germany, not about their own file. Answer the mechanism, then tie it to their situation in one clause.' : '',
       intent.focus === 'weather' ? await this.weatherFor(state) : '',
+      intent.focus === 'places' ? await this.placesFor(state, text, runId) : '',
       await this.fromTheirPapers(state, text),
       `QUESTION: ${text}`,
     ]
@@ -161,6 +166,47 @@ export class SupervisorService {
     return reply?.trim() || null;
   }
 
+
+  /**
+   * Real places near where they are going, for "is there an Indian shop near me?".
+   *
+   * That question used to be classified as a personal statement and answered with a generic
+   * sentence, which is the worst possible outcome: it is one of the few questions this product can
+   * answer exactly, with names and walking distances, and the answer matters more than it looks.
+   * Every alumnus says a version of "find the Indian shop in week one".
+   *
+   * The names go into the prompt as facts the model may not alter, in the same shape as the weather
+   * block, because a confident invented restaurant is worse than no answer — somebody will go there.
+   */
+  private async placesFor(state: ApplicantState, text: string, runId: string): Promise<string> {
+    const city = targetCity(state);
+    let center = { lat: city.lat, lon: city.lon };
+    const addr = state.applicant.germanyAddress;
+    const ctx = { runId, applicantId: state.applicant.id };
+    if (addr) center = (await this.web.geocode(`${addr}, ${city.name}`, ctx)) ?? center;
+
+    const groups = groupsForQuestion(text);
+    const lines: string[] = [];
+    for (const g of groups) {
+      let places = await this.web.placesNearby(center.lat, center.lon, g.filters, addr ? 4000 : 6000, ctx);
+      if (!places.length) places = seededPlaces(city.name, g.kind, center, 6000);
+      if (!places.length) continue;
+      lines.push(
+        `${g.label}: ` +
+          places
+            .slice(0, 4)
+            .map((pl) => `${pl.name}${pl.address ? ` (${pl.address})` : ''}${pl.distanceM ? ` — ${pl.distanceM < 1000 ? `${pl.distanceM} m` : `${(pl.distanceM / 1000).toFixed(1)} km`}` : ''}`)
+            .join('; '),
+      );
+    }
+
+    if (!lines.length) {
+      return `PLACES: I have nothing on file near ${addr ? 'their address' : city.name} for what they asked. Say that plainly, offer to look again once they have an address, and do not invent a name.`;
+    }
+    return `PLACES near ${addr ? `their address in ${city.name}` : `the centre of ${city.name}`} (real, from OpenStreetMap or Educaro's checked city list — use these exact names and distances, never invent one):
+${lines.join('\n')}
+Mention two or three by name with the distance. If the distance is from the city centre rather than their own address, say so in a clause.`;
+  }
 
   /** Live weather for the city they are heading to, plus the winter they have not met yet. */
   private async weatherFor(state: ApplicantState): Promise<string> {
