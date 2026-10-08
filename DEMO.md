@@ -56,8 +56,8 @@ takes the fix and moves on.
 
 ### 3 · "It plans, with sources" (40 s)
 
-Scroll to **readiness**: 58%, five meters. Then the **gap plan**. Each gap carries what, where, how
-long, how much — and the Educaro service that fixes it:
+**Readiness** is on Home: 58%, five meters. Then open **Plan** for the **gap plan**. Each gap carries
+what, where, how long, how much — and the Educaro service that fixes it:
 
 - German B1 then B2 → the online A1–B2 course, ~13 weeks per level
 - Recognition of her diploma → Anerkennung support, 3–4 months for the decision
@@ -103,7 +103,8 @@ These are the ones a jury has not seen before. Pick one, not all three.
 The strongest 30 seconds in the build. Paste a realistic fake offer into the check — a `.tk` domain,
 a gmail address on a company letterhead, Western Union, "only today", a fee before any contract.
 
-It comes back **0 out of 100, high risk**, naming each signal, *and* flags three clauses from the
+It lands on the **Safety** tab (with a dot on it, because a high-risk check is something waiting on
+her). It comes back **0 out of 100, high risk**, naming each signal, *and* flags three clauses from the
 same message — the employer keeping the passport and a twelve-month probation are not merely unfair,
 they are unenforceable in Germany. The agent then says so in chat rather than leaving it on a page.
 
@@ -115,7 +116,7 @@ discriminates, not that it is suspicious of everything.
 
 ### The honest preview
 
-On any applicant's screen, scroll to **what this route is actually like**: shift patterns, pay after
+Open **Plan** and scroll to **what this route is actually like**: shift patterns, pay after
 tax and rent, money sent home — and *"8 in 10 alumni say the first three months were the hardest,
 and it was the language at speed on a ward, not the exam."*
 
@@ -125,7 +126,7 @@ and it was the language at speed on a ward, not the exam."*
 
 ### Where they would actually live
 
-The **rooms** block: twelve places across real districts, each with the rent, the commute to the
+Open **Life**. The **rooms** block: twelve places across real districts, each with the rent, the commute to the
 hospital or campus, and whether it fits *her* budget. Tap one and Google Maps opens with
 public-transport directions from that room to that workplace.
 
