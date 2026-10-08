@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
-export type ThemePref = 'light' | 'dark' | 'system';
+export type ThemeChoice = 'system' | 'light' | 'dark';
 const KEY = 'educaro.theme';
+const listeners = new Set<() => void>();
 
-function readPref(): ThemePref {
+function read(): ThemeChoice {
   try {
     const v = localStorage.getItem(KEY);
     return v === 'light' || v === 'dark' ? v : 'system';
@@ -12,31 +13,32 @@ function readPref(): ThemePref {
   }
 }
 
-function resolve(pref: ThemePref): 'light' | 'dark' {
-  if (pref !== 'system') return pref;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+let current: ThemeChoice = read();
+
+function apply(choice: ThemeChoice): void {
+  const root = document.documentElement;
+  if (choice === 'system') delete root.dataset.theme;
+  else root.dataset.theme = choice;
 }
 
-function apply(pref: ThemePref) {
-  document.documentElement.setAttribute('data-theme', resolve(pref));
-}
-
-export function useTheme() {
-  const [pref, setPref] = useState<ThemePref>(readPref);
-  useEffect(() => {
-    apply(pref);
+export function useTheme(): [ThemeChoice, (next: ThemeChoice) => void] {
+  const theme = useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => current,
+  );
+  const set = useCallback((next: ThemeChoice) => {
+    current = next;
+    apply(next);
     try {
-      if (pref === 'system') localStorage.removeItem(KEY);
-      else localStorage.setItem(KEY, pref);
+      if (next === 'system') localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, next);
     } catch {
-      /* ignore */
+      /* storage blocked: the choice lasts for this tab */
     }
-    if (pref !== 'system') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => apply('system');
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, [pref]);
-  const resolved = typeof window === 'undefined' ? 'light' : resolve(pref);
-  return { pref, resolved, setPref };
+    for (const l of listeners) l();
+  }, []);
+  return [theme, set];
 }

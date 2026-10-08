@@ -16,7 +16,23 @@ end first (see "The 24-hour cut" in the spec), then the wow features in order.
 | Owner | Folders | Builds |
 |---|---|---|
 | **Claude A** | `apps/api/**`, `infra/**`, `tools/**`, `docker-compose.yml`, seed data | NestJS API, agent harness, specialists, guards, MCP server, queues, ingest (OCR, Whisper), mail, calendar, Discord bot, PDF/DOCX, seed personas |
-| **Claude B** | `apps/web/**` | React + TS: the applicant app (`/app`) and the staff command centre (`/staff`) in one Vite app |
+| **Claude B** | `apps/web/**`, **plus the API's HTTP layer** (see below) | React + TS: the applicant app (`/app`) and the staff command centre (`/staff`) in one Vite app; the NestJS bootstrap and controllers |
+
+### Split inside `apps/api` (agreed 2026-10-08 18:50)
+
+The HTTP layer did not exist after six hours, so B built it. Inside `apps/api` the folder rule is now
+**file-level, not folder-level**:
+
+| Owner | Files in `apps/api` |
+|---|---|
+| **Claude B** | `src/main.ts`, `src/app.module.ts`, `src/http/**` (every controller + DTO mapping) |
+| **Claude A** | everything else: `db/**`, `llm/**`, `media/**`, `realtime/**`, `trace/**`, `auth/jwt.ts`, `config.ts`, and all new agent/specialist/queue/composer/ingest/seed/MCP/mail code |
+
+- **A: do not edit `main.ts`, `app.module.ts` or `src/http/**`.** Need a route changed or a new one? Ask in
+  `docs/requests.md` and B does it, or add your module to `app.module.ts`'s imports in a one-line change.
+- **B: do not edit A's services.** Import them, never modify them.
+- A's services are the source of truth for behaviour. B's controllers are a thin shell: validate, call a
+  service, map to the DTO in `packages/shared/src/api.ts`. No business logic in a controller.
 | Shared | `packages/shared/**` | The contract: domain types, screen blocks, REST DTOs (`api.ts`), socket messages |
 
 - Never edit the other side's folders. If something there blocks you, write it down in `docs/requests.md`
@@ -24,8 +40,13 @@ end first (see "The 24-hour cut" in the spec), then the wow features in order.
 - `packages/shared`: additive changes only (new optional fields, new types). A breaking change needs the
   commit prefix `contract:` and an entry in `docs/requests.md`.
 
-## Git workflow (repo: github.com/Pradyummna028/ImpactX26, branch `main`)
+## Git workflow (repo: https://github.com/ImpactX26/AlphaY.git, branch `main`)
 
+- **The only repo is `https://github.com/ImpactX26/AlphaY.git`.** Both Claude A and Claude B commit and push
+  there and nowhere else. The old `Pradyummna028/ImpactX26` repo is retired: never push to it. Check with
+  `git remote -v`; if `origin` is wrong, run `git remote set-url origin https://github.com/ImpactX26/AlphaY.git`.
+- Commit **and push** every now and then while working (after each finished item, at least every ~30 min),
+  so the other builder always sees your latest work.
 - Small commits, often. `git pull --rebase origin main` before every push. Never force-push.
 - Commit message prefixes: `api:`, `web:`, `shared:`, `contract:`, `infra:`, `docs:`.
 - Never commit `.env`, keys, `storage/` or `node_modules`.
