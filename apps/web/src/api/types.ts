@@ -32,6 +32,7 @@ import type {
   FileDTO,
   GapDTO,
   InterviewDTO,
+  InterviewVoiceDTO,
   MailTrackerDetailDTO,
   MailTrackerItemDTO,
   MatchDTO,
@@ -104,6 +105,7 @@ export interface Api {
   calendar(id: string): Promise<CalendarEventDTO[]>;
   startInterview(id: string, kind: InterviewDTO['kind']): Promise<InterviewDTO>;
   answerInterview(sessionId: string, text: string): Promise<InterviewDTO>;
+  answerInterviewByVoice(sessionId: string, audio: Blob, filename: string): Promise<InterviewVoiceDTO>;
   discordLink(id: string): Promise<{ code: string }>;
   germany(id: string, input: { city: string; address?: string; startDate?: string }): Promise<ApplicantDTO>;
   rentals(id: string): Promise<RentalsBlock>;

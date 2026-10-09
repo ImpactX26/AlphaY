@@ -1,6 +1,6 @@
 import type { InterviewDTO } from '@educaro/shared';
 import clsx from 'clsx';
-import { ArrowLeft, Briefcase, GraduationCap, RotateCcw, Send, Stamp } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, RotateCcw, Send, Stamp, Video } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { api, errorText } from '../api/client';
@@ -11,6 +11,7 @@ import { Avatar, PageHeader } from '../ui/misc';
 import { Spinner } from '../ui/Spinner';
 import { Tag } from '../ui/Tag';
 import { toast } from '../ui/Toast';
+import { InterviewCall } from './InterviewCall';
 
 const KINDS: { kind: InterviewDTO['kind']; label: string; sub: string; icon: typeof Stamp }[] = [
   { kind: 'employer', label: 'Employer interview', sub: 'What the hiring manager will ask', icon: Briefcase },
@@ -26,6 +27,10 @@ export default function InterviewPage() {
   const [session, setSession] = useState<InterviewDTO | null>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  // A call by default, because saying it is the part people fail. "Type instead" is always one tap
+  // away and sticks for the rest of the session, so a blocked microphone is an inconvenience
+  // rather than a dead end.
+  const [mode, setMode] = useState<'call' | 'type'>('call');
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), [session?.turns.length]);
@@ -33,6 +38,9 @@ export default function InterviewPage() {
   const start = async (kind: InterviewDTO['kind']) => {
     setBusy(true);
     try {
+      // A fresh session starts as a call again: "type instead" was a decision about the last one,
+      // usually a noisy room, not a standing preference.
+      setMode('call');
       setSession(await api.startInterview(applicantId, kind));
     } catch (err) {
       toast(errorText(err), 'error');
@@ -88,12 +96,27 @@ export default function InterviewPage() {
           ))}
         </ul>
       ) : (
+        <div className="space-y-4">
+          {/* The call sits above the transcript rather than replacing it: the scores and feedback
+              from earlier answers are the reason to do this twice, and hiding them to show a video
+              would throw away the part that teaches. */}
+          {mode === 'call' && session.status === 'active' ? (
+            <InterviewCall session={session} busy={busy} onSession={setSession} onBusy={setBusy} onTypeInstead={() => setMode('type')} />
+          ) : null}
+
         <div className="card overflow-hidden">
           <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
             <p className="text-[14px] font-semibold">{KINDS.find((k) => k.kind === session.kind)?.label}</p>
-            <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setSession(null)}>
-              New session
-            </Button>
+            <div className="flex items-center gap-1.5">
+              {session.status === 'active' && mode === 'type' ? (
+                <Button size="sm" variant="ghost" icon={Video} onClick={() => setMode('call')}>
+                  Switch to a call
+                </Button>
+              ) : null}
+              <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setSession(null)}>
+                New session
+              </Button>
+            </div>
           </div>
 
           <ul className="space-y-3.5 px-4 py-4">
@@ -129,7 +152,7 @@ export default function InterviewPage() {
             <div ref={endRef} />
           </ul>
 
-          {session.status === 'active' ? (
+          {session.status === 'active' && mode === 'type' ? (
             <form onSubmit={answer} className="flex items-end gap-2 border-t border-line bg-surface px-3 py-2.5">
               <label className="min-w-0 flex-1">
                 <span className="sr-only">Your answer</span>
@@ -149,13 +172,14 @@ export default function InterviewPage() {
                 <span className="sr-only sm:not-sr-only">Answer</span>
               </Button>
             </form>
-          ) : (
+          ) : session.status === 'active' ? null : (
             <div className="border-t border-line bg-surface-2/40 px-4 py-3">
               <Button variant="primary" onClick={() => start(session.kind)}>
                 Run it again
               </Button>
             </div>
           )}
+        </div>
         </div>
       )}
     </div>

@@ -22,6 +22,7 @@ import type {
   FileDTO,
   GapDTO,
   InterviewDTO,
+  InterviewVoiceDTO,
   MailTrackerDetailDTO,
   MailTrackerItemDTO,
   MatchDTO,
@@ -199,6 +200,11 @@ export const httpApi: Api = {
   calendar: (id) => get<CalendarEventDTO[]>(`/applicants/${seg(id)}/calendar`),
   startInterview: (id, kind) => post<InterviewDTO>(`/applicants/${seg(id)}/interview`, { kind }),
   answerInterview: (sessionId, text) => post<InterviewDTO>(`/interview/${seg(sessionId)}/answer`, { text }),
+  answerInterviewByVoice: (sessionId, audio, filename) => {
+    const form = new FormData();
+    form.append('audio', audio, filename);
+    return upload<InterviewVoiceDTO>(`/interview/${seg(sessionId)}/answer-voice`, form);
+  },
   discordLink: (id) => post<{ code: string }>(`/applicants/${seg(id)}/discord-link`),
   germany: (id, input) => post<ApplicantDTO>(`/applicants/${seg(id)}/germany`, input),
   rentals: (id) => get<RentalsBlock>(`/applicants/${seg(id)}/rentals`),

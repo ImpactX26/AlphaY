@@ -478,6 +478,36 @@ export class ApplicantController {
     return this.interview.answer(sid, String(b?.text ?? ''));
   }
 
+  /**
+   * The same answer, spoken instead of typed.
+   *
+   * One round trip rather than transcribe-then-answer, because a real interview has no pause
+   * between finishing a sentence and being judged on it, and two requests would show the
+   * transcript landing in the box before the scoring arrives.
+   *
+   * An empty transcript is returned as the unchanged session rather than scored: silence is not an
+   * answer, and feeding "" to the coach would score them 2 for a microphone problem.
+   */
+  @Post('interview/:sid/answer-voice')
+  @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: 30 * MB } }))
+  async interviewAnswerVoice(
+    @CurrentUser() u: AuthUser,
+    @Param('sid') sid: string,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<InterviewDTO & { heard: string; transcribed: boolean }> {
+    const s = await db.query.interviewSessions.findFirst({ where: eq(schema.interviewSessions.id, sid) });
+    if (!s) throw new NotFoundException();
+    assertAccess(u, s.applicantId);
+    if (!file) throw new BadRequestException('No audio');
+
+    const rel = await this.storage.save(s.applicantId, file.originalname || 'interview-answer.webm', file.buffer);
+    const tr = await this.media.transcribe(this.storage.abs(rel)).catch(() => ({ text: '', segments: [], provider: 'local' as const }));
+    await this.trace.record('tool', 'transcribe_media', { kind: 'interview-answer', provider: tr.provider, chars: tr.text.length }, { applicantId: s.applicantId });
+
+    if (!tr.text) return { ...this.interview.toDto(s), heard: '', transcribed: false };
+    return { ...(await this.interview.answer(sid, tr.text)), heard: tr.text, transcribed: true };
+  }
+
   // ---------- Discord link ----------
   @Post('applicants/:id/discord-link')
   async discordLink(@CurrentUser() u: AuthUser, @Param('id') id: string) {

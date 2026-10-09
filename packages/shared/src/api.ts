@@ -74,6 +74,7 @@ export interface AuthResponse {
 // GET  /api/calendar/:eventId/ics?token=      -> .ics file
 // POST /api/applicants/:id/interview          { kind }          -> InterviewDTO
 // POST /api/interview/:sessionId/answer       { text }          -> InterviewDTO
+// POST /api/interview/:sessionId/answer-voice  multipart audio -> InterviewVoiceDTO (spoken answer)
 // POST /api/applicants/:id/discord-link       -> { code: string }  (user types /link <code> in Discord)
 // POST /api/applicants/:id/germany            { city, address?, startDate? } -> ApplicantDTO (visa granted, Germany mode)
 
@@ -207,6 +208,18 @@ export interface CohortDTO {
   basis: number;
   steps: { label: string; medianWeeks: number; rangeWeeks: [number, number]; youAre: 'ahead' | 'on_track' | 'behind' | 'not_started' }[];
   peers: { label: string; headline: string; nowAt: string }[];
+}
+
+/**
+ * A spoken answer: the session after scoring, plus what we actually heard.
+ *
+ * `heard` is shown back verbatim, because a mock interview that silently mis-hears you and then
+ * marks you down on it is worse than no coach. `transcribed: false` means nothing was made out —
+ * the session comes back unchanged rather than scoring silence as a weak answer.
+ */
+export interface InterviewVoiceDTO extends InterviewDTO {
+  heard: string;
+  transcribed: boolean;
 }
 
 export interface InterviewDTO {

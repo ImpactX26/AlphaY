@@ -57,8 +57,13 @@ export class InterviewService {
     private readonly trace: TraceService,
   ) {}
 
-  private dto(s: typeof schema.interviewSessions.$inferSelect): InterviewDTO {
+  /** Public because a voice answer that transcribed to nothing returns the session unchanged. */
+  toDto(s: typeof schema.interviewSessions.$inferSelect): InterviewDTO {
     return { id: s.id, kind: s.kind, status: s.status, turns: s.turns };
+  }
+
+  private dto(s: typeof schema.interviewSessions.$inferSelect): InterviewDTO {
+    return this.toDto(s);
   }
 
   async start(applicantId: string, kind: InterviewDTO['kind']): Promise<InterviewDTO> {
