@@ -130,14 +130,20 @@ export function InterviewCall({
   // Stop talking the moment this unmounts, or a voice keeps going over the next screen. The
   // cleanup has braces so it returns nothing: React only accepts `undefined` or a function back
   // from an effect, and a concise body hands it whatever the call returned.
-  useEffect(
-    () => () => {
-      stopSpeaking();
-      audioRef.current?.pause();
-      audioRef.current = null;
-    },
-    [stopSpeaking],
-  );
+  /**
+   * Silence both playback paths.
+   *
+   * There are two: `speechSynthesis` and an `<audio>` element for the real voice, and only
+   * stopping one leaves the other talking into the microphone.
+   */
+  const hush = useCallback(() => {
+    stopSpeaking();
+    audioRef.current?.pause();
+    audioRef.current = null;
+  }, [stopSpeaking]);
+
+  // Stop talking the moment this unmounts, or a voice keeps going over the next screen.
+  useEffect(() => () => hush(), [hush]);
 
   const send = useCallback(async () => {
     const result = await recorder.stop();
@@ -278,6 +284,10 @@ export function InterviewCall({
                   // This tap also satisfies the browser's "user has interacted" rule, so the next
                   // question will be allowed to speak even if the first one was blocked.
                   setNeedsTap(false);
+                  // Stop the interviewer before opening the microphone. Echo cancellation handles
+                  // most of it, but the surest way not to transcribe our own question back is not
+                  // to be playing it: the model otherwise hears the question as the answer.
+                  hush();
                   void recorder.start();
                 }}
               >

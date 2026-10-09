@@ -69,11 +69,35 @@ export function useRecorder(kind: 'audio' | 'video' = 'audio', maxSeconds?: numb
     setError(null);
     setState('starting');
     try {
+      /**
+       * Ask the browser for a clean voice, not for "audio".
+       *
+       * `audio: true` takes the default device with every processor off, so the microphone records
+       * the room, the laptop fan and — worst — whatever the speakers are playing. The interview
+       * coach reads its question aloud while the mic is open, so without echo cancellation the next
+       * thing transcribed is the agent's own question coming back through the speakers, which is
+       * exactly what made voice input return nonsense.
+       *
+       * Mono at 16 kHz is also what Whisper wants: it downsamples to that anyway, and sending
+       * stereo at 48 kHz is three times the upload for no extra accuracy.
+       */
+      const voice: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 16_000,
+      };
       const media = await navigator.mediaDevices.getUserMedia(
-        kind === 'video' ? { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: true } : { audio: true },
+        kind === 'video' ? { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: voice } : { audio: voice },
       );
       const mimeType = pickType(kind);
-      const rec = new MediaRecorder(media, mimeType ? { mimeType } : undefined);
+      const rec = new MediaRecorder(media, {
+        ...(mimeType ? { mimeType } : {}),
+        // Speech needs far less than the default; this keeps a two-minute note small enough to
+        // upload on a phone connection.
+        ...(kind === 'audio' ? { audioBitsPerSecond: 32_000 } : {}),
+      });
       chunks.current = [];
       rec.ondataavailable = (e) => {
         if (e.data.size) chunks.current.push(e.data);
