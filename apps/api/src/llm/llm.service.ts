@@ -114,7 +114,7 @@ export class LlmService implements OnModuleInit {
       this.log.warn(`could not read past OpenAI spend (${(e as Error).message}); starting this run at $0`);
     }
     this.log.log(
-      `providers: groq=${!!this.groq} openai=${!!this.openai} | openai spent $${this.openaiSpent.toFixed(4)} of $${config.openaiBudgetUsd}`,
+      `providers: groq=${!!this.groq} openai=${!!this.openai} | first=${config.llmProvider} | openai spent $${this.openaiSpent.toFixed(4)} of $${config.openaiBudgetUsd}`,
     );
   }
 
@@ -176,6 +176,11 @@ export class LlmService implements OnModuleInit {
     };
     // Local first when asked for, so testing never eats the quota a demo depends on.
     if (config.localLlmFirst) add(this.local, this.localOk());
+    // A paid key in front of everything, when one is configured to be. The free tier's 8,000
+    // tokens a minute is the thing that made every question collapse to the rules fallback under
+    // load, and a key that is paid for and unused is the worse of the two failures.
+    if (config.llmProvider === 'openai') add(this.openai, this.openaiOk());
+    if (config.llmProvider === 'groq') add(this.groq, this.groqOk());
     if (tier === 'quality' && config.qualityProvider === 'openai') add(this.openai, this.openaiOk());
     add(this.groq, this.groqOk());
     // And always as the last resort: a model that is slow beats no model at all.

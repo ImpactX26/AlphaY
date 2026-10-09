@@ -1,5 +1,16 @@
-import 'dotenv/config';
 import * as path from 'node:path';
+import * as dotenv from 'dotenv';
+
+/**
+ * Load `apps/api/.env`, then fall back to the one at the repository root.
+ *
+ * Two files, one of them open in somebody's editor, and only one of them read: a key pasted into
+ * the root `.env` left the API quietly running on the free tier with `openai=false` in its own boot
+ * log, which nobody reads twice. `override: false` keeps the nearer file authoritative, so this
+ * only ever fills in what `apps/api/.env` left blank.
+ */
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env'), override: false });
 import { applySandbox } from './config.sandbox';
 
 // Before anything is read: SANDBOX=1 blanks the keys and pins the outside edges to their offline
@@ -28,6 +39,15 @@ export const config = {
   openaiModel: env('OPENAI_MODEL', 'gpt-5-mini'),
   openaiBudgetUsd: Number(env('OPENAI_BUDGET_USD', '40')),
   qualityProvider: env('LLM_QUALITY_PROVIDER', 'openai') as 'openai' | 'groq',
+  /**
+   * Which provider to try first for *every* call, not just the quality tier.
+   *
+   * 'auto' keeps the original split: Groq for cheap work, OpenAI for quality. 'openai' puts OpenAI
+   * in front of everything, which is what you want once a paid key exists and the free tier's
+   * 8,000-tokens-a-minute ceiling is doing more harm than the spend saves. The budget cap still
+   * applies either way, and Groq stays as the fallback underneath it.
+   */
+  llmProvider: env('LLM_PROVIDER', 'auto') as 'openai' | 'groq' | 'auto',
 
   localWhisperPython: env('LOCAL_WHISPER_PYTHON', path.resolve(process.cwd(), '../../tools/whisper/.venv/Scripts/python.exe')),
   localWhisperScript: path.resolve(process.cwd(), '../../tools/whisper/transcribe.py'),
