@@ -57,10 +57,19 @@ export function useSpeech() {
     setSpeaking(false);
   }, [supported]);
 
-  /** Says it, and resolves when it has finished — so the recorder can start on the last word. */
+  /**
+   * Says it, and resolves `true` once it has finished — so the caller can start the recorder on
+   * the last word, and can tell the difference between "said it" and "was not allowed to".
+   *
+   * Resolves `false` when nothing was spoken. The case that matters is Chrome's autoplay policy:
+   * `speak()` before the page has been interacted with is dropped with no error and no event, so
+   * the first question of a session is silent and the only way to know is that `onstart` never
+   * fired. The caller offers a tap-to-hear button instead of leaving the person to wonder whether
+   * their sound is broken.
+   */
   const say = useCallback(
-    (text: string): Promise<void> => {
-      if (!supported || mutedRef.current || !text.trim()) return Promise.resolve();
+    (text: string): Promise<boolean> => {
+      if (!supported || mutedRef.current || !text.trim()) return Promise.resolve(false);
       return new Promise((resolve) => {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
@@ -70,15 +79,30 @@ export function useSpeech() {
         // second language, which is the opposite of what this is for.
         u.rate = 0.95;
         u.pitch = 1;
-        const done = () => {
+
+        let started = false;
+        let settled = false;
+        const finish = (ok: boolean) => {
+          if (settled) return;
+          settled = true;
           setSpeaking(false);
-          resolve();
+          resolve(ok);
         };
-        u.onend = done;
+        u.onstart = () => {
+          started = true;
+          setSpeaking(true);
+        };
+        u.onend = () => finish(true);
         // A failed utterance must not hang the turn — the question is on screen either way.
-        u.onerror = done;
-        setSpeaking(true);
+        u.onerror = () => finish(false);
+
         window.speechSynthesis.speak(u);
+
+        // Blocked speech fires no event at all, so a short watchdog is the only way to notice.
+        // Long enough that a slow voice engine is not mistaken for a block.
+        window.setTimeout(() => {
+          if (!started) finish(false);
+        }, 1200);
       });
     },
     [supported],

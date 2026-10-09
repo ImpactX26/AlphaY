@@ -1,6 +1,6 @@
 import type { InterviewDTO } from '@educaro/shared';
 import clsx from 'clsx';
-import { CircleAlert, Keyboard, Mic, Square, Volume2, VolumeX } from 'lucide-react';
+import { CircleAlert, Keyboard, Mic, Play, Repeat, Square, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, errorText } from '../api/client';
 import { formatDuration } from '../lib/format';
@@ -44,6 +44,8 @@ export function InterviewCall({
   const selfRef = useRef<HTMLVideoElement>(null);
   const [heard, setHeard] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  // The browser refused to speak until the page is interacted with: show a way to ask for it.
+  const [needsTap, setNeedsTap] = useState(false);
 
   const question = [...session.turns].reverse().find((t) => t.role === 'coach')?.text ?? '';
   const asked = session.turns.filter((t) => t.role === 'coach').length;
@@ -55,22 +57,33 @@ export function InterviewCall({
 
   // Ask the question aloud whenever a new one arrives. Keyed on the question itself rather than a
   // turn count, so a re-render cannot make the interviewer repeat itself mid-sentence.
+  //
+  // Depends on `say`, which is a stable useCallback — not on the whole `speech` object, which is a
+  // fresh literal every render and so re-ran this effect continuously (including while it was
+  // speaking, since `speaking` is part of it).
+  const { say, stop: stopSpeaking } = speech;
   const spoken = useRef<string>('');
   useEffect(() => {
     if (!question || spoken.current === question) return;
     spoken.current = question;
     setHeard(null);
-    void speech.say(question);
-  }, [question, speech]);
+    void say(question).then((ok) => {
+      // Chrome refuses speechSynthesis until the page has been interacted with, so the very first
+      // question — which arrives on mount, before any click — is silently swallowed. There is no
+      // error and no event; the only signal is that nothing was spoken. Offer the button rather
+      // than leave them wondering whether the sound is broken.
+      if (!ok) setNeedsTap(true);
+    });
+  }, [question, say]);
 
   // Stop talking the moment this unmounts, or a voice keeps going over the next screen. The
   // cleanup has braces so it returns nothing: React only accepts `undefined` or a function back
   // from an effect, and a concise body hands it whatever the call returned.
   useEffect(
     () => () => {
-      speech.stop();
+      stopSpeaking();
     },
-    [speech],
+    [stopSpeaking],
   );
 
   const send = useCallback(async () => {
@@ -152,7 +165,30 @@ export function InterviewCall({
         <p className="text-[11.5px] font-bold uppercase tracking-[0.07em] text-muted">Question {asked}</p>
         {/* Always on screen, never only in audio: a question you half-heard is unanswerable, and
             this has to work with the sound off. */}
-        <p className="mt-1 text-[16px] font-semibold leading-snug">{question}</p>
+        <div className="mt-1 flex items-start gap-2">
+          <p className="min-w-0 flex-1 text-[16px] font-semibold leading-snug">{question}</p>
+          {speech.supported && !speech.muted ? (
+            // Hearing it again is a normal thing to want in a second language, and it is the same
+            // button that unblocks the first question — a tap is exactly what the browser wants.
+            <button
+              type="button"
+              onClick={() => {
+                setNeedsTap(false);
+                void say(question);
+              }}
+              disabled={speech.speaking}
+              aria-label={needsTap ? 'Play the question' : 'Hear the question again'}
+              className="mt-0.5 inline-flex flex-none items-center gap-1.5 rounded-md border border-line px-2 py-1 text-[12px] font-semibold text-muted transition-colors hover:border-ink hover:text-ink disabled:opacity-50"
+            >
+              {needsTap ? <Play size={13} aria-hidden /> : <Repeat size={13} aria-hidden />}
+              {needsTap ? 'Play' : 'Again'}
+            </button>
+          ) : null}
+        </div>
+
+        {needsTap ? (
+          <p className="mt-2 text-[12.5px] text-muted">Your browser will not play audio until you tap something on the page. Tap Play to hear the question.</p>
+        ) : null}
 
         {heard ? (
           <p className="mt-2.5 rounded-md border border-line bg-surface-2/50 px-3 py-2 text-[13px]">
@@ -181,7 +217,10 @@ export function InterviewCall({
                 disabled={session.status !== 'active'}
                 onClick={() => {
                   // Cut the question short if they are ready before it finishes.
-                  speech.stop();
+                  stopSpeaking();
+                  // This tap also satisfies the browser's "user has interacted" rule, so the next
+                  // question will be allowed to speak even if the first one was blocked.
+                  setNeedsTap(false);
                   void recorder.start();
                 }}
               >
