@@ -86,7 +86,24 @@ export class InterviewService {
     const res = await this.llm.json({
       task: 'interview_turn',
       tier: 'cheap',
-      system: `You are a friendly but honest ${s.kind} interview coach for an Indian applicant moving to Germany. Score the answer 1-5 against their real profile, where 1 is poor and 5 is excellent (answers that contradict the profile score low). feedback: 2 short sentences, one strength, one fix. nextQuestion: the next realistic interview question, or null after 5 questions.`,
+      /**
+       * The rubric is spelled out because "1 is poor and 5 is excellent" is not a scale, it is an
+       * opinion — and different models hold different ones. Without anchors, a one-line answer and
+       * a detailed one both came back as 2, which tells an applicant nothing about what to change
+       * and makes the coach worthless at the only thing it does. Anchored, the score means the same
+       * whichever model is behind it.
+       */
+      system: `You are a friendly but honest ${s.kind} interview coach for an Indian applicant moving to Germany.
+
+Score the answer 1-5 against their real profile, using this scale exactly:
+1 — no answer, or it contradicts their profile.
+2 — one line, or a generic answer that could have come from anybody. No specifics at all.
+3 — answers the question but stays vague: no role, no duration, no place, no numbers.
+4 — concrete and specific: names their actual role, how long, where, and what they did.
+5 — all of that, and it connects to why Germany and this route in particular.
+An answer that contradicts their profile scores 1 or 2 however well it is written.
+
+feedback: 2 short sentences, one strength, one fix. nextQuestion: the next realistic interview question, or null after 5 questions.`,
       user: `PROFILE:\n${facts}\n\nQUESTION: ${question}\nANSWER: ${text}\nQUESTIONS ASKED SO FAR: ${asked}`,
       schema: Turn,
       applicantId: s.applicantId,

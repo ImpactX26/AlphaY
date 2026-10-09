@@ -235,6 +235,19 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
       const { ImapFlow } = await import('imapflow');
       const { simpleParser } = await import('mailparser');
       client = new ImapFlow({ host: config.imapHost, port: config.imapPort, secure: true, auth: { user: config.smtpUser, pass: config.smtpPass }, logger: false });
+      /**
+       * An error listener, attached before connecting, because the absence of one is fatal.
+       *
+       * ImapFlow is an EventEmitter and the socket dies on its own schedule: Gmail resets an idle
+       * IMAP connection routinely, and the ECONNRESET arrives as an `error` event long after
+       * `connect()` resolved — outside the promise chain, so the try/catch around this never sees
+       * it. Node's rule for an `error` event with no listener is to throw it process-wide, so a
+       * dropped mail connection was taking the entire API down with it: every route, the websocket,
+       * the agent loop, mid-demo. Polling again in thirty seconds is the correct response to a
+       * reset socket; dying is not.
+       */
+      client.on('error', (err: any) => this.log.warn(`IMAP connection dropped: ${err?.message ?? err}. Will retry on the next poll.`));
+      client.on('close', () => undefined);
       await client.connect();
       const lock = await client.getMailboxLock('INBOX');
       try {
@@ -272,7 +285,13 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
       this.log.warn(`IMAP poll failed: ${e?.message ?? e}`);
     } finally {
       this.polling = false;
+      // logout() talks to a server that may already be gone; close() just drops the socket.
       await client?.logout().catch(() => undefined);
+      try {
+        client?.close?.();
+      } catch {
+        // Already closed. Nothing here is worth a line in the log.
+      }
     }
   }
 

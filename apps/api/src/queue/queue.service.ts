@@ -9,13 +9,26 @@ export type QueueName = 'ingest' | 'agent' | 'specialists' | 'outbound' | 'timer
 @Injectable()
 export class QueueService implements OnModuleDestroy {
   private readonly log = new Logger('Queue');
-  readonly redis = new IORedis(config.redisUrl, { maxRetriesPerRequest: null });
+  readonly redis = new IORedis(config.redisUrl, { maxRetriesPerRequest: null }).on('error', (err) => this.log.warn(`redis: ${err?.message ?? err}`));
   private readonly queues = new Map<QueueName, Queue>();
   private readonly events = new Map<QueueName, QueueEvents>();
   private readonly workers: Worker[] = [];
 
+  /**
+   * Every Redis connection gets an error listener, because the absence of one is fatal.
+   *
+   * ioredis is an EventEmitter and reconnects on its own; the `error` event it emits while doing
+   * so has no listener by default, and Node's rule for that is to throw it process-wide. A Redis
+   * blip was therefore able to take down every route, the websocket and the agent loop. Reconnection
+   * is already ioredis's job — ours is only to not die while it happens.
+   */
+  private attach(c: IORedis): IORedis {
+    c.on('error', (err) => this.log.warn(`redis: ${err?.message ?? err}`));
+    return c;
+  }
+
   private connection() {
-    return new IORedis(config.redisUrl, { maxRetriesPerRequest: null });
+    return this.attach(new IORedis(config.redisUrl, { maxRetriesPerRequest: null }));
   }
 
   queue(name: QueueName): Queue {
