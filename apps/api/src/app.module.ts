@@ -7,6 +7,7 @@ import { BusService } from './common/bus.service';
 import { QueueService } from './queue/queue.service';
 import { StorageService } from './storage/storage.service';
 import { MediaService } from './media/media.service';
+import { TtsService } from './media/tts.service';
 import { LlmService } from './llm/llm.service';
 import { TraceService } from './trace/trace.service';
 import { RealtimeGateway } from './realtime/realtime.gateway';
@@ -75,6 +76,7 @@ import { SafetyService } from './safety/safety.service';
     QueueService,
     StorageService,
     MediaService,
+    TtsService,
     LlmService,
     TraceService,
     RealtimeGateway,

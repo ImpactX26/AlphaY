@@ -200,6 +200,26 @@ export const httpApi: Api = {
   calendar: (id) => get<CalendarEventDTO[]>(`/applicants/${seg(id)}/calendar`),
   startInterview: (id, kind) => post<InterviewDTO>(`/applicants/${seg(id)}/interview`, { kind }),
   answerInterview: (sessionId, text) => post<InterviewDTO>(`/interview/${seg(sessionId)}/answer`, { text }),
+  /**
+   * The question as real speech, or null when no voice is configured (the API answers 204) or the
+   * request fails. Null is normal: the caller reads it with the browser's own voice instead.
+   * Its own fetch because `request` parses JSON and this is audio.
+   */
+  interviewSay: async (sessionId, text) => {
+    const token = tokenStore.get();
+    try {
+      const res = await fetch(`/api/interview/${seg(sessionId)}/say`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ text }),
+      });
+      if (res.status === 204 || !res.ok) return null;
+      const blob = await res.blob();
+      return blob.size ? blob : null;
+    } catch {
+      return null;
+    }
+  },
   answerInterviewByVoice: (sessionId, audio, filename) => {
     const form = new FormData();
     form.append('audio', audio, filename);

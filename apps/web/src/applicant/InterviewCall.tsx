@@ -46,8 +46,13 @@ export function InterviewCall({
   const [sending, setSending] = useState(false);
   // The browser refused to speak until the page is interacted with: show a way to ask for it.
   const [needsTap, setNeedsTap] = useState(false);
+  // A real voice is playing, versus the browser's own. Tracked separately because the <audio>
+  // element has no equivalent of speechSynthesis's `speaking` flag.
+  const [speakingReal, setSpeakingReal] = useState(false);
+  const [realVoice, setRealVoice] = useState(false);
 
   const question = [...session.turns].reverse().find((t) => t.role === 'coach')?.text ?? '';
+  const talking = speech.speaking || speakingReal;
   const asked = session.turns.filter((t) => t.role === 'coach').length;
   const live = recorder.state === 'recording';
 
@@ -62,19 +67,65 @@ export function InterviewCall({
   // fresh literal every render and so re-ran this effect continuously (including while it was
   // speaking, since `speaking` is part of it).
   const { say, stop: stopSpeaking } = speech;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  /**
+   * Ask the question aloud: the real voice if the server has one, the browser's otherwise.
+   *
+   * Both paths can be refused by the same autoplay policy — an `<audio>` element started before
+   * the page has been interacted with rejects its `play()` promise, exactly as `speechSynthesis`
+   * silently drops an utterance. Either way the answer is the same: offer a Play button.
+   */
+  const ask = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (!text || speech.muted) return false;
+      audioRef.current?.pause();
+      audioRef.current = null;
+
+      const clip = await api.interviewSay(session.id, text).catch(() => null);
+      if (clip) {
+        const url = URL.createObjectURL(clip);
+        const el = new Audio(url);
+        audioRef.current = el;
+        setRealVoice(true);
+        try {
+          setSpeakingReal(true);
+          // Resolves when playback actually begins; rejects when the browser blocks it.
+          await el.play();
+          await new Promise<void>((resolve) => {
+            el.onended = () => resolve();
+            el.onerror = () => resolve();
+          });
+          return true;
+        } catch {
+          return false;
+        } finally {
+          setSpeakingReal(false);
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      // No key, no quota, or the call failed: the browser reads it. Nothing is lost — the
+      // question is on screen either way.
+      setRealVoice(false);
+      return say(text);
+    },
+    [session.id, say, speech.muted],
+  );
+
   const spoken = useRef<string>('');
   useEffect(() => {
     if (!question || spoken.current === question) return;
     spoken.current = question;
     setHeard(null);
-    void say(question).then((ok) => {
-      // Chrome refuses speechSynthesis until the page has been interacted with, so the very first
-      // question — which arrives on mount, before any click — is silently swallowed. There is no
-      // error and no event; the only signal is that nothing was spoken. Offer the button rather
+    void ask(question).then((ok) => {
+      // Chrome refuses audio until the page has been interacted with, so the very first question —
+      // which arrives on mount, before any click — is silently swallowed. There is no error and no
+      // event from speechSynthesis; an <audio> element rejects instead. Offer the button rather
       // than leave them wondering whether the sound is broken.
       if (!ok) setNeedsTap(true);
     });
-  }, [question, say]);
+  }, [question, ask]);
 
   // Stop talking the moment this unmounts, or a voice keeps going over the next screen. The
   // cleanup has braces so it returns nothing: React only accepts `undefined` or a function back
@@ -82,6 +133,8 @@ export function InterviewCall({
   useEffect(
     () => () => {
       stopSpeaking();
+      audioRef.current?.pause();
+      audioRef.current = null;
     },
     [stopSpeaking],
   );
@@ -127,18 +180,21 @@ export function InterviewCall({
               aria-hidden
               className={clsx(
                 'grid size-16 place-items-center rounded-full bg-agent/20 text-[20px] font-bold text-agent transition-transform',
-                speech.speaking && 'animate-pulse scale-110',
+                talking && 'animate-pulse scale-110',
               )}
             >
               AI
             </span>
-            <span className="text-[12.5px] text-bg/70">{speech.speaking ? 'Speaking…' : sending ? 'Listening to your answer' : live ? 'Listening' : 'Ready'}</span>
+            <span className="text-[12.5px] text-bg/70">{talking ? 'Speaking…' : sending ? 'Listening to your answer' : live ? 'Listening' : 'Ready'}</span>
           </div>
           <span className="absolute left-2.5 top-2.5 rounded bg-black/40 px-2 py-0.5 text-[11.5px] font-medium text-white">Interviewer</span>
           {speech.supported ? (
             <button
               type="button"
-              onClick={speech.toggleMute}
+              onClick={() => {
+                audioRef.current?.pause();
+                speech.toggleMute();
+              }}
               aria-label={speech.muted ? 'Unmute the interviewer' : 'Mute the interviewer'}
               className="absolute right-2.5 top-2.5 grid size-7 place-items-center rounded bg-black/40 text-white hover:bg-black/60"
             >
@@ -167,16 +223,16 @@ export function InterviewCall({
             this has to work with the sound off. */}
         <div className="mt-1 flex items-start gap-2">
           <p className="min-w-0 flex-1 text-[16px] font-semibold leading-snug">{question}</p>
-          {speech.supported && !speech.muted ? (
+          {(speech.supported || realVoice) && !speech.muted ? (
             // Hearing it again is a normal thing to want in a second language, and it is the same
             // button that unblocks the first question — a tap is exactly what the browser wants.
             <button
               type="button"
               onClick={() => {
                 setNeedsTap(false);
-                void say(question);
+                void ask(question);
               }}
-              disabled={speech.speaking}
+              disabled={talking}
               aria-label={needsTap ? 'Play the question' : 'Hear the question again'}
               className="mt-0.5 inline-flex flex-none items-center gap-1.5 rounded-md border border-line px-2 py-1 text-[12px] font-semibold text-muted transition-colors hover:border-ink hover:text-ink disabled:opacity-50"
             >
@@ -218,6 +274,7 @@ export function InterviewCall({
                 onClick={() => {
                   // Cut the question short if they are ready before it finishes.
                   stopSpeaking();
+                  audioRef.current?.pause();
                   // This tap also satisfies the browser's "user has interacted" rule, so the next
                   // question will be allowed to speak even if the first one was blocked.
                   setNeedsTap(false);
@@ -251,7 +308,7 @@ export function InterviewCall({
           ) : null}
         </div>
 
-        {!speech.supported ? <p className="mt-2 text-[12px] text-muted">This browser cannot read the question aloud, so it is written above.</p> : null}
+        {!speech.supported && !realVoice ? <p className="mt-2 text-[12px] text-muted">This browser cannot read the question aloud, so it is written above.</p> : null}
       </div>
     </div>
   );

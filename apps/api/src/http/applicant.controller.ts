@@ -50,6 +50,7 @@ import { CalendarService } from '../outbound/calendar.service';
 import { PackService } from '../outbound/pack.service';
 import { WriterService } from '../outbound/writer.service';
 import { InterviewService } from '../agent/interview.service';
+import { TtsService } from '../media/tts.service';
 import { TraceService } from '../trace/trace.service';
 import { service } from '../knowledge/services';
 
@@ -145,6 +146,7 @@ export class ApplicantController {
     private readonly pack: PackService,
     private readonly writer: WriterService,
     private readonly interview: InterviewService,
+    private readonly tts: TtsService,
     private readonly trace: TraceService,
   ) {}
 
@@ -476,6 +478,33 @@ export class ApplicantController {
     if (!s) throw new NotFoundException();
     assertAccess(u, s.applicantId);
     return this.interview.answer(sid, String(b?.text ?? ''));
+  }
+
+  /**
+   * The interviewer's question as audio, when a real voice is configured.
+   *
+   * The text comes in and the bytes come back from our own origin, so the ElevenLabs key stays on
+   * the server — an `<audio src>` pointing at their API with a key in the URL is the usual way
+   * this leaks. 204 means "no voice available", which is a normal answer: the browser then reads
+   * the question with `speechSynthesis` and nothing is lost.
+   */
+  @Post('interview/:sid/say')
+  async interviewSay(@CurrentUser() u: AuthUser, @Param('sid') sid: string, @Body() b: { text: string }, @Res() res: Response) {
+    const s = await db.query.interviewSessions.findFirst({ where: eq(schema.interviewSessions.id, sid) });
+    if (!s) throw new NotFoundException();
+    assertAccess(u, s.applicantId);
+
+    const spoken = await this.tts.speak(String(b?.text ?? ''));
+    if (!spoken) {
+      res.status(204).end();
+      return;
+    }
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', String(spoken.bytes.length));
+    // The same question in a session is the same audio, and the bank is fifteen sentences, so let
+    // the browser keep it too rather than asking us again.
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    res.end(spoken.bytes);
   }
 
   /**

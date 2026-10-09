@@ -36,6 +36,17 @@ export const config = {
   searchProvider: env('SEARCH_PROVIDER', 'duckduckgo') as 'duckduckgo' | 'tavily',
   tavilyKey: env('TAVILY_API_KEY'),
 
+  // The interviewer's voice. Optional on purpose: with no key the browser's own speechSynthesis
+  // reads the question for free, so this is an upgrade and never a dependency. ElevenLabs bills
+  // per character, so the cache in tts.service.ts matters more than it looks.
+  elevenLabsKey: env('ELEVENLABS_API_KEY'),
+  // Rachel: calm, neutral, clearly enunciated English, which is what someone practising an
+  // interview in a second language needs. Any voice id from the account's library works.
+  elevenLabsVoiceId: env('ELEVENLABS_VOICE_ID', '21m00Tcm4TlvDq8ikWAM'),
+  // Turbo v2.5 is their low-latency model: this is a live call, and a two-second pause before
+  // every question is worse than a slightly richer voice.
+  elevenLabsModel: env('ELEVENLABS_MODEL', 'eleven_turbo_v2_5'),
+
   // Mail: the team's own mailbox (SMTP to send, IMAP to read replies). Without credentials, Mailpit catches everything.
   smtpUser: env('SMTP_USER'),
   smtpPass: env('SMTP_PASS'),

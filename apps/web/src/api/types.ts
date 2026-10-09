@@ -105,6 +105,7 @@ export interface Api {
   calendar(id: string): Promise<CalendarEventDTO[]>;
   startInterview(id: string, kind: InterviewDTO['kind']): Promise<InterviewDTO>;
   answerInterview(sessionId: string, text: string): Promise<InterviewDTO>;
+  interviewSay(sessionId: string, text: string): Promise<Blob | null>;
   answerInterviewByVoice(sessionId: string, audio: Blob, filename: string): Promise<InterviewVoiceDTO>;
   discordLink(id: string): Promise<{ code: string }>;
   germany(id: string, input: { city: string; address?: string; startDate?: string }): Promise<ApplicantDTO>;
