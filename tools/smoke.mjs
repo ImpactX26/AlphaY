@@ -331,6 +331,31 @@ async function main() {
   const real = await api(`/applicants/${R}/check`, { token: rT, method: 'POST', body: { kind: 'university', name: 'RWTH Aachen University', url: `${BASE}/api/mock/rwth-aachen-msc-data-science` } });
   check('a real university is not called a scam', real.body?.verdict !== 'high_risk', `${real.body?.verdict} ${real.body?.score}/100`);
 
+  // The other half of the job, and the one that used to fail: a check that suspects everything is
+  // worth nothing, because the warning people need stops standing out from the six that did not
+  // matter. A lawful rental is the sharpest case - a Kaution is required by law (BGB 551) and a
+  // private landlord really does write from Gmail, and both used to count against them.
+  const lawful = await api(`/applicants/${A}/check`, {
+    token: aT,
+    method: 'POST',
+    body: {
+      kind: 'landlord',
+      name: 'Room in Ehrenfeld',
+      email: 'maria.schmidt@gmail.com',
+      text: 'Hi, the room is still free from 1 April. Warm rent 480 EUR. The security deposit is two months cold rent, payable after we sign. Happy to show you the flat on a video call first.',
+    },
+  });
+  check('an ordinary rental is not flagged', lawful.body?.verdict === 'looks_legitimate', `${lawful.body?.verdict} ${lawful.body?.score}/100`);
+  check('a lawful deposit is not read as a scam fee', !(lawful.body?.signals ?? []).some((s) => s.status === 'bad'), (lawful.body?.signals ?? []).filter((s) => s.status === 'bad').map((s) => s.label).join(', ') || 'no bad signals');
+
+  // But a deposit demanded before anything is signed still is one.
+  const upfront = await api(`/applicants/${A}/check`, {
+    token: aT,
+    method: 'POST',
+    body: { kind: 'landlord', name: 'Room near campus', email: 'rentberlin2024@gmail.com', text: 'To reserve the room please transfer the deposit before we sign anything. Many people are interested.' },
+  });
+  check('a deposit demanded up front still is', upfront.body?.verdict === 'high_risk', `${upfront.body?.verdict} ${upfront.body?.score}/100`);
+
   await api(`/applicants/${A}/report`, { token: aT, method: 'POST', body: { employer: 'Klinikum Koeln Mitte GmbH', category: 'hours', severity: 'serious', text: 'Rostered 12 days in a row, overtime never recorded.' } });
   const ratings = (await api('/staff/employers', { token: sT })).body ?? [];
   check('a private report reaches staff', ratings.some((e) => e.reports > 0), ratings.filter((e) => e.reports).map((e) => `${e.employer} ${e.rating}/5`).join(', '));

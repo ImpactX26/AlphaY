@@ -5,7 +5,7 @@ import { WebService } from '../web/web.service';
 import { TraceService } from '../trace/trace.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { ChatService } from '../profile/chat.service';
-import { checkContract, contractKind, missingFromContract, REGISTERS, scamCheck, type ScamInput } from '../knowledge/safety';
+import { checkContract, contractKind, feeBeforeContract, missingFromContract, REGISTERS, scamCheck, type ScamInput } from '../knowledge/safety';
 
 export interface CheckRequest {
   kind: ScamInput['kind'];
@@ -62,7 +62,10 @@ export class SafetyService {
       text: haystack,
       pageOpened,
       inCatalogue: Boolean(known),
-      feeRequested: /\b(registration fee|processing fee|placement fee|security deposit|advance payment)\b/i.test(haystack),
+      // `security deposit` used to be in this list, so every lawful rental was read as a scam fee.
+      // The rule now lives with the other patterns and only counts a deposit demanded before a
+      // contract or a viewing. See `feeBeforeContract`.
+      feeRequested: feeBeforeContract(haystack),
     });
 
     // The contract check reads what they were sent, not the website. A company's own careers page

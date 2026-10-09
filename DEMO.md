@@ -113,12 +113,12 @@ The strongest 30 seconds in the build. Paste a realistic fake offer into the che
 a gmail address on a company letterhead, Western Union, "only today", a fee before any contract.
 
 It lands on the **Safety** tab (with a dot on it, because a high-risk check is something waiting on
-her). It comes back **0 out of 100, high risk**, naming each signal, *and* flags three clauses from the
+her). It comes back **0 out of 100, high risk**, naming each signal, *and* flags two clauses from the
 same message — the employer keeping the passport and a twelve-month probation are not merely unfair,
 they are unenforceable in Germany. The agent then says so in chat rather than leaving it on a page.
 
-Then run the same check against RWTH: **85 out of 100, looks legitimate.** The point is that it
-discriminates, not that it is suspicious of everything.
+Then run the same check against RWTH: **100 out of 100, looks legitimate**, with no flag against it.
+The point is that it discriminates, not that it is suspicious of everything.
 
 > Indian applicants are the most defrauded group in this entire process. The checks that settle it
 > are boring and cheap. Nobody runs them because nobody tells you which ones matter.

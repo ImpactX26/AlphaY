@@ -57,6 +57,29 @@ const WEBMAIL = /@(gmail|yahoo|hotmail|outlook|rediffmail|protonmail|mail)\.(com
 const WIRE = /\b(western union|moneygram|wire transfer|bitcoin|crypto|usdt|upi to a personal|gift card)\b/i;
 const PRESSURE = /\b(only today|limited seats|pay within 24|immediately to confirm|last chance|hurry)\b/i;
 
+/**
+ * Money asked for before anything is signed — the actual scam pattern.
+ *
+ * A "security deposit" used to be on this list, which flagged every lawful rental: a Kaution is
+ * required by law (§551 BGB), and the app's own advice says so two lines later. A check that
+ * contradicts its own guidance teaches people to ignore it, and once it fires on ordinary offers
+ * the one that matters reads the same as the six that did not.
+ *
+ * So the deposit counts only when it is being collected *before* a contract or a viewing, which is
+ * the thing that is actually wrong. The clearly one-sided fees stay unconditional: no legitimate
+ * German employer charges a candidate a placement fee, in any order.
+ */
+const FEE_ALWAYS = /\b(registration fee|processing fee|placement fee|recruitment fee|agency fee|visa processing charge)\b/i;
+/** A deposit is lawful; a deposit demanded before a signature or a viewing is not. */
+const DEPOSIT_BEFORE =
+  /\b(deposit|kaution|advance payment|booking amount)\b[^.!?]{0,120}\b(before|prior to|in advance of|to (?:confirm|reserve|block|hold)|to secure)\b|\b(before|prior to|in advance of)\b[^.!?]{0,80}\b(deposit|kaution)\b|\b(deposit|kaution)\b[^.!?]{0,120}\bto (?:see|view|visit)\b/i;
+
+/** Did someone ask for money in a way no legitimate German party would? */
+export function feeBeforeContract(text: string): boolean {
+  const t = text ?? '';
+  return FEE_ALWAYS.test(t) || DEPOSIT_BEFORE.test(t);
+}
+
 export interface ScamInput {
   kind: 'university' | 'employer' | 'landlord' | 'agent' | 'offer';
   name: string;
@@ -74,7 +97,19 @@ export interface ScamInput {
 export function scamCheck(input: ScamInput): { verdict: 'looks_legitimate' | 'be_careful' | 'high_risk'; score: number; signals: Signal[]; neverDo: string[] } {
   const signals: Signal[] = [];
   const text = `${input.text ?? ''} ${input.name}`;
-  let score = 60;
+
+  // Starts where an ordinary message sits, not below it.
+  //
+  // The baseline was 60 against a 70 threshold, so anything had to *earn* ten points before it
+  // could be called legitimate — and the only ways to earn them are a page we could open or a
+  // domain we recognise. A real offer pasted as plain text has neither, so it came back "be
+  // careful" for no finding at all. That is absence of evidence being reported as evidence, and it
+  // is how a check ends up flagging everything: once the ordinary case is a warning, the warning
+  // stops carrying information.
+  //
+  // 75 is a message with nothing wrong with it. Everything below subtracts for something actually
+  // found, and the good signals still lift a well-evidenced sender clear of the ordinary one.
+  let score = 75;
 
   // ---- the domain ----
   const domain = (() => {
@@ -91,8 +126,15 @@ export function scamCheck(input: ScamInput): { verdict: 'looks_legitimate' | 'be
       score += 25;
       signals.push({ label: 'In the official register', status: 'good', detail: `${input.name} is a recognised German higher-education institution. Degrees from it are listed in anabin.` });
     } else {
-      score -= 15;
-      signals.push({ label: 'Not confirmed in the register', status: 'warn', detail: `I could not match "${input.name}" to the Hochschulkompass list. Check it there before you pay any fee — an unrecognised degree will not get you a visa.` });
+      // Not a finding. Our list is sixteen names and Germany has over four hundred recognised
+      // institutions, so "I have not heard of it" says more about the list than the university.
+      // It is worth telling someone where to confirm it; it is not worth a score penalty, which is
+      // what turned every real but less famous public university into "be careful".
+      signals.push({
+        label: 'Not on my shortlist — check the register',
+        status: 'warn',
+        detail: `I only hold the best-known German institutions, and "${input.name}" is not one of them — that does not make it fake. Confirm it on Hochschulkompass before you pay any fee, because an unrecognised degree will not get you a visa.`,
+      });
     }
     if (domain && !/\.(de|edu|ac\.[a-z]{2})$/i.test(domain)) {
       score -= 10;
@@ -109,11 +151,18 @@ export function scamCheck(input: ScamInput): { verdict: 'looks_legitimate' | 'be
   }
 
   if (input.email && WEBMAIL.test(input.email)) {
-    score -= 20;
+    // A private landlord on WG-Gesucht really does write from Gmail — that is the normal case, not
+    // the suspicious one, and the detail text said so while the score punished it anyway. The
+    // penalty now matches the sentence: a note for a landlord, a real finding for an institution
+    // that should own a domain.
+    const landlord = input.kind === 'landlord';
+    score -= landlord ? 5 : 20;
     signals.push({
-      label: 'Free email address',
-      status: input.kind === 'landlord' ? 'warn' : 'bad',
-      detail: `${input.email} is a personal webmail address. A real employer or university writes from its own domain. A private landlord may use webmail, but then everything else must check out.`,
+      label: landlord ? 'Writes from a personal address' : 'Free email address',
+      status: landlord ? 'warn' : 'bad',
+      detail: landlord
+        ? `${input.email} is personal webmail, which is normal for a private landlord — most of them are not companies. It only matters if something else is off, so judge it on the rest of this list.`
+        : `${input.email} is a personal webmail address. A real employer or university writes from its own domain.`,
     });
   } else if (input.email && domain && input.email.endsWith(`@${domain}`)) {
     score += 15;
@@ -129,11 +178,16 @@ export function scamCheck(input: ScamInput): { verdict: 'looks_legitimate' | 'be
     signals.push({ label: 'Time pressure', status: 'warn', detail: 'Urgency is the oldest tool there is. German admissions and hiring both run on fixed, published deadlines — nothing real expires in 24 hours.' });
   }
   if (input.feeRequested) {
-    score -= 25;
+    // Worth more than it was. This used to fire on any mention of a "security deposit", including
+    // the lawful one every tenant pays, so it had to be weighted gently or it would have condemned
+    // every rental. Now that it only matches money demanded *before* a contract or a viewing, it
+    // is one of the two or three things that genuinely settles the question, and it should be able
+    // to carry a verdict on its own.
+    score -= 40;
     signals.push({
       label: 'A fee before a contract',
       status: 'bad',
-      detail: 'For a job, the employer pays the recruiter, never you. If someone wants a placement fee from you before a signed contract, stop.',
+      detail: 'Money is being asked for before anything is signed. For a job, the employer pays the recruiter, never you; for a flat, the deposit comes after a signed contract and never to see the place.',
     });
   }
   if (input.pageOpened) {
@@ -141,10 +195,16 @@ export function scamCheck(input: ScamInput): { verdict: 'looks_legitimate' | 'be
     signals.push({ label: 'Their page opened and matched', status: 'good', detail: 'I opened the page myself in this check and the details on it line up with what you were sent.' });
   }
   if (input.kind === 'landlord') {
+    // This is advice every renter should have, not something found in *this* message. It was a
+    // `warn`, so every lawful flat came back with a flag against it and the list stopped meaning
+    // anything. Neutral unless the message actually asks for money up front, which the fee check
+    // above has already decided.
     signals.push({
       label: 'Deposit limit',
-      status: 'warn',
-      detail: 'A German deposit (Kaution) is capped at three months of cold rent by law, and is paid after a signed contract — never to see a flat.',
+      status: input.feeRequested ? 'warn' : 'good',
+      detail: input.feeRequested
+        ? 'A German deposit (Kaution) is capped at three months of cold rent by law, and is paid after a signed contract — never to see a flat. This message asks for money before that point.'
+        : 'Worth knowing: a German deposit (Kaution) is capped at three months of cold rent by law, and is paid after signing — never to see a flat. Nothing here breaks that.',
     });
   }
 
