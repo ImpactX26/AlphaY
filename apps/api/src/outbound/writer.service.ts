@@ -48,7 +48,15 @@ export class WriterService {
     const st = await this.state.load(applicantId);
     const target = st.shortlist.find((s) => s.id === shortlistId);
     if (!target) return null;
-    const existing = st.approvals.find((a) => a.kind === 'email' && (a.payload as any).shortlistId === shortlistId && a.status !== 'rejected');
+    // Only reuse a letter this writer produced.
+    //
+    // The tailored-CV flow also creates an email approval against the same shortlist row, and
+    // handing that back instead of writing a motivation letter returned an artifact with no
+    // sentence-level sources — a different promise entirely. Tested structurally rather than by a
+    // marker field: a letter is a thing with sentences, and that holds for rows written before any
+    // marker existed.
+    const isLetter = (a: (typeof st.approvals)[number]) => Array.isArray((a.payload as any)?.sentences) && (a.payload as any).sentences.length > 0;
+    const existing = st.approvals.find((a) => a.kind === 'email' && (a.payload as any).shortlistId === shortlistId && isLetter(a) && a.status !== 'rejected');
     if (existing) return existing;
 
     let keywords: string[] = [];
