@@ -63,8 +63,15 @@ export function InterviewCall({
     void speech.say(question);
   }, [question, speech]);
 
-  // Stop talking the moment this unmounts, or a voice keeps going over the next screen.
-  useEffect(() => () => speech.stop(), [speech]);
+  // Stop talking the moment this unmounts, or a voice keeps going over the next screen. The
+  // cleanup has braces so it returns nothing: React only accepts `undefined` or a function back
+  // from an effect, and a concise body hands it whatever the call returned.
+  useEffect(
+    () => () => {
+      speech.stop();
+    },
+    [speech],
+  );
 
   const send = useCallback(async () => {
     const result = await recorder.stop();

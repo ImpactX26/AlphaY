@@ -33,7 +33,13 @@ export default function InterviewPage() {
   const [mode, setMode] = useState<'call' | 'type'>('call');
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), [session?.turns.length]);
+  // Braces, not a concise body. `useEffect(() => expr)` *returns* `expr`, and React calls whatever
+  // comes back as the cleanup function — so any browser that returns a value from `scrollIntoView`
+  // (or a polyfill that returns a Promise) crashes the page with "destroy is not a function",
+  // taking the whole route down through the error boundary. The effect must return nothing.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [session?.turns.length]);
 
   const start = async (kind: InterviewDTO['kind']) => {
     setBusy(true);
