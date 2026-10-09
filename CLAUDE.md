@@ -85,7 +85,9 @@ Code fills block data and the agent picks the order and writes the words. React 
   and truth-map comparison are computed in code, never by the model.
 - Every LLM-backed feature needs a rule-based fallback, so the app runs with zero keys.
 - No retry loops that re-spend tokens. Supervisor runs are capped per event.
-- Transcription: Groq `whisper-large-v3-turbo` (free), with local `faster-whisper` as the fallback.
+- Transcription: Groq `whisper-large-v3` (free) — the full model, not the turbo distil: 10.3% word
+  error rate against turbo's 12% by Groq's own figures, and transcription accuracy is the whole
+  input to the agent. Local `faster-whisper` (`small.en`) is the fallback.
 
 ## Field tags (every fact carries exactly one)
 

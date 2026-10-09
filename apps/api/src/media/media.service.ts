@@ -197,7 +197,13 @@ export class MediaService implements OnModuleDestroy {
     const codec = toWav ? ['-c:a', 'pcm_s16le'] : ['-b:a', '48k'];
     try {
       // `-vn` drops any video. 16 kHz mono is what the model resamples to regardless.
-      await run(ffmpegPath, ['-y', '-i', absPath, '-vn', '-ac', '1', '-ar', '16000', ...codec, out], { windowsHide: true });
+      //
+      // `speechnorm` before the resample because a laptop or phone mic held at arm's length
+      // records quietly, and Whisper transcribes a quiet signal noticeably worse — it is the
+      // cheapest accuracy left on the table. Unlike `loudnorm` this is a single pass and expands
+      // speech peaks continuously, so it lifts a soft talker without pumping the room tone up
+      // between sentences, which would give the model noise to hallucinate words out of.
+      await run(ffmpegPath, ['-y', '-i', absPath, '-vn', '-af', 'speechnorm=e=12.5:r=0.0001:l=1', '-ac', '1', '-ar', '16000', ...codec, out], { windowsHide: true });
       const made = (await fs.promises.stat(out).catch(() => null))?.size ?? 0;
       if (made > 0) return out;
       this.log.warn(`ffmpeg produced an empty file for ${path.basename(absPath)}; sending the original`);
@@ -232,6 +238,13 @@ export class MediaService implements OnModuleDestroy {
 
   async transcribe(absPath: string): Promise<Transcript> {
     const audio = await this.toUploadable(absPath);
+    // Which decode actually happened, and which model read it. A silent fallback to the original
+    // container is the difference between a good transcript and a garbled one, and without this
+    // line the only symptom is "the agent is making things up" with nothing in the log to explain
+    // it. `converted: false` on a browser recording means ffmpeg failed and is the first thing to
+    // check when a transcript comes back wrong.
+    const converted = audio !== absPath;
+    this.log.log(`transcribing ${path.basename(absPath)} -> ${path.basename(audio)} (converted: ${converted}, model: ${this.groq ? config.groqTranscribeModel : config.localWhisperModel})`);
 
     if (this.groq) {
       try {

@@ -19,7 +19,11 @@ export const config = {
 
   groqKey: env('GROQ_API_KEY'),
   groqModel: env('GROQ_MODEL', 'openai/gpt-oss-120b'),
-  groqTranscribeModel: env('GROQ_TRANSCRIBE_MODEL', 'whisper-large-v3-turbo'),
+  // `whisper-large-v3`, not the turbo distil. Groq's own figures: 10.3% word error rate against
+  // turbo's 12%, and they recommend it for error-sensitive work. Turbo cuts the decoder from 32
+  // layers to 4, which is exactly the part that resolves an unfamiliar accent — and both are free.
+  // Transcription accuracy is the whole input to the agent here, so the slower one is correct.
+  groqTranscribeModel: env('GROQ_TRANSCRIBE_MODEL', 'whisper-large-v3'),
   openaiKey: env('OPENAI_API_KEY'),
   openaiModel: env('OPENAI_MODEL', 'gpt-5-mini'),
   openaiBudgetUsd: Number(env('OPENAI_BUDGET_USD', '40')),
