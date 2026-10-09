@@ -190,10 +190,13 @@ export default function PlanPage() {
             <p className="max-w-prose text-[14px]">
               The interview coach asks what a visa officer or this employer is likely to ask, in English, and scores each answer against your own profile.
             </p>
-            <a href="/app/interview" className="btn btn-primary no-underline">
+            {/* `Link`, not `<a href>`: a raw anchor is a full browser navigation, which throws away
+                the running app and re-bootstraps it — a blank flash, every query refetched, and the
+                whole bundle re-served. It reads as the button being broken. */}
+            <Link to="/app/interview" className="btn btn-primary no-underline">
               <MessageSquare size={16} aria-hidden />
               Start a mock interview
-            </a>
+            </Link>
           </div>
         </section>
       </div>

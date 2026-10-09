@@ -256,7 +256,22 @@ async function main() {
   if (iv.body?.id) {
     const weak = await api(`/interview/${iv.body.id}/answer`, { token: aT, method: 'POST', body: { text: 'Because Germany is good.' } });
     const scored = (weak.body?.turns ?? []).filter((t) => t.role === 'applicant').pop();
-    check('a weak answer scores badly and says why', typeof scored?.score === 'number' && scored.score <= 5 && scored.feedback?.length > 20, `score ${scored?.score}`);
+    check('a weak answer scores badly and says why', typeof scored?.score === 'number' && scored.score <= 3 && scored.feedback?.length > 20, `score ${scored?.score}`);
+
+    // The screen renders `{score} / 5`, so anything above 5 is displayed as "8 / 5" and the colour
+    // thresholds (4+ is green) mark a mediocre 4-out-of-10 as strong. The prompt used to ask for
+    // 1-10 while the UI said /5; this asserts the scale the screen actually shows, on a *good*
+    // answer, which is where an out-of-ten score would surface and the weak case never would.
+    const strong = await api(`/interview/${iv.body.id}/answer`, {
+      token: aT,
+      method: 'POST',
+      body: {
+        text: 'I am a GNM nurse with three years on a surgical ward at Amrita Hospital in Kochi, where I handled post-operative care for up to twelve patients a shift. I am moving to Germany because the Anerkennung route lets me keep nursing at my own level rather than starting again, and my sister is already in Cologne. I am at A2 German and in a B1 course now.',
+      },
+    });
+    const good = (strong.body?.turns ?? []).filter((t) => t.role === 'applicant').pop();
+    check('scores are on the 1-5 scale the screen shows', typeof good?.score === 'number' && good.score >= 1 && good.score <= 5, `score ${good?.score}/5`);
+    check('a developed answer outscores a one-liner', (good?.score ?? 0) > (scored?.score ?? 0), `${scored?.score} then ${good?.score}`);
   }
 
   // ---------------------------------------------------------------- staff
