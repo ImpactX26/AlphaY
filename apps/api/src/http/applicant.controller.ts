@@ -275,12 +275,32 @@ export class ApplicantController {
     assertAccess(u, id);
     if (!file) throw new BadRequestException('No audio');
     const rel = await this.storage.save(id, file.originalname || 'voice.webm', file.buffer);
-    const tr = await this.media.transcribe(this.storage.abs(rel));
+    // The recording is already saved by this point. Whatever transcription does — a provider
+    // outage, a missing local fallback, a model name that changed — it must not turn into a 500,
+    // because a 500 loses the person's words and tells them nothing about why.
+    let broke = false;
+    const tr = await this.media.transcribe(this.storage.abs(rel)).catch((e) => {
+      broke = true;
+      this.trace.record('tool', 'transcribe_media', { kind: 'voice-note', ok: false, error: String(e?.message ?? e) }, { applicantId: id }).catch(() => undefined);
+      return { text: '', segments: [], provider: 'local' as const };
+    });
     await this.trace.record('tool', 'transcribe_media', { kind: 'voice-note', provider: tr.provider, chars: tr.text.length }, { applicantId: id });
     // A failed transcription used to be posted as the applicant's own words, so the agent read
     // "(voice note could not be transcribed)" as something they said and planned around it. It is
     // the system speaking, and it must not wake the agent — nothing was actually said.
-    if (!tr.text) return toChatDTO(await this.chat.system(id, 'That voice note came through as silence. Try again somewhere quieter, or type it instead.'));
+    //
+    // Silence and a broken transcriber are different things and must not share a sentence:
+    // telling someone to find a quieter room when our own service is down sends them to fix a
+    // problem that is not theirs.
+    if (!tr.text)
+      return toChatDTO(
+        await this.chat.system(
+          id,
+          broke
+            ? 'I could not listen to that one — the transcription service did not answer. Your recording is saved. Please type it for now and I will pick it up.'
+            : 'That voice note came through as silence. Try again somewhere quieter, or type it instead.',
+        ),
+      );
     return toChatDTO(await this.chat.applicantSays(id, tr.text, 'web'));
   }
 

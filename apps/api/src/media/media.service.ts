@@ -268,16 +268,37 @@ export class MediaService implements OnModuleDestroy {
         if (kept.text) return { ...kept, provider: 'groq' };
         this.log.warn('Groq returned nothing usable; trying local Whisper');
       } catch (e: any) {
-        this.log.warn(`Groq transcription failed, using local Whisper: ${e?.message ?? e}`);
+        // The status and the body, not just `message`. A 400 for a model name that was renamed,
+        // a 401 for a stale key and a 429 for the free-tier limit all read identically otherwise,
+        // and they need completely different fixes.
+        const status = e?.status ?? e?.response?.status;
+        const body = e?.error?.message ?? e?.response?.data?.error?.message ?? e?.message ?? String(e);
+        this.log.warn(`Groq transcription failed (${status ?? 'no status'}) on model ${config.groqTranscribeModel}: ${body}`);
       }
     }
-    const { stdout } = await run(config.localWhisperPython, [config.localWhisperScript, audio, config.localWhisperModel], {
-      windowsHide: true,
-      maxBuffer: 20 * 1024 * 1024,
-      timeout: 10 * 60 * 1000,
-      cwd: path.dirname(config.localWhisperScript),
-    });
-    const out = JSON.parse(stdout.trim().split('\n').pop()!);
-    return { ...dropHallucinations({ text: out.text, segments: out.segments ?? [] }), provider: 'local' };
+    // The local fallback is optional: it needs a Python venv that most machines never create
+    // (`tools/whisper/.venv`, see CLAUDE.md). Spawning a binary that is not there throws ENOENT,
+    // and nothing above caught it — so with no Groq key, or on any Groq error, a voice note came
+    // back as a 500. "Could not transcribe" is a result; a crashed request is not, and the audio
+    // is already saved either way.
+    if (!existsSync(config.localWhisperPython) || !existsSync(config.localWhisperScript)) {
+      this.log.warn(`no local Whisper at ${config.localWhisperPython}; returning an empty transcript`);
+      return { text: '', segments: [], provider: 'local' };
+    }
+    try {
+      const { stdout } = await run(config.localWhisperPython, [config.localWhisperScript, audio, config.localWhisperModel], {
+        windowsHide: true,
+        maxBuffer: 20 * 1024 * 1024,
+        timeout: 10 * 60 * 1000,
+        cwd: path.dirname(config.localWhisperScript),
+      });
+      const out = JSON.parse(stdout.trim().split('\n').pop()!);
+      return { ...dropHallucinations({ text: out.text, segments: out.segments ?? [] }), provider: 'local' };
+    } catch (e: any) {
+      // A missing model download, an out-of-memory kill, malformed stdout — all of them are
+      // "no transcript", none of them should lose the recording or break the page.
+      this.log.warn(`local Whisper failed: ${e?.message ?? e}`);
+      return { text: '', segments: [], provider: 'local' };
+    }
   }
 }

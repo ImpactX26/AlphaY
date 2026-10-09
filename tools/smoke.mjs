@@ -311,6 +311,23 @@ async function main() {
   const help = block(rBlocks, 'help');
   check('rights at work are on the screen', (help?.rights?.length ?? 0) >= 5, `${help?.rights?.length} rights`);
 
+  // A voice note must never 500. The local Whisper fallback needs a Python venv most machines
+  // never create, and spawning a binary that is not there threw ENOENT straight out of
+  // transcribe() into the controller — so with no Groq key, every voice note was an internal
+  // server error. The recording is saved before transcription runs, so the worst honest outcome
+  // is an empty transcript and a system line saying so.
+  const wav = Buffer.alloc(44 + 16000 * 2, 0);
+  wav.write('RIFF', 0); wav.writeUInt32LE(36 + 16000 * 2, 4); wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(16000, 24); wav.writeUInt32LE(32000, 28); wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(16000 * 2, 40);
+  const form = new FormData();
+  form.append('audio', new Blob([wav], { type: 'audio/wav' }), 'voice-note.wav');
+  const voice = await fetch(`${BASE}/api/applicants/${A}/voice-note`, { method: 'POST', headers: { authorization: `Bearer ${aT}` }, body: form });
+  const voiceBody = await voice.json().catch(() => null);
+  check('a voice note never returns a server error', voice.status < 500, `HTTP ${voice.status}`);
+  check('silence is answered, not crashed', voice.status === 201 || voice.status === 200, `${voiceBody?.role ?? voiceBody?.text?.slice(0, 48) ?? 'no body'}`);
+
   // ---------------------------------------------------------------- safety
   section('Is this real?');
   const fake = await api(`/applicants/${A}/check`, {
